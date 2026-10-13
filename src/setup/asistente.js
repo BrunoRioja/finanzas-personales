@@ -13,12 +13,19 @@ function estaInstalado_(libro) {
   return !!libro.getSheetByName('Config') && leerConfig_().instalado === 'si';
 }
 
-function estadoInstalacion() {
+// Estado sin migrar: seguro de usar dentro de un bloqueo.
+function estadoActual_() {
   const instalado = estaInstalado_(abrirLibro_());
   return {
     instalado: instalado,
     modoDemo: PropertiesService.getScriptProperties().getProperty('MODO_DEMO') === 'si',
   };
+}
+
+// Llamada al abrir la app: si la hoja es de una versión anterior, la migra.
+function estadoInstalacion() {
+  asegurarEsquema_();
+  return estadoActual_();
 }
 
 // Valida todo antes de crear hojas: si algo falla, el libro queda intacto.
@@ -32,6 +39,8 @@ function completarAsistente(datos) {
     if (!(tc >= 0)) throw new Error('El tipo de cambio debe ser un número positivo.');
     const cuentas = (datos.cuentas || []).map(c => Object.assign({ id: nuevoId_() }, normalizarCuenta_(c)));
     if (!cuentas.length) throw new Error('Agrega al menos una cuenta.');
+    if (cuentas.filter(c => c.yape).length > 1) throw new Error('Solo una cuenta puede ser la de Yape.');
+    cuentas.forEach((c, i) => validarNumerosUnicos_(c, cuentas.slice(0, i)));
     const fuente = datos.categorias && datos.categorias.length ? datos.categorias : datosAsistente().categorias;
     const categorias = [];
     fuente.forEach(c => categorias.push(Object.assign({ id: nuevoId_() }, normalizarCategoria_(c, categorias, ''))));
@@ -45,6 +54,6 @@ function completarAsistente(datos) {
       nombre: nombre, moneda_principal: 'PEN', ultimo_tc: tc, modo_bot: 'B', hora_resumen: '21:00',
       version_esquema: VERSION_ESQUEMA, instalado: 'si',
     });
-    return estadoInstalacion();
+    return estadoActual_();
   });
 }

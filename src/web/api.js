@@ -22,8 +22,12 @@ function obtenerCatalogos() {
 function guardarCuenta(datos) {
   return conBloqueo_(() => {
     const cuenta = normalizarCuenta_(datos);
+    const todas = leerTabla_('Cuentas');
+    if (datos.id && !todas.some(c => c.id === datos.id)) throw new Error('La cuenta ya no existe.');
+    const otras = todas.filter(c => c.id !== datos.id);
+    validarNumerosUnicos_(cuenta, otras);
+    if (cuenta.yape) otras.filter(c => c.yape).forEach(c => actualizarFila_('Cuentas', c.id, { yape: false }));
     if (datos.id) {
-      if (!leerTabla_('Cuentas').some(c => c.id === datos.id)) throw new Error('La cuenta ya no existe.');
       actualizarFila_('Cuentas', datos.id, cuenta);
       return Object.assign({ id: datos.id }, cuenta);
     }
