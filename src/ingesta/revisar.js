@@ -34,6 +34,7 @@ function revisarCorreos(evento) {
         guardarConfig_({ ultima_revision_info: 'Error: ' + e.message });
       });
     } catch { /* sin hoja no hay dónde registrar */ }
+    if (evento && typeof evento === 'object') avisarError_('la lectura de correos', e);
     throw e;
   } finally {
     lock.releaseLock();
@@ -64,6 +65,7 @@ function revisarCorreosSinBloqueo_(ahoraMs) {
     });
   }
   if (avisos.length) conBloqueo_(() => avisos.forEach(a => registrarLog_('aviso', 'etiquetar', a[0], a[1])));
+  avisarPorRevisar_(r.nuevosPorRevisar);
   return {
     leidos: leidos.length, creados: r.creados, porRevisar: r.porRevisar, pendientes: r.pendientes,
     ignorados: r.ignorados, restantes: nuevos.length - leidos.length, etiquetados: etiquetados,
@@ -112,6 +114,7 @@ function guardarLeidos_(leidos, totalNuevos, ahoraMs) {
   return {
     creados: movimientos.length, porRevisar: movimientos.filter(m => m.estado === 'por_revisar').length,
     pendientes: pendientes.length, ignorados: ignorados.length, aEtiquetar: aEtiquetar,
+    nuevosPorRevisar: movimientos.filter(m => m.estado === 'por_revisar'),
   };
 }
 
