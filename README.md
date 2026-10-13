@@ -1,6 +1,6 @@
 # 💸 Finanzas personales
 
-[![CI](https://github.com/USUARIO_GITHUB/finanzas-personales/actions/workflows/ci.yml/badge.svg)](https://github.com/USUARIO_GITHUB/finanzas-personales/actions/workflows/ci.yml)
+[![CI](https://github.com/BrunoRioja/finanzas-personales/actions/workflows/ci.yml/badge.svg)](https://github.com/BrunoRioja/finanzas-personales/actions/workflows/ci.yml)
 ![Licencia MIT](https://img.shields.io/badge/licencia-MIT-7c5cff)
 
 > **EN —** Self-hosted personal finance app built on Google Apps Script + Google Sheets. Each person runs their own copy in their own Google account: no servers, no shared data. Roadmap: bank-notification emails parsed automatically, a Telegram bot that only asks about what it doesn't know, and Gemini for voice notes and receipts.
@@ -34,7 +34,7 @@ App de finanzas personales que vive en **tu propia cuenta de Google**. Registra 
 Ver [docs/instalacion.md](docs/instalacion.md). Resumen para desarrolladores:
 
 ```bash
-git clone https://github.com/USUARIO_GITHUB/finanzas-personales.git
+git clone https://github.com/BrunoRioja/finanzas-personales.git
 cd finanzas-personales
 npm install
 npx clasp login

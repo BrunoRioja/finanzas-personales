@@ -9,7 +9,7 @@ Requisitos: Node 20 o superior, una cuenta de Google y la [API de Apps Script ac
 1. Clona e instala:
 
    ```bash
-   git clone https://github.com/USUARIO_GITHUB/finanzas-personales.git
+   git clone https://github.com/BrunoRioja/finanzas-personales.git
    cd finanzas-personales
    npm install
    ```
