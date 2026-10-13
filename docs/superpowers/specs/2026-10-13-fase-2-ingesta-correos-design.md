@@ -17,7 +17,7 @@ Que los gastos, ingresos y transferencias del BCP y Yape **entren solos** a la a
 - Un comercio ya conocido entra confirmado y categorizado; uno nuevo entra "por revisar" y, al categorizarlo una vez, la app lo recuerda.
 - Pagar la tarjeta y mover dinero entre cuentas propias **no** cuenta como gasto.
 - Ningún correo bancario se pierde: o crea un movimiento o queda visible como "correo no leído".
-- La app pide **solo permiso de lectura** de Gmail.
+- La app pide el permiso de Gmail más acotado que permite etiquetar: `gmail.modify` ("ver y modificar, pero no eliminar"). Nunca borra ni envía correos.
 
 Fuera de alcance (fases siguientes): bot de Telegram (3), Gemini como respaldo de lectura y foto de boleta (4), estado de cuenta VISA y próximos pagos (5), otros bancos (Interbank no envía notificaciones de consumo hoy).
 
@@ -43,7 +43,7 @@ Bruno corrige los nombres y números de sus cuentas desde la vista Cuentas tras 
 | Movimientos | Sin columnas nuevas. `origen = 'gmail'` para lo importado; `estado = 'por_revisar'` cuando falta categoría o cuenta; `ref_externa = 'gmail:<id del mensaje>'`. |
 | Reglas | Se usan: `patron` (texto normalizado), `categoria_id`, `creada_por` (`usuario`), `usos`. |
 | **Pendientes** (nueva) | Correos bancarios que ningún lector entendió: `id, gmail_id, fecha, remitente, asunto, resumen, estado (pendiente/descartado)`. |
-| Config | Nuevas claves: `importar_desde` (`2026-10-01` por defecto en la primera activación), `lectura_activa` (`si/no`), `lectura_minutos` (5), `ultima_revision` (fecha-hora), `ultima_revision_info` (texto: correos leídos, creados, duración o error). |
+| Config | Nuevas claves: `importar_desde` (`2026-10-01` por defecto en la primera activación), `lectura_activa` (`si/no`), `lectura_minutos` (5), `etiquetar` (`si` por defecto), `ultima_revision` (fecha-hora), `ultima_revision_info` (texto: correos leídos, creados, duración o error). |
 
 ### Migración
 `VERSION_ESQUEMA` sube a 2. `migrarEsquema_()` se ejecuta al abrir la app (`estadoInstalacion`) y antes de cada lectura si `Config.version_esquema < 2`:
@@ -97,8 +97,9 @@ Montos: `S/` → PEN, `$` → USD; se aceptan miles con coma (`S/ 3,500.00`). Fe
 
 ## 6. Lectura automática
 
-- **Permiso:** Gmail **solo lectura** (`https://www.googleapis.com/auth/gmail.readonly`) mediante el servicio avanzado de Gmail (API Gmail v1), declarado en `appsscript.json`. La app **no** modifica, etiqueta ni borra correos.
-- **Cómo sabe qué ya leyó:** `ref_externa = gmail:<id>` en Movimientos y `gmail_id` en Pendientes. Cada vuelta busca desde `max(importar_desde, ultima_revision − 2 horas)` para no releer todo.
+- **Permiso:** `https://www.googleapis.com/auth/gmail.modify` mediante el servicio avanzado de Gmail (API Gmail v1), declarado en `appsscript.json` (decisión de Bruno: quiere ver en Gmail qué correos ya entraron). Es el permiso más acotado que permite etiquetar; la app **nunca** borra ni envía correos.
+- **Etiqueta:** a cada correo que crea un movimiento o un pendiente se le agrega la etiqueta **`Finanzas/Procesado`** (se crea si no existe). Interruptor en Ajustes (`Config.etiquetar`, activo por defecto). Si etiquetar falla, el movimiento igual se guarda y el error va al Log.
+- **Cómo sabe qué ya leyó (fuente de verdad):** `ref_externa = gmail:<id>` en Movimientos y `gmail_id` en Pendientes — no la etiqueta, que es solo ayuda visual (borrarla a mano no duplica nada). Cada vuelta busca desde `max(importar_desde, ultima_revision − 2 horas)` para no releer todo.
 - **Consulta:** `from:(notificacionesbcp.com.pe OR yape.pe) after:<fecha>` (excluye spam y papelera por defecto). Por remitente, en cualquier pestaña de Gmail (los correos del BCP llegan casi siempre a Notificaciones).
 - **Tandas:** como máximo 50 correos nuevos por vuelta; el resto en la siguiente. Correos ya conocidos se saltan sin descargarlos (se compara el id antes de pedir el cuerpo).
 - **Frecuencia:** trigger cada 5 minutos por defecto, configurable en Ajustes: 5, 15, 30, 60 minutos o "solo manual". Consumo estimado: 8–12 de los 90 minutos diarios de tareas automáticas de una cuenta personal; sin costo monetario posible.
@@ -157,7 +158,7 @@ API nueva: `obtenerPorRevisar()`, `categorizarMovimiento({id, categoria_id, cuen
 - `htmlATexto_` probado con esos HTML.
 - Lectores: cada fixture → movimiento crudo esperado.
 - `resolverMovimiento_`: cuentas por número, Yape, reglas (la más larga gana), tc, faltantes → por revisar.
-- Ingesta con Gmail simulado en el arnés: consulta y fecha, tandas de 50, duplicados, pendientes, salto por bloqueo, registro de error en Log y `ultima_revision_info`.
+- Ingesta con Gmail simulado en el arnés: consulta y fecha, tandas de 50, duplicados, pendientes, etiqueta (aplicada, desactivable, falla sin perder el movimiento), salto por bloqueo, registro de error en Log y `ultima_revision_info`.
 - Migración v1 → v2: renombre, columnas nuevas, idempotencia, datos intactos.
 - Bandeja, reglas y dividir: API en Node + revisión en Chrome con el stub.
 - Prueba final con Bruno: activar lectura, importar desde 2026-10-01, revisar la bandeja.
