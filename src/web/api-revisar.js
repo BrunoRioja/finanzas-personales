@@ -54,18 +54,28 @@ function categorizarMovimiento(datos) {
     let confirmados = 1;
     let regla = null;
     if (datos.recordar && mov.tipo !== 'transferencia' && mov.comercio) {
-      const patron = normalizarTexto_(datos.patron || mov.comercio);
-      if (!patron) throw new Error('Escribe el texto del comercio a recordar.');
-      regla = guardarRegla_(patron, cambios.categoria_id);
-      movs.filter(m => m.id !== mov.id && m.estado === 'por_revisar' && m.tipo === mov.tipo && m.cuenta_id &&
-        (m.moneda === 'PEN' || m.tc > 0) && normalizarTexto_(m.comercio).indexOf(patron) >= 0)
-        .forEach(m => {
-          actualizarFila_('Movimientos', m.id, { categoria_id: cambios.categoria_id, estado: 'confirmado' });
-          confirmados++;
-        });
+      const r = recordarComercio_(movs, mov, datos.patron, cambios.categoria_id);
+      regla = r.regla;
+      confirmados += r.confirmados;
     }
     return { confirmados: confirmados, regla: regla };
   });
+}
+
+// Dentro del bloqueo: crea o actualiza la regla del comercio y confirma los demás
+// "por revisar" que coinciden. `confirmados` no cuenta a `mov`. La usan la bandeja y el bot.
+function recordarComercio_(movs, mov, patronTexto, categoriaId) {
+  const patron = normalizarTexto_(patronTexto || mov.comercio);
+  if (!patron) throw new Error('Escribe el texto del comercio a recordar.');
+  const regla = guardarRegla_(patron, categoriaId);
+  let confirmados = 0;
+  movs.filter(m => m.id !== mov.id && m.estado === 'por_revisar' && m.tipo === mov.tipo && m.cuenta_id &&
+    (m.moneda === 'PEN' || m.tc > 0) && normalizarTexto_(m.comercio).indexOf(patron) >= 0)
+    .forEach(m => {
+      actualizarFila_('Movimientos', m.id, { categoria_id: categoriaId, estado: 'confirmado' });
+      confirmados++;
+    });
+  return { regla: regla, confirmados: confirmados };
 }
 
 function guardarRegla_(patron, categoriaId) {
