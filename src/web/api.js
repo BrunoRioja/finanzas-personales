@@ -55,3 +55,48 @@ function guardarAjustes(datos) {
   });
   return obtenerCatalogos().config;
 }
+
+function contextoMovimientos_() {
+  return {
+    cuentas: leerTabla_('Cuentas'),
+    categorias: leerTabla_('Categorias'),
+    tcUsd: Number(leerConfig_().ultimo_tc) || 0,
+  };
+}
+
+function guardarMovimiento(datos) {
+  return conBloqueo_(() => {
+    const ctx = contextoMovimientos_();
+    if (datos.id) {
+      const previo = leerTabla_('Movimientos').filter(m => m.id === datos.id)[0];
+      if (!previo) throw new Error('El movimiento ya no existe.');
+      if (previo.dividido) throw new Error('Este movimiento está dividido; edítalo desde "Dividir".');
+      ctx.idsPrevios = [previo.cuenta_id, previo.cuenta_destino_id, previo.categoria_id];
+      const mov = normalizarMovimiento_(Object.assign({}, datos, {
+        origen: previo.origen, estado: previo.estado, ref_externa: previo.ref_externa,
+      }), ctx);
+      actualizarFila_('Movimientos', previo.id, mov);
+      return Object.assign({ id: previo.id }, mov, { creado_en: previo.creado_en });
+    }
+    const nuevo = Object.assign({ id: nuevoId_() }, normalizarMovimiento_(datos, ctx), {
+      creado_en: formatearFecha_(new Date(), 'yyyy-MM-dd HH:mm:ss'),
+    });
+    agregarFilas_('Movimientos', [nuevo]);
+    return nuevo;
+  });
+}
+
+function listarMovimientos(filtro) {
+  filtro = filtro || {};
+  const mes = validarMes_(filtro.mes);
+  return leerTabla_('Movimientos')
+    .filter(m => mesDe_(m.fecha) === mes)
+    .filter(m => !filtro.cuenta_id || m.cuenta_id === filtro.cuenta_id || m.cuenta_destino_id === filtro.cuenta_id)
+    .filter(m => !filtro.categoria_id || m.categoria_id === filtro.categoria_id)
+    .sort((a, b) => (b.fecha + b.creado_en).localeCompare(a.fecha + a.creado_en));
+}
+
+function eliminarMovimiento(id) {
+  conBloqueo_(() => eliminarFila_('Movimientos', id));
+  return { ok: true };
+}
