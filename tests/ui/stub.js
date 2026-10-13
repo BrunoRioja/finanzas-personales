@@ -9,6 +9,7 @@
     { id: 'a1', nombre: 'Débito BCP', banco: 'BCP', tipo: 'debito', moneda: 'PEN', saldo_inicial: 2000, ultimos4: '1111', activa: true },
     { id: 'a2', nombre: 'VISA BCP', banco: 'BCP', tipo: 'credito', moneda: 'PEN', saldo_inicial: -300, ultimos4: '2222', activa: true },
     { id: 'a3', nombre: 'Efectivo', banco: 'Efectivo', tipo: 'efectivo', moneda: 'PEN', saldo_inicial: 100, ultimos4: '', activa: true },
+    { id: 'a4', nombre: 'Ahorro $', banco: 'BCP', tipo: 'ahorro', moneda: 'USD', saldo_inicial: 200, ultimos4: '', activa: true },
   ];
   const SALDOS = [
     { id: 'a1', nombre: 'Débito BCP', banco: 'BCP', tipo: 'debito', saldo_pen: 2140.5 },

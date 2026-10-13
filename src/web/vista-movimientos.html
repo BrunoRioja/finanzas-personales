@@ -132,6 +132,8 @@ function abrirFormMovimiento(mov) {
         caja.querySelectorAll('[data-cat]').forEach(x => x.classList.toggle('activo', x === b));
       };
     });
+    // Al cambiar de cuenta, la moneda pasa a ser la de esa cuenta (editable después).
+    $('#mv-cuenta_id', caja).onchange = () => { leerForm(); f.moneda = cuenta(f.cuenta_id).moneda || 'PEN'; pintar(); };
     $('#mv-cancelar', caja).onclick = cerrarModal;
     $('#mv-guardar', caja).onclick = e => guardar(e.target);
     const eliminar = $('#mv-eliminar', caja);
