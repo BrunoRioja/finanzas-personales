@@ -7,7 +7,9 @@ function doPost(e) {
   } catch (err) {
     console.error(err);
   }
-  return ContentService.createTextOutput('ok');
+  // HtmlService responde 200 directo; ContentService responde 302 (redirige a otro dominio)
+  // y Telegram toma el 302 como entrega fallida: reintenta y deja en fila los mensajes siguientes.
+  return HtmlService.createHtmlOutput('ok');
 }
 
 // Ejecútala una vez desde el editor del receptor para autorizarlo (sin esto, Google
