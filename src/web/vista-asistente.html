@@ -108,7 +108,7 @@ VISTAS.asistente = async function (cont) {
           nombre: datos.nombre, tc_usd: datos.tc_usd, cuentas: datos.cuentas,
           categorias: datos.categorias.filter(c => c.elegida).map(c => ({ nombre: c.nombre, emoji: c.emoji, tipo: c.tipo })),
         });
-        aviso('¡Listo! Tu app está configurada.');
+        aviso('¡Listo! Tu app está configurada. Puedes conectar Telegram desde Ajustes.');
         iniciar();
       } catch (err) {
         aviso(err.message, true);

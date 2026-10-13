@@ -1,7 +1,7 @@
 <script>
 'use strict';
 VISTAS.ajustes = async function (cont) {
-  const [cat, lectura, reglas] = await Promise.all([cargarCatalogos(), api('estadoLectura'), api('listarReglas')]);
+  const [cat, lectura, reglas, telegram] = await Promise.all([cargarCatalogos(), api('estadoLectura'), api('listarReglas'), api('estadoTelegram')]);
   const chips = tipo => cat.categorias.filter(c => c.tipo === tipo).map(c =>
     '<button type="button" class="chip' + (c.activa ? '' : ' apagado') + '" data-cat="' + esc(c.id) + '">' + esc(c.emoji + ' ' + c.nombre) + '</button>').join('');
   cont.innerHTML = '<div class="cabecera"><h1>Ajustes</h1></div>' +
@@ -15,7 +15,7 @@ VISTAS.ajustes = async function (cont) {
       '<div class="cabecera-seccion" style="margin-top:16px"><div class="etiqueta">Categorías de ingreso</div><button type="button" class="boton" data-nueva="ingreso">+ Nueva</button></div>' +
       '<div class="chips">' + chips('ingreso') + '</div>' +
     '</section>' +
-    seccionLectura(lectura) + seccionReglas(reglas) +
+    seccionLectura(lectura) + seccionTelegram(telegram, cat.cuentas) + seccionReglas(reglas) +
     '<section class="tarjeta seccion"><div class="etiqueta">Datos</div>' +
       '<p class="tenue" style="margin:0">Todo vive en tu propia Google Sheet, en tu cuenta de Google.</p>' +
       '<div class="acciones"><a class="boton" href="' + esc(cat.urlHoja) + '" target="_blank" rel="noopener">Abrir Google Sheet</a>' +
@@ -37,6 +37,7 @@ VISTAS.ajustes = async function (cont) {
   });
   cont.querySelectorAll('[data-nueva]').forEach(b => { b.onclick = () => abrirFormCategoria(null, b.dataset.nueva); });
   enlazarLectura();
+  enlazarTelegram();
   enlazarReglas();
   $('#a-demo').onclick = async e => {
     e.target.disabled = true;
