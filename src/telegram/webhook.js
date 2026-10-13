@@ -81,6 +81,10 @@ function manejarComando_(texto) {
     case '/ayuda':
     case '/help':
       return enviarMensaje_(TEXTO_AYUDA);
+    case '/hoy':
+      return enviarMensaje_(resumenDelDia_(hoyIso_()) || 'Hoy no hay movimientos.');
+    case '/mes':
+      return enviarMensaje_(resumenDelMes_(mesDe_(hoyIso_())));
     case '/deshacer':
       return deshacerUltimo_();
     default:
