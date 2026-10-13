@@ -2,6 +2,20 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/); versiones con [SemVer](https://semver.org/lang/es/).
 
+## [0.2.0] — 2026-10-13
+
+### Agregado
+- Lectura automática de correos del BCP y Yape con trigger configurable (5, 15, 30, 60 minutos o manual) e importación desde una fecha.
+- Bandeja "Por revisar" con categorías frecuentes, reglas comercio → categoría que se aplican solas y correos no leídos.
+- Dividir un movimiento entre varias categorías.
+- Cuentas con varios números (cuenta y tarjeta) y cuenta de Yape.
+- Etiqueta `Finanzas/Procesado` en Gmail (desactivable).
+- Guía para agregar un banco.
+
+### Cambiado
+- Esquema de la hoja v2 (migración automática): `ultimos4` pasa a `numeros`, nueva columna `yape` y hoja `Pendientes`.
+- Eliminar un movimiento borra también sus divisiones.
+
 ## [0.1.0] — 2026-10-13
 
 ### Agregado
