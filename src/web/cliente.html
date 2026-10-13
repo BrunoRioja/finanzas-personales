@@ -55,6 +55,9 @@ function categoria(id) {
 function cuenta(id) { return estado.catalogos.cuentas.find(c => c.id === id) || { id: id, nombre: '—', moneda: 'PEN' }; }
 const TIPOS_CUENTA_ETIQUETA = { debito: 'Débito', credito: 'Crédito', ahorro: 'Ahorro', billetera: 'Billetera', efectivo: 'Efectivo' };
 function etiquetaTipo(tipo) { return TIPOS_CUENTA_ETIQUETA[tipo] || tipo; }
+function textoNumeros(numeros) {
+  return numeros ? ' · ' + String(numeros).split(/[\s,]+/).filter(Boolean).map(n => '•••• ' + n).join(' · ') : '';
+}
 function campo(etiqueta, control) { return '<div class="campo"><label>' + esc(etiqueta) + '</label>' + control + '</div>'; }
 function seleccion(id, valores, actual, etiquetas) {
   return '<select class="entrada" id="' + id + '">' + valores.map((v, i) =>

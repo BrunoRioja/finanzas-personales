@@ -17,9 +17,9 @@ function generarDatosDemo_(hoyIso) {
   const entre = (min, max) => redondear2_(min + rnd() * (max - min));
   const elegir = lista => lista[Math.floor(rnd() * lista.length)];
   const cuentas = [
-    { id: 'demo-debito', nombre: 'Débito', banco: 'BCP', tipo: 'debito', moneda: 'PEN', saldo_inicial: 2500, ultimos4: '1111', activa: true },
-    { id: 'demo-visa', nombre: 'VISA', banco: 'BCP', tipo: 'credito', moneda: 'PEN', saldo_inicial: -350, ultimos4: '2222', activa: true },
-    { id: 'demo-efectivo', nombre: 'Efectivo', banco: 'Efectivo', tipo: 'efectivo', moneda: 'PEN', saldo_inicial: 150, ultimos4: '', activa: true },
+    { id: 'demo-debito', nombre: 'Débito', banco: 'BCP', tipo: 'debito', moneda: 'PEN', saldo_inicial: 2500, numeros: '1111', activa: true, yape: true },
+    { id: 'demo-visa', nombre: 'VISA', banco: 'BCP', tipo: 'credito', moneda: 'PEN', saldo_inicial: -350, numeros: '2222', activa: true, yape: false },
+    { id: 'demo-efectivo', nombre: 'Efectivo', banco: 'Efectivo', tipo: 'efectivo', moneda: 'PEN', saldo_inicial: 150, numeros: '', activa: true, yape: false },
   ];
   const categorias = CATEGORIAS_POR_DEFECTO.map((c, i) => ({
     id: 'demo-cat-' + (i + 1), nombre: c[0], emoji: c[1], color: PALETA[i % PALETA.length], tipo: c[2], padre_id: '', activa: true,
@@ -81,7 +81,7 @@ function cargarDemo() {
         version_esquema: VERSION_ESQUEMA, instalado: 'si',
       });
     }
-    return estadoInstalacion();
+    return estadoActual_();
   });
 }
 

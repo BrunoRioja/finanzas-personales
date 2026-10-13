@@ -2,20 +2,20 @@ const test = require('node:test');
 const assert = require('node:assert');
 const { crearEntorno, crearLibro } = require('./harness');
 
-const HOJAS = ['Categorias', 'Config', 'Cuentas', 'Divisiones', 'Log', 'Movimientos', 'Reglas'];
+const HOJAS = ['Categorias', 'Config', 'Cuentas', 'Divisiones', 'Log', 'Movimientos', 'Pendientes', 'Reglas'];
 
 test('crearHojas_ crea todas las hojas con encabezados y es idempotente', () => {
   const e = crearEntorno();
   e.interno('crearHojas_', e.principal);
   e.interno('crearHojas_', e.principal);
   assert.deepStrictEqual(Object.keys(e.hojas).sort(), HOJAS);
-  assert.deepStrictEqual(e.hojas.Cuentas, [['id', 'nombre', 'banco', 'tipo', 'moneda', 'saldo_inicial', 'ultimos4', 'activa']]);
+  assert.deepStrictEqual(e.hojas.Cuentas, [['id', 'nombre', 'banco', 'tipo', 'moneda', 'saldo_inicial', 'numeros', 'activa', 'yape']]);
 });
 
 test('crearHojas_ pone formato texto en columnas texto/fecha (conserva ceros a la izquierda)', () => {
   const e = crearEntorno();
   e.interno('crearHojas_', e.principal);
-  assert.strictEqual(e.principal._formatos['Cuentas!7'], '@');   // ultimos4
+  assert.strictEqual(e.principal._formatos['Cuentas!7'], '@');   // numeros
   assert.strictEqual(e.principal._formatos['Movimientos!2'], '@'); // fecha
   assert.strictEqual(e.principal._formatos['Cuentas!6'], undefined); // saldo_inicial es número
 });
@@ -23,10 +23,10 @@ test('crearHojas_ pone formato texto en columnas texto/fecha (conserva ceros a l
 test('agregarFilas_ y leerTabla_ convierten tipos', () => {
   const e = crearEntorno();
   e.interno('crearHojas_', e.principal);
-  e.interno('agregarFilas_', 'Cuentas', [{ id: 'a', nombre: 'Débito', saldo_inicial: '10.5', ultimos4: '0042', activa: true }]);
-  assert.deepStrictEqual(e.hojas.Cuentas[1], ['a', 'Débito', '', '', '', 10.5, '0042', true]);
+  e.interno('agregarFilas_', 'Cuentas', [{ id: 'a', nombre: 'Débito', saldo_inicial: '10.5', numeros: '0042', activa: true }]);
+  assert.deepStrictEqual(e.hojas.Cuentas[1], ['a', 'Débito', '', '', '', 10.5, '0042', true, false]);
   assert.deepStrictEqual(e.llamar('leerTabla_', 'Cuentas'), [
-    { id: 'a', nombre: 'Débito', banco: '', tipo: '', moneda: '', saldo_inicial: 10.5, ultimos4: '0042', activa: true },
+    { id: 'a', nombre: 'Débito', banco: '', tipo: '', moneda: '', saldo_inicial: 10.5, numeros: '0042', activa: true, yape: false },
   ]);
 });
 

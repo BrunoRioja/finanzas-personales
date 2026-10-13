@@ -1,7 +1,7 @@
 <script>
 'use strict';
 VISTAS.ajustes = async function (cont) {
-  const cat = await cargarCatalogos();
+  const [cat, lectura, reglas] = await Promise.all([cargarCatalogos(), api('estadoLectura'), api('listarReglas')]);
   const chips = tipo => cat.categorias.filter(c => c.tipo === tipo).map(c =>
     '<button type="button" class="chip' + (c.activa ? '' : ' apagado') + '" data-cat="' + esc(c.id) + '">' + esc(c.emoji + ' ' + c.nombre) + '</button>').join('');
   cont.innerHTML = '<div class="cabecera"><h1>Ajustes</h1></div>' +
@@ -15,6 +15,7 @@ VISTAS.ajustes = async function (cont) {
       '<div class="cabecera-seccion" style="margin-top:16px"><div class="etiqueta">Categorías de ingreso</div><button type="button" class="boton" data-nueva="ingreso">+ Nueva</button></div>' +
       '<div class="chips">' + chips('ingreso') + '</div>' +
     '</section>' +
+    seccionLectura(lectura) + seccionReglas(reglas) +
     '<section class="tarjeta seccion"><div class="etiqueta">Datos</div>' +
       '<p class="tenue" style="margin:0">Todo vive en tu propia Google Sheet, en tu cuenta de Google.</p>' +
       '<div class="acciones"><a class="boton" href="' + esc(cat.urlHoja) + '" target="_blank" rel="noopener">Abrir Google Sheet</a>' +
@@ -35,6 +36,8 @@ VISTAS.ajustes = async function (cont) {
     b.onclick = () => { const c = cat.categorias.find(x => x.id === b.dataset.cat); abrirFormCategoria(c, c.tipo); };
   });
   cont.querySelectorAll('[data-nueva]').forEach(b => { b.onclick = () => abrirFormCategoria(null, b.dataset.nueva); });
+  enlazarLectura();
+  enlazarReglas();
   $('#a-demo').onclick = async e => {
     e.target.disabled = true;
     try {
@@ -46,6 +49,130 @@ VISTAS.ajustes = async function (cont) {
     }
   };
 };
+
+const FRECUENCIAS = [
+  ['apagada', 'Apagada'], ['5', 'Cada 5 minutos'], ['15', 'Cada 15 minutos'], ['30', 'Cada 30 minutos'],
+  ['60', 'Cada hora'], ['manual', 'Solo cuando toque "Revisar ahora"'],
+];
+// Resultado de la última acción de lectura: se muestra fijo hasta la siguiente.
+let resultadoLectura = null;
+
+function seccionLectura(l) {
+  const estadoTexto = l.ultima_revision ? 'Última revisión: ' + l.ultima_revision + ' · ' + l.info : 'Aún no se ha revisado ningún correo.';
+  const horas = Array.from({ length: 25 }, (_, i) => String(i));
+  const etiquetas = horas.map(h => h + ':00');
+  const resultado = resultadoLectura
+    ? '<div class="resultado-lectura ' + resultadoLectura.clase + '" id="l-resultado">' + esc(resultadoLectura.texto) +
+      (resultadoLectura.verRevisar ? ' <button type="button" class="boton" id="l-ver-revisar">Ver por revisar</button>' : '') + '</div>'
+    : '<div class="resultado-lectura" id="l-resultado" hidden></div>';
+  return '<section class="tarjeta seccion"><div class="etiqueta">Lectura de correos (BCP y Yape)</div>' +
+    '<p class="tenue" style="margin:0 0 10px;font-size:13px">' + esc(estadoTexto) + '</p>' + resultado +
+    '<div class="dos-col">' +
+      campo('Frecuencia', seleccion('l-frec', FRECUENCIAS.map(f => f[0]), String(l.frecuencia), FRECUENCIAS.map(f => f[1]))) +
+      campo('Importar correos desde', '<input class="entrada" type="date" id="l-desde" value="' + esc(l.importar_desde) + '">') +
+    '</div>' +
+    '<div class="dos-col">' +
+      campo('Leer automáticamente desde las', seleccion('l-inicio', horas.slice(0, 24), String(l.horario_inicio), etiquetas.slice(0, 24))) +
+      campo('hasta las', seleccion('l-fin', horas.slice(1), String(l.horario_fin), etiquetas.slice(1))) +
+    '</div>' +
+    '<label class="check"><input type="checkbox" id="l-etiquetar"' + (l.etiquetar ? ' checked' : '') + '> Etiquetar en Gmail los correos leídos (Finanzas/Procesado)</label>' +
+    '<div class="acciones" id="l-acciones"><button type="button" class="boton primario" id="l-guardar">Guardar</button>' +
+    (l.activa ? '<button type="button" class="boton" id="l-revisar">Revisar ahora</button><button type="button" class="boton" id="l-importar">Importar</button>' +
+      '<button type="button" class="boton" id="l-releer">Volver a leer los sin cuenta y los no leídos</button>' : '') +
+    '</div></section>';
+}
+
+function enlazarLectura() {
+  $('#l-guardar').onclick = e => guardarLectura(e.target);
+  const revisar = $('#l-revisar');
+  if (revisar) revisar.onclick = e => ejecutarLectura(e.target, 'Revisando', () => api('revisarCorreos'));
+  const importar = $('#l-importar');
+  if (importar) importar.onclick = e => ejecutarLectura(e.target, 'Importando', () => api('importarCorreosDesde', $('#l-desde').value));
+  const releer = $('#l-releer');
+  if (releer) releer.onclick = e => ejecutarLectura(e.target, 'Volviendo a leer', () => api('volverALeerCorreos'));
+  const ver = $('#l-ver-revisar');
+  if (ver) ver.onclick = () => mostrar('revisar');
+}
+
+async function guardarLectura(boton) {
+  boton.disabled = true;
+  try {
+    await api('configurarLectura', {
+      frecuencia: $('#l-frec').value, etiquetar: $('#l-etiquetar').checked,
+      horario_inicio: Number($('#l-inicio').value), horario_fin: Number($('#l-fin').value),
+    });
+    resultadoLectura = { clase: 'ok', texto: '✅ Lectura de correos guardada.' };
+    mostrar('ajustes');
+  } catch (err) {
+    aviso(err.message, true);
+    boton.disabled = false;
+  }
+}
+
+// Ejecuta la lectura y, si quedan correos, sigue tanda por tanda mostrando el avance.
+async function ejecutarLectura(boton, verbo, primera) {
+  document.querySelectorAll('#l-acciones button').forEach(b => { b.disabled = true; });
+  boton.textContent = verbo + '…';
+  const caja = $('#l-resultado');
+  const progreso = texto => { caja.hidden = false; caja.className = 'resultado-lectura'; caja.textContent = texto; };
+  progreso('⏳ ' + verbo + ' correos… puede tardar hasta un minuto. No cierres esta pantalla.');
+  const total = { leidos: 0, creados: 0, porRevisar: 0, pendientes: 0, borrados: 0 };
+  try {
+    let r = await primera();
+    for (let vuelta = 1; ; vuelta++) {
+      if (r.omitida) {
+        resultadoLectura = { clase: 'mal', texto: '⚠️ ' + r.mensaje };
+        break;
+      }
+      Object.keys(total).forEach(k => { total[k] += r[k] || 0; });
+      if (!r.restantes || vuelta >= 20) {
+        resultadoLectura = { clase: 'ok', texto: textoResultado(total, r.restantes), verRevisar: total.porRevisar + total.pendientes > 0 };
+        break;
+      }
+      progreso('⏳ ' + verbo + '… leídos ' + total.leidos + ' correos · faltan ' + r.restantes);
+      r = await api('revisarCorreos');
+    }
+  } catch (err) {
+    resultadoLectura = { clase: 'mal', texto: '❌ ' + err.message };
+  }
+  mostrar('ajustes');
+}
+
+function textoResultado(t, restantes) {
+  if (!t.leidos && !t.borrados) return '✅ Listo: no había correos nuevos.';
+  let texto = '✅ Listo: ' + (t.borrados ? t.borrados + ' vueltos a leer · ' : '') +
+    t.leidos + ' correos leídos · ' + t.creados + ' movimientos';
+  if (t.porRevisar) texto += ' · ' + t.porRevisar + ' por revisar';
+  if (t.pendientes) texto += ' · ' + t.pendientes + (t.pendientes === 1 ? ' no leído' : ' no leídos');
+  if (restantes) texto += ' · aún faltan ' + restantes + ' (toca Importar otra vez)';
+  return texto;
+}
+
+function seccionReglas(reglas) {
+  const filas = reglas.length ? reglas.map(r => {
+    const c = categoria(r.categoria_id);
+    return '<div class="fila-simple"><span>' + esc(r.patron) + ' → ' + esc(c.emoji + ' ' + c.nombre) +
+      ' <span class="tenue">· ' + r.usos + ' usos</span></span>' +
+      '<button type="button" class="boton" data-regla="' + esc(r.id) + '" aria-label="Borrar regla">✕</button></div>';
+  }).join('') : '<p class="tenue" style="margin:0;font-size:13px">Aún no hay reglas. Se crean al categorizar en "Por revisar".</p>';
+  return '<section class="tarjeta seccion"><div class="etiqueta">Reglas (comercio → categoría)</div>' + filas + '</section>';
+}
+
+function enlazarReglas() {
+  document.querySelectorAll('[data-regla]').forEach(b => {
+    b.onclick = async () => {
+      b.disabled = true;
+      try {
+        await api('eliminarRegla', b.dataset.regla);
+        aviso('Regla borrada');
+        mostrar('ajustes');
+      } catch (err) {
+        aviso(err.message, true);
+        b.disabled = false;
+      }
+    };
+  });
+}
 
 function abrirFormCategoria(c, tipo) {
   const v = c || { nombre: '', emoji: '', color: '#7c5cff', activa: true };

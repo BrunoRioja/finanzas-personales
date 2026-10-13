@@ -3,13 +3,14 @@
   const CATEGORIAS = [
     ['c1', 'Supermercado', '🛒', '#3ddc97', 'gasto'], ['c2', 'Comida fuera', '🍽️', '#ffb347', 'gasto'],
     ['c3', 'Transporte', '🚕', '#7c5cff', 'gasto'], ['c4', 'Suscripciones', '📺', '#4cc9f0', 'gasto'],
-    ['c5', 'Bodega', '🏪', '#ff6b6b', 'gasto'], ['c6', 'Sueldo', '💼', '#3ddc97', 'ingreso'],
+    ['c5', 'Bodega', '🏪', '#ff6b6b', 'gasto'], ['c7', 'Aseo personal', '🧴', '#f72585', 'gasto'],
+    ['c6', 'Sueldo', '💼', '#3ddc97', 'ingreso'],
   ].map(c => ({ id: c[0], nombre: c[1], emoji: c[2], color: c[3], tipo: c[4], padre_id: '', activa: true }));
   const CUENTAS = [
-    { id: 'a1', nombre: 'Débito BCP', banco: 'BCP', tipo: 'debito', moneda: 'PEN', saldo_inicial: 2000, ultimos4: '1111', activa: true },
-    { id: 'a2', nombre: 'VISA BCP', banco: 'BCP', tipo: 'credito', moneda: 'PEN', saldo_inicial: -300, ultimos4: '2222', activa: true },
-    { id: 'a3', nombre: 'Efectivo', banco: 'Efectivo', tipo: 'efectivo', moneda: 'PEN', saldo_inicial: 100, ultimos4: '', activa: true },
-    { id: 'a4', nombre: 'Ahorro $', banco: 'BCP', tipo: 'ahorro', moneda: 'USD', saldo_inicial: 200, ultimos4: '', activa: true },
+    { id: 'a1', nombre: 'Débito BCP', banco: 'BCP', tipo: 'debito', moneda: 'PEN', saldo_inicial: 2000, numeros: '4444, 1111', activa: true, yape: true },
+    { id: 'a2', nombre: 'VISA BCP', banco: 'BCP', tipo: 'credito', moneda: 'PEN', saldo_inicial: -300, numeros: '2222', activa: true, yape: false },
+    { id: 'a3', nombre: 'Efectivo', banco: 'Efectivo', tipo: 'efectivo', moneda: 'PEN', saldo_inicial: 100, numeros: '', activa: true, yape: false },
+    { id: 'a4', nombre: 'Ahorro $', banco: 'BCP', tipo: 'ahorro', moneda: 'USD', saldo_inicial: 200, numeros: '3333', activa: true, yape: false },
   ];
   const SALDOS = [
     { id: 'a1', nombre: 'Débito BCP', banco: 'BCP', tipo: 'debito', saldo_pen: 2140.5 },
@@ -21,13 +22,19 @@
     descripcion: '', origen: 'manual', estado: 'confirmado', ref_externa: '', dividido: false, creado_en: fecha + ' 12:00:00',
   }, extra || {});
   const MOVS = [
-    mov('m1', '2026-10-12', 'gasto', 89.3, 'a1', 'c1', 'Tottus'),
-    mov('m2', '2026-10-12', 'gasto', 12, 'a1', 'c3', 'Taxi', { descripcion: 'Yape' }),
+    mov('m1', '2026-10-12', 'gasto', 89.3, 'a1', 'c1', 'Tottus', { origen: 'gmail', dividido: true }),
+    mov('m2', '2026-10-12', 'gasto', 12, 'a1', '', 'BRAYAN G. MUNOZ', { origen: 'gmail', estado: 'por_revisar' }),
     mov('m3', '2026-10-11', 'gasto', 38.5, 'a2', 'c2', 'Pardos Chicken'),
-    mov('m4', '2026-10-09', 'gasto', 9.99, 'a2', 'c4', 'Netflix', { moneda: 'USD', tc: 3.75, monto_pen: 37.46 }),
-    mov('m5', '2026-10-05', 'transferencia', 600, 'a1', '', '', { cuenta_destino_id: 'a2', descripcion: 'Pago tarjeta' }),
+    mov('m4', '2026-10-09', 'gasto', 9.99, 'a2', 'c4', 'Netflix', { moneda: 'USD', tc: 3.75, monto_pen: 37.46, origen: 'gmail' }),
+    mov('m5', '2026-10-05', 'transferencia', 600, 'a1', '', '', { cuenta_destino_id: 'a2', descripcion: 'Pago de tarjeta', origen: 'gmail' }),
     mov('m6', '2026-10-01', 'ingreso', 3500, 'a1', 'c6', 'Empresa Demo SAC'),
   ];
+  const POR_REVISAR = [
+    mov('r1', '2026-10-12', 'gasto', 12, 'a1', '', 'BRAYAN G. MUNOZ', { origen: 'gmail', estado: 'por_revisar' }),
+    mov('r2', '2026-10-11', 'gasto', 24.47, '', '', 'CLARO', { origen: 'gmail', estado: 'por_revisar' }),
+    mov('r3', '2026-10-10', 'transferencia', 290.26, 'a4', '', '', { origen: 'gmail', estado: 'por_revisar', descripcion: 'Transferencia entre mis cuentas' }),
+  ];
+  const ESTADO_LECTURA = { activa: true, frecuencia: '5', etiquetar: true, importar_desde: '2026-10-01', ultima_revision: '2026-10-13 10:00:00', info: '12 correos · 10 nuevos · 3 por revisar · 1.4 s', horario_inicio: 7, horario_fin: 24 };
   const DATOS = {
     estadoInstalacion: { instalado: true, modoDemo: false },
     datosAsistente: {
@@ -42,7 +49,7 @@
       modoDemo: false, urlHoja: 'https://docs.google.com/spreadsheets/d/demo',
     },
     obtenerDashboard: {
-      mes: '2026-10',
+      mes: '2026-10', porRevisar: 4,
       resumen: { ingresos: 3500, gastos: 1842.3, ahorro: 1657.7, tasaAhorro: 47 },
       resumenAnterior: { ingresos: 3500, gastos: 2275, ahorro: 1225, tasaAhorro: 35 },
       categorias: [
@@ -73,6 +80,32 @@
     completarAsistente: { instalado: true, modoDemo: false },
     cargarDemo: { instalado: true, modoDemo: true },
     salirDemo: { instalado: true, modoDemo: false },
+    obtenerPorRevisar: {
+      movimientos: POR_REVISAR,
+      pendientes: [{ id: 'p1', gmail_id: 'gm1', fecha: '2026-10-11', remitente: 'notificaciones@notificacionesbcp.com.pe', asunto: 'Realizaste un consumo con tu Tarjeta de Débito BCP', resumen: 'Hola Ana, hiciste una compra por S/ 15.00 en un comercio…', estado: 'pendiente' }],
+      categoriasFrecuentes: { gasto: ['c1', 'c3', 'c2', 'c5', 'c4', 'c7'], ingreso: ['c6'] },
+    },
+    categorizarMovimiento: { confirmados: 2, regla: { id: 'r1', patron: 'BRAYAN G. MUNOZ', categoria_id: 'c3' } },
+    obtenerDivisiones: [
+      { id: 'd1', movimiento_id: 'm1', categoria_id: 'c1', monto: 60, nota: '' },
+      { id: 'd2', movimiento_id: 'm1', categoria_id: 'c7', monto: 29.3, nota: '' },
+    ],
+    dividirMovimiento: { ok: true },
+    quitarDivision: { ok: true },
+    descartarPendiente: { ok: true },
+    estadoLectura: ESTADO_LECTURA,
+    configurarLectura: ESTADO_LECTURA,
+    // Simula una importación en tandas: la segunda llamada termina.
+    revisarCorreos: (() => {
+      let n = 0;
+      return () => (++n === 1
+        ? { leidos: 50, creados: 48, porRevisar: 9, pendientes: 1, ignorados: 1, restantes: 12, etiquetados: 49 }
+        : { leidos: 12, creados: 12, porRevisar: 2, pendientes: 0, ignorados: 0, restantes: 0, etiquetados: 12 });
+    })(),
+    volverALeerCorreos: { borrados: 3, leidos: 3, creados: 3, porRevisar: 1, pendientes: 0, ignorados: 0, restantes: 0, etiquetados: 3 },
+    importarCorreosDesde: { leidos: 50, creados: 45, porRevisar: 6, pendientes: 1, ignorados: 2, restantes: 62, etiquetados: 46 },
+    listarReglas: [{ id: 'r1', patron: 'TOTTUS', categoria_id: 'c1', cuenta_id: '', creada_por: 'usuario', usos: 5 }],
+    eliminarRegla: { ok: true },
   };
   window.__llamadas = [];
   function corredor(ok, falla) {

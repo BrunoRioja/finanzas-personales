@@ -5,8 +5,8 @@ const ASISTENTE = {
   nombre: 'Ana',
   tc_usd: 3.75,
   cuentas: [
-    { nombre: 'Débito BCP', banco: 'BCP', tipo: 'debito', moneda: 'PEN', saldo_inicial: 1000, ultimos4: '1234' },
-    { nombre: 'VISA BCP', banco: 'BCP', tipo: 'credito', moneda: 'PEN', saldo_inicial: -200, ultimos4: '0042' },
+    { nombre: 'Débito BCP', banco: 'BCP', tipo: 'debito', moneda: 'PEN', saldo_inicial: 1000, numeros: '1234' },
+    { nombre: 'VISA BCP', banco: 'BCP', tipo: 'credito', moneda: 'PEN', saldo_inicial: -200, numeros: '0042' },
   ],
 };
 

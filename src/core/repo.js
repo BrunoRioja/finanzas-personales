@@ -192,3 +192,56 @@ function conBloqueo_(fn) {
     lock.releaseLock();
   }
 }
+
+// Lleva el libro al esquema actual sin borrar datos: crea hojas faltantes, renombra
+// encabezados antiguos y agrega al final las columnas nuevas.
+function migrarEsquema_(libro) {
+  crearHojas_(libro);
+  Object.keys(ESQUEMA).forEach(nombre => {
+    const hoja = libro.getSheetByName(nombre);
+    const renombres = RENOMBRES_ESQUEMA[nombre] || {};
+    const encabezados = encabezados_(hoja);
+    let renombrado = false;
+    const actuales = encabezados.map(h => {
+      if (!renombres[h]) return h;
+      renombrado = true;
+      return renombres[h];
+    });
+    if (renombrado) hoja.getRange(1, 1, 1, actuales.length).setValues([actuales]);
+    ESQUEMA[nombre].forEach(c => {
+      if (actuales.indexOf(c[0]) >= 0) return;
+      actuales.push(c[0]);
+      const col = actuales.length;
+      hoja.getRange(1, col, 1, 1).setValues([[c[0]]]);
+      if (c[1] === 'texto' || c[1] === 'fecha') hoja.getRange(2, col, hoja.getMaxRows() - 1, 1).setNumberFormat('@');
+    });
+  });
+}
+
+// Sin bloqueo: para usar dentro de una función que ya lo tiene.
+function migrarSiHaceFalta_() {
+  const libro = abrirLibro_();
+  if (!libro.getSheetByName('Config')) return false;
+  if (Number(leerConfig_().version_esquema) >= VERSION_ESQUEMA) return false;
+  migrarEsquema_(libro);
+  guardarConfig_({ version_esquema: VERSION_ESQUEMA });
+  return true;
+}
+
+function asegurarEsquema_() {
+  const libro = abrirLibro_();
+  if (!libro.getSheetByName('Config')) return;
+  if (Number(leerConfig_().version_esquema) >= VERSION_ESQUEMA) return;
+  conBloqueo_(migrarSiHaceFalta_);
+}
+
+function registrarLog_(nivel, origen, mensaje, detalle) {
+  try {
+    agregarFilas_('Log', [{
+      fecha: formatearFecha_(new Date(), 'yyyy-MM-dd HH:mm:ss'), nivel: nivel, origen: origen,
+      mensaje: String(mensaje), detalle: detalle == null ? '' : String(detalle).slice(0, 2000),
+    }]);
+  } catch {
+    // Sin hoja Log no hay dónde escribir: no tapar el error original.
+  }
+}

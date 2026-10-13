@@ -6,13 +6,13 @@ const { ASISTENTE, entornoInstalado } = require('./fixtures');
 test('normalizarCuenta_ valida y normaliza', () => {
   const e = crearEntorno();
   assert.deepStrictEqual(
-    e.llamar('normalizarCuenta_', { nombre: ' VISA ', banco: 'BCP', tipo: 'credito', moneda: 'PEN', saldo_inicial: '-120.456', ultimos4: '0042' }),
-    { nombre: 'VISA', banco: 'BCP', tipo: 'credito', moneda: 'PEN', saldo_inicial: -120.46, ultimos4: '0042', activa: true });
+    e.llamar('normalizarCuenta_', { nombre: ' VISA ', banco: 'BCP', tipo: 'credito', moneda: 'PEN', saldo_inicial: '-120.456', numeros: '0042' }),
+    { nombre: 'VISA', banco: 'BCP', tipo: 'credito', moneda: 'PEN', saldo_inicial: -120.46, numeros: '0042', activa: true, yape: false });
   assert.strictEqual(e.llamar('normalizarCuenta_', { nombre: 'E', tipo: 'efectivo' }).saldo_inicial, 0);
   assert.throws(() => e.interno('normalizarCuenta_', { nombre: '', tipo: 'debito' }), /nombre/);
   assert.throws(() => e.interno('normalizarCuenta_', { nombre: 'X', tipo: 'cripto' }), /Tipo de cuenta/);
   assert.throws(() => e.interno('normalizarCuenta_', { nombre: 'X', tipo: 'debito', moneda: 'EUR' }), /Moneda/);
-  assert.throws(() => e.interno('normalizarCuenta_', { nombre: 'X', tipo: 'debito', ultimos4: '42' }), /4 números/);
+  assert.throws(() => e.interno('normalizarCuenta_', { nombre: 'X', tipo: 'debito', numeros: '42' }), /4 dígitos/);
   assert.throws(() => e.interno('normalizarCuenta_', { nombre: 'X', tipo: 'debito', saldo_inicial: 'mucho' }), /saldo/);
 });
 
@@ -38,7 +38,7 @@ test('completarAsistente crea hojas, cuentas, categorías por defecto y config',
   const e = crearEntorno();
   assert.deepStrictEqual(e.llamar('completarAsistente', ASISTENTE), { instalado: true, modoDemo: false });
   const cat = e.llamar('obtenerCatalogos');
-  assert.deepStrictEqual(cat.cuentas.map(c => [c.nombre, c.ultimos4, c.saldo_inicial]), [['Débito BCP', '1234', 1000], ['VISA BCP', '0042', -200]]);
+  assert.deepStrictEqual(cat.cuentas.map(c => [c.nombre, c.numeros, c.saldo_inicial]), [['Débito BCP', '1234', 1000], ['VISA BCP', '0042', -200]]);
   assert.strictEqual(cat.categorias.length, 20);
   assert.strictEqual(cat.categorias.filter(c => c.tipo === 'ingreso').length, 4);
   assert.deepStrictEqual(cat.config, { nombre: 'Ana', ultimo_tc: 3.75, moneda_principal: 'PEN' });
@@ -46,7 +46,7 @@ test('completarAsistente crea hojas, cuentas, categorías por defecto y config',
   assert.ok(cat.opciones.bancos.indexOf('BCP') >= 0);
   assert.strictEqual(cat.urlHoja, 'https://docs.google.com/spreadsheets/d/libro-principal');
   const config = e.llamar('leerConfig_');
-  assert.strictEqual(config.version_esquema, '1');
+  assert.strictEqual(config.version_esquema, '2');
   assert.strictEqual(config.modo_bot, 'B');
   assert.strictEqual(config.hora_resumen, '21:00');
 });

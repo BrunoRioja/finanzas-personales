@@ -22,8 +22,12 @@ function obtenerCatalogos() {
 function guardarCuenta(datos) {
   return conBloqueo_(() => {
     const cuenta = normalizarCuenta_(datos);
+    const todas = leerTabla_('Cuentas');
+    if (datos.id && !todas.some(c => c.id === datos.id)) throw new Error('La cuenta ya no existe.');
+    const otras = todas.filter(c => c.id !== datos.id);
+    validarNumerosUnicos_(cuenta, otras);
+    if (cuenta.yape) otras.filter(c => c.yape).forEach(c => actualizarFila_('Cuentas', c.id, { yape: false }));
     if (datos.id) {
-      if (!leerTabla_('Cuentas').some(c => c.id === datos.id)) throw new Error('La cuenta ya no existe.');
       actualizarFila_('Cuentas', datos.id, cuenta);
       return Object.assign({ id: datos.id }, cuenta);
     }
@@ -80,7 +84,9 @@ function guardarMovimiento(datos) {
       const mismaMoneda = (datos.moneda || previo.moneda) === previo.moneda;
       const tc = datos.tc || (mismaMoneda ? previo.tc : undefined);
       const mov = normalizarMovimiento_(Object.assign({}, datos, {
-        tc: tc, origen: previo.origen, estado: previo.estado, ref_externa: previo.ref_externa,
+        // Completar un "por revisar" desde el formulario lo confirma (normalizar exige cuenta y categoría).
+        tc: tc, origen: previo.origen, estado: previo.estado === 'por_revisar' ? 'confirmado' : previo.estado,
+        ref_externa: previo.ref_externa,
       }), ctx);
       actualizarFila_('Movimientos', previo.id, mov);
       return Object.assign({ id: previo.id }, mov, { creado_en: previo.creado_en });
@@ -104,17 +110,33 @@ function listarMovimientos(filtro) {
 }
 
 function eliminarMovimiento(id) {
-  conBloqueo_(() => eliminarFila_('Movimientos', id));
+  conBloqueo_(() => {
+    const mov = leerTabla_('Movimientos').filter(m => m.id === id)[0];
+    eliminarFila_('Movimientos', id); // lanza "No existe" si ya no está
+    borrarDivisiones_(id);
+    // Un importado que el usuario borra (p. ej. duplicado) no debe volver en la siguiente lectura.
+    // Se guarda en Pendientes (sin tope de tamaño) como "eliminado", no en la lista de ignorados.
+    if (mov && mov.ref_externa.indexOf('gmail:') === 0) {
+      agregarFilas_('Pendientes', [{
+        id: nuevoId_(), gmail_id: mov.ref_externa.slice(6), fecha: mov.fecha, remitente: '',
+        asunto: '(movimiento eliminado)', resumen: mov.comercio, estado: 'eliminado',
+      }]);
+    }
+  });
   return { ok: true };
 }
 
 function obtenerDashboard(mes) {
   validarMes_(mes);
-  return construirDashboard_({
-    movs: leerTabla_('Movimientos'),
+  const movs = leerTabla_('Movimientos');
+  const dashboard = construirDashboard_({
+    movs: movs,
     divisiones: leerTabla_('Divisiones'),
     categorias: leerTabla_('Categorias'),
     cuentas: leerTabla_('Cuentas'),
     tcUsd: Number(leerConfig_().ultimo_tc) || 0,
   }, mes);
+  dashboard.porRevisar = movs.filter(m => m.estado === 'por_revisar').length +
+    leerTabla_('Pendientes').filter(p => p.estado === 'pendiente').length;
+  return dashboard;
 }

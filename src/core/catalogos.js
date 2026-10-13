@@ -24,14 +24,13 @@ function normalizarCuenta_(datos) {
   if (TIPOS_CUENTA.indexOf(tipo) < 0) throw new Error('Tipo de cuenta inválido: ' + tipo);
   const moneda = String(datos.moneda || 'PEN');
   if (MONEDAS.indexOf(moneda) < 0) throw new Error('Moneda no soportada: ' + moneda);
-  const ultimos4 = String(datos.ultimos4 == null ? '' : datos.ultimos4).trim();
-  if (ultimos4 && !/^\d{4}$/.test(ultimos4)) throw new Error('Los últimos 4 dígitos deben ser 4 números.');
+  const numeros = normalizarNumeros_(datos.numeros);
   const vacio = datos.saldo_inicial === '' || datos.saldo_inicial === undefined || datos.saldo_inicial === null;
   const saldo = vacio ? 0 : redondear2_(datos.saldo_inicial);
   if (!isFinite(saldo)) throw new Error('El saldo inicial debe ser un número.');
   return {
     nombre: nombre, banco: String(datos.banco || 'Otro'), tipo: tipo, moneda: moneda,
-    saldo_inicial: saldo, ultimos4: ultimos4, activa: datos.activa !== false,
+    saldo_inicial: saldo, numeros: numeros, activa: datos.activa !== false, yape: datos.yape === true,
   };
 }
 
@@ -49,4 +48,25 @@ function normalizarCategoria_(datos, existentes, idActual) {
     nombre: nombre, emoji: String(datos.emoji || '').trim(), color: color, tipo: tipo,
     padre_id: String(datos.padre_id || ''), activa: datos.activa !== false,
   };
+}
+
+// "1063,7373  1063" → "1063, 7373". Cada número: últimos 4 dígitos de una cuenta o tarjeta.
+function normalizarNumeros_(valor) {
+  const partes = String(valor == null ? '' : valor).split(/[\s,;]+/).filter(Boolean);
+  partes.forEach(n => {
+    if (!/^\d{4}$/.test(n)) throw new Error('Cada número de cuenta o tarjeta debe tener 4 dígitos: "' + n + '".');
+  });
+  return partes.filter((n, i) => partes.indexOf(n) === i).join(', ');
+}
+
+function numerosDe_(cuenta) {
+  return String(cuenta.numeros || '').split(/[\s,;]+/).filter(Boolean);
+}
+
+// Un número solo puede pertenecer a una cuenta: si no, un correo no sabría a cuál ir.
+function validarNumerosUnicos_(cuenta, otras) {
+  const propios = numerosDe_(cuenta);
+  otras.forEach(o => numerosDe_(o).forEach(n => {
+    if (propios.indexOf(n) >= 0) throw new Error('El número ' + n + ' ya está en la cuenta "' + o.nombre + '".');
+  }));
 }

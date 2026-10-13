@@ -1,6 +1,6 @@
 // Hojas y columnas de la base de datos. La fila 1 de cada hoja son estos encabezados.
 // La primera columna de cada hoja es su clave. Tipos: texto | numero | fecha (yyyy-MM-dd) | booleano.
-const VERSION_ESQUEMA = 1;
+const VERSION_ESQUEMA = 2;
 
 const ESQUEMA = {
   Movimientos: [
@@ -14,7 +14,7 @@ const ESQUEMA = {
   ],
   Cuentas: [
     ['id', 'texto'], ['nombre', 'texto'], ['banco', 'texto'], ['tipo', 'texto'], ['moneda', 'texto'],
-    ['saldo_inicial', 'numero'], ['ultimos4', 'texto'], ['activa', 'booleano'],
+    ['saldo_inicial', 'numero'], ['numeros', 'texto'], ['activa', 'booleano'], ['yape', 'booleano'],
   ],
   Categorias: [
     ['id', 'texto'], ['nombre', 'texto'], ['emoji', 'texto'], ['color', 'texto'], ['tipo', 'texto'],
@@ -24,6 +24,13 @@ const ESQUEMA = {
     ['id', 'texto'], ['patron', 'texto'], ['categoria_id', 'texto'], ['cuenta_id', 'texto'],
     ['creada_por', 'texto'], ['usos', 'numero'],
   ],
+  Pendientes: [
+    ['id', 'texto'], ['gmail_id', 'texto'], ['fecha', 'fecha'], ['remitente', 'texto'], ['asunto', 'texto'],
+    ['resumen', 'texto'], ['estado', 'texto'],
+  ],
   Config: [['clave', 'texto'], ['valor', 'texto']],
   Log: [['fecha', 'texto'], ['nivel', 'texto'], ['origen', 'texto'], ['mensaje', 'texto'], ['detalle', 'texto']],
 };
+
+// Encabezados renombrados entre versiones del esquema (versión anterior → actual).
+const RENOMBRES_ESQUEMA = { Cuentas: { ultimos4: 'numeros' } };

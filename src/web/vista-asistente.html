@@ -41,7 +41,7 @@ VISTAS.asistente = async function (cont) {
   function pintarPaso2() {
     const lista = datos.cuentas.map((c, i) =>
       '<div class="item"><div class="icono">🏦</div><div class="cuerpo"><div class="titulo">' + esc(c.nombre) + '</div>' +
-      '<div class="sub">' + esc(c.banco + ' · ' + etiquetaTipo(c.tipo) + ' · ' + c.moneda + (c.ultimos4 ? ' · •••• ' + c.ultimos4 : '')) + '</div></div>' +
+      '<div class="sub">' + esc(c.banco + ' · ' + etiquetaTipo(c.tipo) + ' · ' + c.moneda + textoNumeros(c.numeros) + (c.yape ? ' · Yape' : '')) + '</div></div>' +
       '<button type="button" class="boton" data-quitar="' + i + '" aria-label="Quitar">✕</button></div>').join('');
     cont.innerHTML = '<div class="asistente">' + barra() + '<h1>Tus cuentas</h1>' +
       '<p class="tenue">Agrega cada tarjeta, cuenta o billetera que usas. Los últimos 4 dígitos sirven para reconocer los correos del banco.</p>' +
@@ -50,18 +50,20 @@ VISTAS.asistente = async function (cont) {
         campo('Nombre', '<input class="entrada" id="w-c-nombre" placeholder="Ej.: Débito BCP">') +
         '<div class="dos-col">' + campo('Banco', seleccion('w-c-banco', op.bancos, 'BCP')) + campo('Tipo', seleccion('w-c-tipo', op.tiposCuenta, 'debito', op.tiposCuenta.map(etiquetaTipo))) + '</div>' +
         '<div class="dos-col">' + campo('Moneda', seleccion('w-c-moneda', op.monedas, 'PEN')) +
-        campo('Últimos 4 dígitos', '<input class="entrada num" id="w-c-ult" inputmode="numeric" maxlength="4">') + '</div>' +
+        campo('Números de cuenta o tarjeta', '<input class="entrada num" id="w-c-num" inputmode="numeric" placeholder="1063, 7373">') + '</div>' +
         campo('Saldo actual (negativo si es deuda de tarjeta)', '<input class="entrada num" id="w-c-saldo" inputmode="decimal" placeholder="0.00">') +
+        '<label class="check"><input type="checkbox" id="w-c-yape"> Yape sale y entra de esta cuenta</label>' +
         '<button type="button" class="boton" id="w-c-agregar">+ Agregar cuenta</button>' +
       '</section>' +
       '<div class="acciones"><button type="button" class="boton" id="w-atras">Atrás</button><button type="button" class="boton primario" id="w-sig">Siguiente</button></div></div>';
     $('#w-c-agregar').onclick = () => {
       const nueva = {
         nombre: $('#w-c-nombre').value.trim(), banco: $('#w-c-banco').value, tipo: $('#w-c-tipo').value,
-        moneda: $('#w-c-moneda').value, ultimos4: $('#w-c-ult').value.trim(), saldo_inicial: $('#w-c-saldo').value,
+        moneda: $('#w-c-moneda').value, numeros: $('#w-c-num').value.trim(), saldo_inicial: $('#w-c-saldo').value, yape: $('#w-c-yape').checked,
       };
       if (!nueva.nombre) { aviso('Ponle un nombre a la cuenta.', true); return; }
-      if (nueva.ultimos4 && !/^\d{4}$/.test(nueva.ultimos4)) { aviso('Los últimos 4 dígitos deben ser 4 números.', true); return; }
+      if (nueva.numeros && !/^\d{4}([\s,]+\d{4})*$/.test(nueva.numeros)) { aviso('Cada número debe tener 4 dígitos, separados por coma.', true); return; }
+      if (nueva.yape && datos.cuentas.some(c => c.yape)) { aviso('Solo una cuenta puede ser la de Yape.', true); return; }
       datos.cuentas.push(nueva);
       pintar();
     };
