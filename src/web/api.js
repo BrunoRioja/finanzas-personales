@@ -75,8 +75,12 @@ function guardarMovimiento(datos) {
       if (!previo) throw new Error('El movimiento ya no existe.');
       if (previo.dividido) throw new Error('Este movimiento está dividido; edítalo desde "Dividir".');
       ctx.idsPrevios = [previo.cuenta_id, previo.cuenta_destino_id, previo.categoria_id];
+      // Si la moneda no cambia se conserva el tipo de cambio original: editar una nota
+      // no debe recalcular en silencio el monto en soles de un gasto pasado.
+      const mismaMoneda = (datos.moneda || previo.moneda) === previo.moneda;
+      const tc = datos.tc || (mismaMoneda ? previo.tc : undefined);
       const mov = normalizarMovimiento_(Object.assign({}, datos, {
-        origen: previo.origen, estado: previo.estado, ref_externa: previo.ref_externa,
+        tc: tc, origen: previo.origen, estado: previo.estado, ref_externa: previo.ref_externa,
       }), ctx);
       actualizarFila_('Movimientos', previo.id, mov);
       return Object.assign({ id: previo.id }, mov, { creado_en: previo.creado_en });

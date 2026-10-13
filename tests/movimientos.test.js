@@ -130,3 +130,19 @@ test('un movimiento dividido no se edita desde el formulario normal', () => {
   e.interno('actualizarFila_', 'Movimientos', m.id, { dividido: true });
   assert.throws(() => e.interno('guardarMovimiento', Object.assign({}, m, { monto: 20 })), /dividido/);
 });
+
+test('editar un gasto en USD conserva su tipo de cambio aunque cambie el de Ajustes', () => {
+  const e = entornoInstalado();
+  const m = e.llamar('guardarMovimiento', { fecha: '2026-10-09', tipo: 'gasto', monto: 9.99, moneda: 'USD', cuenta_id: e.cuenta('VISA BCP'), categoria_id: e.categoria('Suscripciones'), comercio: 'Netflix' });
+  assert.strictEqual(m.monto_pen, 37.46);
+  e.llamar('guardarAjustes', { nombre: 'Ana', ultimo_tc: 3.8 });
+  // Lo que envía el formulario: sin tc.
+  const formulario = Object.assign({}, m, { descripcion: 'plan básico' });
+  delete formulario.tc;
+  delete formulario.monto_pen;
+  const editado = e.llamar('guardarMovimiento', formulario);
+  assert.strictEqual(editado.tc, 3.75);
+  assert.strictEqual(editado.monto_pen, 37.46);
+  const aSoles = e.llamar('guardarMovimiento', Object.assign({}, editado, { moneda: 'PEN', monto: 40 }));
+  assert.strictEqual(aSoles.tc, 1);
+});
