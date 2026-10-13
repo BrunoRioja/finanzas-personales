@@ -167,8 +167,10 @@ function crearUrlFetch(estado) {
 }
 
 // ScriptApp simulado: solo triggers de tiempo.
-function crearScriptApp(triggers) {
+function crearScriptApp(triggers, permisos) {
   return {
+    AuthMode: { FULL: 'FULL' },
+    requireAllScopes: modo => { permisos.push(modo); },
     getProjectTriggers: () => triggers.slice(),
     deleteTrigger: t => { const i = triggers.indexOf(t); if (i >= 0) triggers.splice(i, 1); },
     getService: () => ({ getUrl: () => 'https://script.google.com/macros/s/APP-PRUEBA/exec' }),
@@ -205,6 +207,7 @@ function crearEntorno(opciones = {}) {
   const gmail = crearGmail(opciones.correos || [], stats, opciones);
   const triggers = [];
   const telegram = { llamadas: [], falla: null, respuestas: {}, contador: 100 };
+  const permisosPedidos = [];
   const cache = {};
   let contadorId = 0;
   let contadorLibros = 0;
@@ -259,7 +262,7 @@ function crearEntorno(opciones = {}) {
         remove: k => { delete cache[k]; },
       }),
     },
-    ScriptApp: crearScriptApp(triggers),
+    ScriptApp: crearScriptApp(triggers, permisosPedidos),
     Utilities: {
       formatDate: (d, tz, patron) => formatear(d, patron),
       getUuid: () => 'id-' + String(++contadorId).padStart(4, '0'),
@@ -274,7 +277,7 @@ function crearEntorno(opciones = {}) {
   }
 
   return {
-    principal, libros, propiedades, stats, gmail, triggers, telegram, cache,
+    principal, libros, propiedades, stats, gmail, triggers, telegram, cache, permisosPedidos,
     hojas: principal._hojas,
     llamar(nombre, ...args) {
       const salida = contexto[nombre](...args);
