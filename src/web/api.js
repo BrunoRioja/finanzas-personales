@@ -114,11 +114,15 @@ function eliminarMovimiento(id) {
 
 function obtenerDashboard(mes) {
   validarMes_(mes);
-  return construirDashboard_({
-    movs: leerTabla_('Movimientos'),
+  const movs = leerTabla_('Movimientos');
+  const dashboard = construirDashboard_({
+    movs: movs,
     divisiones: leerTabla_('Divisiones'),
     categorias: leerTabla_('Categorias'),
     cuentas: leerTabla_('Cuentas'),
     tcUsd: Number(leerConfig_().ultimo_tc) || 0,
   }, mes);
+  dashboard.porRevisar = movs.filter(m => m.estado === 'por_revisar').length +
+    leerTabla_('Pendientes').filter(p => p.estado === 'pendiente').length;
+  return dashboard;
 }
