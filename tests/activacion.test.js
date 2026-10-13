@@ -7,6 +7,7 @@ test('configurarLectura deja un solo trigger con la frecuencia elegida', () => {
   const e = entornoInstalado();
   assert.deepStrictEqual(e.llamar('configurarLectura', { frecuencia: '5', etiquetar: true }), {
     activa: true, frecuencia: '5', etiquetar: true, importar_desde: '2026-10-01', ultima_revision: '', info: '',
+    horario_inicio: 7, horario_fin: 24,
   });
   assert.deepStrictEqual(e.triggers.map(t => [t.funcion, t.cada]), [['revisarCorreos', '5 min']]);
   const horaria = e.llamar('configurarLectura', { frecuencia: '60', etiquetar: false });
@@ -22,7 +23,7 @@ test('configurarLectura deja un solo trigger con la frecuencia elegida', () => {
 
 test('estadoLectura sin configurar', () => {
   const e = entornoInstalado();
-  assert.deepStrictEqual(e.llamar('estadoLectura'), { activa: false, frecuencia: 'apagada', etiquetar: true, importar_desde: '', ultima_revision: '', info: '' });
+  assert.deepStrictEqual(e.llamar('estadoLectura'), { activa: false, frecuencia: 'apagada', etiquetar: true, importar_desde: '', ultima_revision: '', info: '', horario_inicio: 7, horario_fin: 24 });
 });
 
 test('importarCorreosDesde valida la fecha, reinicia el cursor y trae los correos anteriores', () => {
@@ -39,4 +40,13 @@ test('importarCorreosDesde valida la fecha, reinicia el cursor y trae los correo
   assert.strictEqual(e.llamar('estadoLectura').importar_desde, '2026-09-01');
   assert.throws(() => e.interno('importarCorreosDesde', '01/09/2026'), /Fecha inválida/);
   assert.throws(() => e.interno('importarCorreosDesde', '2026-12-01'), /futuro/);
+});
+
+test('horario de lectura: se configura y se valida', () => {
+  const e = entornoInstalado();
+  const est = e.llamar('configurarLectura', { frecuencia: '5', horario_inicio: '8', horario_fin: '22' });
+  assert.strictEqual(est.horario_inicio, 8);
+  assert.strictEqual(est.horario_fin, 22);
+  assert.throws(() => e.interno('configurarLectura', { frecuencia: '5', horario_inicio: 22, horario_fin: 8 }), /horario/);
+  assert.throws(() => e.interno('configurarLectura', { frecuencia: '5', horario_inicio: 7, horario_fin: 25 }), /horario/);
 });

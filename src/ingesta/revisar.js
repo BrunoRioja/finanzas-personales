@@ -4,9 +4,15 @@ const MAX_CORREOS_POR_VUELTA = 50;
 const MARGEN_CURSOR_MS = 7200000; // 2 horas: correos que Gmail entrega con demora
 const MAX_IGNORADOS = 400; // límite de tamaño de una propiedad del script (~9 KB)
 
-function revisarCorreos() {
+// `evento` solo existe cuando la llama el trigger; "Revisar ahora" e "Importar" no lo pasan
+// y por eso leen a cualquier hora.
+function revisarCorreos(evento) {
   if (PropertiesService.getScriptProperties().getProperty('MODO_DEMO') === 'si') {
     return { omitida: true, mensaje: 'Modo demo activo: la lectura de correos espera a que salgas del modo demo.' };
+  }
+  if (evento && typeof evento === 'object') {
+    const fuera = fueraDeHorario_();
+    if (fuera) return fuera;
   }
   // El bloqueo por usuario solo evita dos revisiones a la vez; el de escritura (conBloqueo_)
   // se toma únicamente para guardar, para no frenar a la app mientras se descargan correos.
@@ -107,6 +113,16 @@ function guardarLeidos_(leidos, totalNuevos, ahoraMs) {
     creados: movimientos.length, porRevisar: movimientos.filter(m => m.estado === 'por_revisar').length,
     pendientes: pendientes.length, ignorados: ignorados.length, aEtiquetar: aEtiquetar,
   };
+}
+
+// Sin tocar Gmail: de madrugada el trigger termina al instante.
+function fueraDeHorario_() {
+  const config = leerConfig_();
+  const inicio = horaConfig_(config.horario_inicio, HORARIO_INICIO_POR_DEFECTO);
+  const fin = horaConfig_(config.horario_fin, HORARIO_FIN_POR_DEFECTO);
+  const hora = Number(formatearFecha_(new Date(), 'HH'));
+  if (hora >= inicio && hora < fin) return null;
+  return { omitida: true, mensaje: 'Fuera del horario de lectura (' + inicio + ':00 a ' + fin + ':00).' };
 }
 
 function inicioDelDia_(fechaIso) {

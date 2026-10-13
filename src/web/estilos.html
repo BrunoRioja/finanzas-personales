@@ -102,6 +102,11 @@ main { max-width: 1180px; margin: 0 auto; padding: 20px 24px 110px; }
 .barra-division { display: flex; height: 8px; border-radius: 99px; overflow: hidden; background: var(--borde); margin: 12px 0 8px; }
 .barra-division i { display: block; height: 100%; }
 
+.resultado-lectura { border: 1px solid var(--borde); background: var(--superficie-2); border-radius: 12px; padding: 10px 12px; font-size: 13px; margin: 0 0 12px; }
+.resultado-lectura.ok { border-color: rgba(61, 220, 151, .5); }
+.resultado-lectura.mal { border-color: var(--negativo); color: var(--negativo); }
+.resultado-lectura .boton { margin-left: 6px; padding: 6px 10px; }
+
 /* Botón flotante, modal y aviso */
 #fab { position: fixed; right: 20px; bottom: 24px; width: 56px; height: 56px; border-radius: 50%; border: 0; background: var(--primario); color: #fff; font-size: 28px; box-shadow: 0 8px 24px rgba(124, 92, 255, .35); cursor: pointer; z-index: 6; }
 #fab[hidden] { display: none; }

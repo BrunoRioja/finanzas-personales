@@ -11,6 +11,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/); v
 - Cuentas con varios números (cuenta y tarjeta) y cuenta de Yape.
 - Etiqueta `Finanzas/Procesado` en Gmail (desactivable).
 - Guía para agregar un banco.
+- Horario de lectura automática (por defecto de 7:00 a 24:00); "Revisar ahora" e "Importar" funcionan a cualquier hora.
+- Avance y resultado visibles al importar, con continuación automática tanda por tanda.
+- "Volver a leer los que quedaron sin cuenta" tras corregir los números de las cuentas.
 
 ### Cambiado
 - Esquema de la hoja v2 (migración automática): `ultimos4` pasa a `numeros`, nueva columna `yape` y hoja `Pendientes`.

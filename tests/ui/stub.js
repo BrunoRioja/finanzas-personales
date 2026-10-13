@@ -34,7 +34,7 @@
     mov('r2', '2026-10-11', 'gasto', 24.47, '', '', 'CLARO', { origen: 'gmail', estado: 'por_revisar' }),
     mov('r3', '2026-10-10', 'transferencia', 290.26, 'a4', '', '', { origen: 'gmail', estado: 'por_revisar', descripcion: 'Transferencia entre mis cuentas' }),
   ];
-  const ESTADO_LECTURA = { activa: true, frecuencia: '5', etiquetar: true, importar_desde: '2026-10-01', ultima_revision: '2026-10-13 10:00:00', info: '12 correos · 10 nuevos · 3 por revisar · 1.4 s' };
+  const ESTADO_LECTURA = { activa: true, frecuencia: '5', etiquetar: true, importar_desde: '2026-10-01', ultima_revision: '2026-10-13 10:00:00', info: '12 correos · 10 nuevos · 3 por revisar · 1.4 s', horario_inicio: 7, horario_fin: 24 };
   const DATOS = {
     estadoInstalacion: { instalado: true, modoDemo: false },
     datosAsistente: {
@@ -95,8 +95,15 @@
     descartarPendiente: { ok: true },
     estadoLectura: ESTADO_LECTURA,
     configurarLectura: ESTADO_LECTURA,
-    revisarCorreos: { leidos: 2, creados: 2, porRevisar: 1, pendientes: 0, ignorados: 0, restantes: 0, etiquetados: 2 },
-    importarCorreosDesde: { leidos: 12, creados: 10, porRevisar: 3, pendientes: 1, ignorados: 1, restantes: 0, etiquetados: 11 },
+    // Simula una importación en tandas: la segunda llamada termina.
+    revisarCorreos: (() => {
+      let n = 0;
+      return () => (++n === 1
+        ? { leidos: 50, creados: 48, porRevisar: 9, pendientes: 1, ignorados: 1, restantes: 12, etiquetados: 49 }
+        : { leidos: 12, creados: 12, porRevisar: 2, pendientes: 0, ignorados: 0, restantes: 0, etiquetados: 12 });
+    })(),
+    releerSinCuenta: { borrados: 3, leidos: 3, creados: 3, porRevisar: 1, pendientes: 0, ignorados: 0, restantes: 0, etiquetados: 3 },
+    importarCorreosDesde: { leidos: 50, creados: 45, porRevisar: 6, pendientes: 1, ignorados: 2, restantes: 62, etiquetados: 46 },
     listarReglas: [{ id: 'r1', patron: 'TOTTUS', categoria_id: 'c1', cuenta_id: '', creada_por: 'usuario', usos: 5 }],
     eliminarRegla: { ok: true },
   };

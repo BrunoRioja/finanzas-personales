@@ -192,3 +192,47 @@ test('I7: un importado borrado no revive aunque haya muchos correos ignorados', 
   assert.strictEqual(e.movDe('g1'), undefined);
   assert.deepStrictEqual(e.llamar('obtenerPorRevisar').pendientes.map(p => p.gmail_id), ['g6']);
 });
+
+// --- Horario de lectura y volver a leer los que quedaron sin cuenta ---
+
+const EVENTO_TRIGGER = { triggerUid: '123', authMode: 'FULL' };
+
+test('el trigger fuera del horario termina sin tocar Gmail; dentro del horario lee', () => {
+  const e = entornoConCorreos(null, { ahora: '2026-10-13T03:00:00' });
+  const fuera = e.llamar('revisarCorreos', EVENTO_TRIGGER);
+  assert.deepStrictEqual(fuera, { omitida: true, mensaje: 'Fuera del horario de lectura (7:00 a 24:00).' });
+  assert.strictEqual(e.stats.gmailList, 0);
+  assert.strictEqual(e.llamar('leerConfig_').ultima_revision, undefined);
+  e.fijarAhora('2026-10-13T23:30:00');
+  assert.strictEqual(e.llamar('revisarCorreos', EVENTO_TRIGGER).leidos, 7);
+});
+
+test('el horario configurado se respeta y "Revisar ahora" lee a cualquier hora', () => {
+  const e = entornoConCorreos(null, { ahora: '2026-10-13T22:30:00' });
+  e.interno('guardarConfig_', { horario_inicio: 8, horario_fin: 22 });
+  assert.strictEqual(e.llamar('revisarCorreos', EVENTO_TRIGGER).omitida, true);
+  e.fijarAhora('2026-10-13T03:00:00');
+  assert.strictEqual(e.llamar('revisarCorreos').leidos, 7);
+});
+
+test('releerSinCuenta vuelve a leer los importados que quedaron sin cuenta, con los números corregidos', () => {
+  const e = entornoConCorreos();
+  const deb = e.cuenta('Débito BCP');
+  e.llamar('guardarCuenta', { id: deb, nombre: 'Débito BCP', tipo: 'debito', numeros: '4444', yape: true });
+  e.llamar('revisarCorreos');
+  assert.strictEqual(e.movDe('g1').cuenta_id, '');
+  const confirmados = e.filas('Movimientos').filter(m => m.estado === 'confirmado').map(m => m.id).sort();
+  e.llamar('guardarCuenta', { id: deb, nombre: 'Débito BCP', tipo: 'debito', numeros: '4444, 1111', yape: true });
+  const r = e.llamar('releerSinCuenta');
+  assert.strictEqual(r.borrados, 1);
+  assert.strictEqual(r.creados, 1);
+  assert.strictEqual(e.movDe('g1').cuenta_id, deb);
+  assert.deepStrictEqual(e.filas('Movimientos').filter(m => m.estado === 'confirmado').map(m => m.id).sort(), confirmados);
+  assert.strictEqual(e.filas('Movimientos').length, 5);
+});
+
+test('releerSinCuenta no hace nada en modo demo', () => {
+  const e = entornoConCorreos();
+  e.llamar('cargarDemo');
+  assert.throws(() => e.interno('releerSinCuenta'), /modo demo/i);
+});
