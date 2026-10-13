@@ -14,6 +14,11 @@ function leerCorreoBcp_(correo) {
   if (/Pago de Tarjeta de Cr[eé]dito Propia/i.test(asunto)) return pagoTarjetaBcp_(t, base);
   if (/PAGO DE SERVICIO/i.test(asunto)) return pagoServicioBcp_(t, base);
   if (/recepci[oó]n de Yapeo/i.test(asunto)) return yapeoRecibidoBcp_(t, base);
+  if (/Estado de Cuenta/i.test(asunto)) return null;
+  // Una operación que aún no sabemos leer (transferencia a terceros, retiro…) no se ignora.
+  if (/Constancia|Realizaste|Yapeo|Transferencia|Retiro|Pago/i.test(asunto)) {
+    return { pendiente: 'Operación del BCP que la app aún no sabe leer.' };
+  }
   return null;
 }
 

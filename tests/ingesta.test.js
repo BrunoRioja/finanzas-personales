@@ -136,3 +136,59 @@ test('un error de Gmail queda en el Log y en la info de la última revisión', (
   assert.ok(e.filas('Log').some(l => l.nivel === 'error' && l.mensaje === 'Cuota excedida'));
   assert.strictEqual(e.llamar('leerConfig_').ultima_revision_info, 'Error: Cuota excedida');
 });
+
+// --- Hallazgos de la revisión final ---
+
+test('I1: lee el cuerpo aunque Gmail lo entregue como bytes y respeta el charset del correo', () => {
+  const bytes = entornoConCorreos(null, { gmailBytes: true });
+  assert.strictEqual(bytes.llamar('revisarCorreos').creados, 5);
+  const latin = entornoConCorreos([Object.assign(correoGmail('l1', 'debito.html', ASUNTOS.debito, '2026-10-06T16:19:00'), { charset: 'ISO-8859-1' })]);
+  const r = latin.llamar('revisarCorreos');
+  assert.strictEqual(r.creados, 1);
+  assert.strictEqual(r.pendientes, 0);
+});
+
+test('I2: el nombre visible no puede hacerse pasar por el banco', () => {
+  const falso = Object.assign(correoGmail('f2', 'debito.html', ASUNTOS.debito, '2026-10-05T10:00:00', 'x@estafa.com'),
+    { cabeceraDe: '"<notificaciones@notificacionesbcp.com.pe>" <x@estafa.com>' });
+  const e = entornoConCorreos([falso]);
+  const r = e.llamar('revisarCorreos');
+  assert.strictEqual(r.creados, 0);
+  assert.strictEqual(r.ignorados, 1);
+});
+
+test('I3: con el modo demo activo no se leen correos (no se mezclan datos reales en la demo)', () => {
+  const e = entornoConCorreos();
+  e.llamar('cargarDemo');
+  const r = e.llamar('revisarCorreos');
+  assert.strictEqual(r.omitida, true);
+  assert.match(r.mensaje, /modo demo/i);
+  assert.strictEqual(e.stats.gmailGet, 0);
+});
+
+test('I4: las llamadas a Gmail ocurren fuera del bloqueo de escritura', () => {
+  const e = entornoConCorreos();
+  e.llamar('revisarCorreos');
+  assert.ok(e.stats.gmailGet > 0);
+  assert.strictEqual(e.stats.gmailEnBloqueo, 0);
+});
+
+test('I5: completar un importado desde el formulario lo confirma', () => {
+  const e = entornoConCorreos();
+  e.llamar('revisarCorreos');
+  const g1 = e.movDe('g1');
+  const editado = e.llamar('guardarMovimiento', Object.assign({}, g1, { categoria_id: e.categoria('Supermercado') }));
+  assert.strictEqual(editado.estado, 'confirmado');
+  assert.strictEqual(e.movDe('g1').estado, 'confirmado');
+});
+
+test('I7: un importado borrado no revive aunque haya muchos correos ignorados', () => {
+  const e = entornoConCorreos();
+  e.llamar('revisarCorreos');
+  e.llamar('eliminarMovimiento', e.movDe('g1').id);
+  e.interno('recordarIgnorados_', Array.from({ length: 500 }, (_, i) => 'relleno' + i));
+  e.interno('guardarConfig_', { cursor_lectura: 0 });
+  e.llamar('revisarCorreos');
+  assert.strictEqual(e.movDe('g1'), undefined);
+  assert.deepStrictEqual(e.llamar('obtenerPorRevisar').pendientes.map(p => p.gmail_id), ['g6']);
+});

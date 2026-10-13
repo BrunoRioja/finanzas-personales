@@ -73,3 +73,10 @@ test('operación reconocida pero ilegible → pendiente; otros correos → null'
   assert.strictEqual(leer(e, 'debito.html', { asunto: ASUNTOS.comprobante }), null);
   assert.strictEqual(leer(e, 'debito.html', { asunto: ASUNTOS.debito, remitente: 'notificaciones@notificacionesbcp.com.pe.estafa.com' }), null);
 });
+
+test('I6: una operación del BCP que aún no sabemos leer va a pendientes, no se ignora', () => {
+  const e = crearEntorno();
+  assert.deepStrictEqual(leer(e, 'debito.html', { asunto: 'Constancia de Transferencia a Terceros - Servicio de Notificaciones BCP' }),
+    { pendiente: 'Operación del BCP que la app aún no sabe leer.' });
+  assert.strictEqual(leer(e, 'debito.html', { asunto: 'Constancia de envío de Estado de Cuenta - Servicio de Notificaciones BCP' }), null);
+});

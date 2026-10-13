@@ -84,7 +84,9 @@ function guardarMovimiento(datos) {
       const mismaMoneda = (datos.moneda || previo.moneda) === previo.moneda;
       const tc = datos.tc || (mismaMoneda ? previo.tc : undefined);
       const mov = normalizarMovimiento_(Object.assign({}, datos, {
-        tc: tc, origen: previo.origen, estado: previo.estado, ref_externa: previo.ref_externa,
+        // Completar un "por revisar" desde el formulario lo confirma (normalizar exige cuenta y categoría).
+        tc: tc, origen: previo.origen, estado: previo.estado === 'por_revisar' ? 'confirmado' : previo.estado,
+        ref_externa: previo.ref_externa,
       }), ctx);
       actualizarFila_('Movimientos', previo.id, mov);
       return Object.assign({ id: previo.id }, mov, { creado_en: previo.creado_en });
@@ -113,7 +115,13 @@ function eliminarMovimiento(id) {
     eliminarFila_('Movimientos', id); // lanza "No existe" si ya no está
     borrarDivisiones_(id);
     // Un importado que el usuario borra (p. ej. duplicado) no debe volver en la siguiente lectura.
-    if (mov && mov.ref_externa.indexOf('gmail:') === 0) recordarIgnorados_([mov.ref_externa.slice(6)]);
+    // Se guarda en Pendientes (sin tope de tamaño) como "eliminado", no en la lista de ignorados.
+    if (mov && mov.ref_externa.indexOf('gmail:') === 0) {
+      agregarFilas_('Pendientes', [{
+        id: nuevoId_(), gmail_id: mov.ref_externa.slice(6), fecha: mov.fecha, remitente: '',
+        asunto: '(movimiento eliminado)', resumen: mov.comercio, estado: 'eliminado',
+      }]);
+    }
   });
   return { ok: true };
 }

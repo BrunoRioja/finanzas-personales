@@ -92,7 +92,7 @@ function crearGmail(correos, stats, opciones) {
           const despues = Number((/after:(\d+)/.exec(o.q) || [])[1] || 0) * 1000;
           const dominios = ((/from:\(([^)]*)\)/.exec(o.q) || [])[1] || '').split(' OR ').filter(Boolean);
           const todos = correos
-            .filter(c => new Date(c.recibido).getTime() >= despues && dominios.some(d => c.de.indexOf(d) >= 0))
+            .filter(c => new Date(c.recibido).getTime() >= despues && dominios.some(d => (c.cabeceraDe || c.de).indexOf(d) >= 0))
             .sort((a, b) => new Date(b.recibido) - new Date(a.recibido));
           const desde = Number(o.pageToken || 0);
           const r = { messages: todos.slice(desde, desde + o.maxResults).map(c => ({ id: c.id, threadId: c.id })) };
@@ -101,21 +101,26 @@ function crearGmail(correos, stats, opciones) {
         },
         get: (usuario, id) => {
           stats.gmailGet++;
+          if (stats.enBloqueo) stats.gmailEnBloqueo++;
           const c = correos.filter(x => x.id === id)[0];
+          // Como el servicio avanzado real: body.data puede llegar como texto base64url o como bytes.
+          const cuerpo = Buffer.from(c.html, c.charset ? 'latin1' : 'utf8');
+          const datos = opciones.gmailBytes ? Array.from(cuerpo) : cuerpo.toString('base64url');
           return {
             id: id,
             internalDate: String(new Date(c.recibido).getTime()),
             payload: {
               mimeType: 'multipart/alternative',
-              headers: [{ name: 'From', value: 'Notificaciones <' + c.de + '>' }, { name: 'Subject', value: c.asunto }],
+              headers: [{ name: 'From', value: c.cabeceraDe || 'Notificaciones <' + c.de + '>' }, { name: 'Subject', value: c.asunto }],
               parts: [
                 { mimeType: 'text/plain', body: { data: b64('versión de texto plano') } },
-                { mimeType: 'text/html', body: { data: b64(c.html) } },
+                { mimeType: 'text/html', headers: [{ name: 'Content-Type', value: 'text/html; charset="' + (c.charset || 'UTF-8') + '"' }], body: { data: datos } },
               ],
             },
           };
         },
         modify: (recurso, usuario, id) => {
+          if (stats.enBloqueo) stats.gmailEnBloqueo++;
           if (opciones.etiquetaFalla) throw new Error('No se pudo etiquetar');
           recurso.addLabelIds.forEach(l => {
             if (!etiquetas.some(x => x.id === l)) throw new Error('Etiqueta inexistente ' + l);
@@ -164,7 +169,7 @@ function crearEntorno(opciones = {}) {
   const principal = crearLibro('libro-principal', opciones.hojas || {});
   const libros = { [principal.getId()]: principal };
   const propiedades = Object.assign({}, opciones.propiedades || {});
-  const stats = { locks: 0, aperturas: 0, gmailList: 0, gmailGet: 0 };
+  const stats = { locks: 0, aperturas: 0, gmailList: 0, gmailGet: 0, gmailEnBloqueo: 0, enBloqueo: false };
   const gmail = crearGmail(opciones.correos || [], stats, opciones);
   const triggers = [];
   let contadorId = 0;
@@ -201,8 +206,13 @@ function crearEntorno(opciones = {}) {
     },
     LockService: {
       getScriptLock: () => ({
-        waitLock: () => { stats.locks++; },
-        tryLock: () => { stats.locks++; return !opciones.lockOcupado; },
+        waitLock: () => { stats.locks++; stats.enBloqueo = true; },
+        tryLock: () => { stats.locks++; stats.enBloqueo = true; return true; },
+        releaseLock() { stats.enBloqueo = false; },
+      }),
+      // Bloqueo por usuario: solo evita dos revisiones de correo a la vez.
+      getUserLock: () => ({
+        tryLock: () => !opciones.lockOcupado,
         releaseLock() {},
       }),
     },
@@ -212,7 +222,7 @@ function crearEntorno(opciones = {}) {
       formatDate: (d, tz, patron) => formatear(d, patron),
       getUuid: () => 'id-' + String(++contadorId).padStart(4, '0'),
       base64DecodeWebSafe: s => Array.from(Buffer.from(s, 'base64url')),
-      newBlob: bytes => ({ getDataAsString: () => Buffer.from(bytes).toString('utf8') }),
+      newBlob: bytes => ({ getDataAsString: charset => Buffer.from(bytes).toString(/8859|latin/i.test(charset || '') ? 'latin1' : 'utf8') }),
     },
     Session: { getScriptTimeZone: () => 'America/Lima' },
     Logger: { log() {} },

@@ -20,7 +20,8 @@ function leerCorreo_(id) {
   const m = Gmail.Users.Messages.get('me', id, { format: 'full' });
   const cabecera = nombre => (((m.payload && m.payload.headers) || []).filter(h => h.name.toLowerCase() === nombre)[0] || {}).value || '';
   const de = cabecera('from');
-  const direccion = /<([^>]+)>/.exec(de);
+  // La dirección real es el último <...>: el nombre visible puede imitar otra dirección.
+  const direccion = /<([^<>]+)>\s*$/.exec(de);
   return {
     id: id,
     remitente: (direccion ? direccion[1] : de).trim().toLowerCase(),
@@ -33,7 +34,10 @@ function leerCorreo_(id) {
 function buscarParte_(parte, tipo) {
   if (!parte) return '';
   if (parte.mimeType === tipo && parte.body && parte.body.data) {
-    return Utilities.newBlob(Utilities.base64DecodeWebSafe(parte.body.data)).getDataAsString('UTF-8');
+    // El servicio avanzado puede entregar body.data como texto base64url o como bytes.
+    const datos = parte.body.data;
+    const bytes = typeof datos === 'string' ? Utilities.base64DecodeWebSafe(datos) : datos;
+    return Utilities.newBlob(bytes).getDataAsString(charsetDe_(parte));
   }
   const hijos = parte.parts || [];
   for (let i = 0; i < hijos.length; i++) {
@@ -41,6 +45,12 @@ function buscarParte_(parte, tipo) {
     if (encontrado) return encontrado;
   }
   return '';
+}
+
+function charsetDe_(parte) {
+  const tipo = ((parte.headers || []).filter(h => h.name.toLowerCase() === 'content-type')[0] || {}).value || '';
+  const m = /charset="?([\w-]+)"?/i.exec(tipo);
+  return m ? m[1] : 'UTF-8';
 }
 
 function etiquetarCorreo_(id) {
