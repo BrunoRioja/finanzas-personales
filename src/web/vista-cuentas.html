@@ -1,0 +1,51 @@
+<script>
+'use strict';
+const ICONOS_CUENTA = { debito: '💳', credito: '💳', ahorro: '🏦', billetera: '📱', efectivo: '💵' };
+
+VISTAS.cuentas = async function (cont) {
+  const cat = await cargarCatalogos();
+  const saldo = id => (cat.saldos.find(s => s.id === id) || { saldo_pen: 0 }).saldo_pen;
+  const items = cat.cuentas.map(c =>
+    '<div class="item" data-id="' + esc(c.id) + '"><div class="icono">' + (ICONOS_CUENTA[c.tipo] || '🏦') + '</div>' +
+    '<div class="cuerpo"><div class="titulo">' + esc(c.nombre) + (c.activa ? '' : ' <span class="tenue">(desactivada)</span>') + '</div>' +
+    '<div class="sub">' + esc(c.banco + ' · ' + etiquetaTipo(c.tipo) + ' · ' + c.moneda + (c.ultimos4 ? ' · •••• ' + c.ultimos4 : '')) + '</div></div>' +
+    (c.activa ? '<div class="num ' + (saldo(c.id) < 0 ? 'neg' : '') + '">' + dinero(saldo(c.id)) + '</div>' : '') + '</div>').join('');
+  cont.innerHTML = '<div class="cabecera"><h1>Cuentas</h1><button class="boton" id="nueva-cuenta">+ Nueva cuenta</button></div>' +
+    '<div class="lista">' + (items || '<div class="vacio">Aún no tienes cuentas.</div>') + '</div>' +
+    '<p class="tenue" style="font-size:13px">Saldos en soles. Las tarjetas de crédito muestran la deuda en negativo.</p>';
+  $('#nueva-cuenta').onclick = () => abrirFormCuenta();
+  cont.querySelectorAll('[data-id]').forEach(el => {
+    el.onclick = () => abrirFormCuenta(cat.cuentas.find(c => c.id === el.dataset.id));
+  });
+};
+
+function abrirFormCuenta(c) {
+  const op = estado.catalogos.opciones;
+  const v = c || { nombre: '', banco: 'BCP', tipo: 'debito', moneda: 'PEN', ultimos4: '', saldo_inicial: 0, activa: true };
+  const caja = abrirModal('<h2 class="titulo-modal">' + (c ? 'Editar cuenta' : 'Nueva cuenta') + '</h2>' +
+    campo('Nombre', '<input class="entrada" id="c-nombre" placeholder="Ej.: Débito BCP" value="' + esc(v.nombre) + '">') +
+    '<div class="dos-col">' + campo('Banco', seleccion('c-banco', op.bancos, v.banco)) + campo('Tipo', seleccion('c-tipo', op.tiposCuenta, v.tipo, op.tiposCuenta.map(etiquetaTipo))) + '</div>' +
+    '<div class="dos-col">' + campo('Moneda', seleccion('c-moneda', op.monedas, v.moneda)) +
+    campo('Últimos 4 dígitos', '<input class="entrada num" id="c-ult" inputmode="numeric" maxlength="4" value="' + esc(v.ultimos4) + '">') + '</div>' +
+    campo('Saldo inicial (negativo si es deuda de tarjeta)', '<input class="entrada num" id="c-saldo" inputmode="decimal" value="' + esc(v.saldo_inicial) + '">') +
+    (c ? '<label class="check"><input type="checkbox" id="c-activa"' + (v.activa ? ' checked' : '') + '> Cuenta activa</label>' : '') +
+    '<div class="acciones"><button type="button" class="boton" id="c-cancelar">Cancelar</button><button type="button" class="boton primario" id="c-guardar">Guardar</button></div>');
+  $('#c-cancelar', caja).onclick = cerrarModal;
+  $('#c-guardar', caja).onclick = async e => {
+    e.target.disabled = true;
+    try {
+      await api('guardarCuenta', {
+        id: c ? c.id : '', nombre: $('#c-nombre', caja).value, banco: $('#c-banco', caja).value,
+        tipo: $('#c-tipo', caja).value, moneda: $('#c-moneda', caja).value, ultimos4: $('#c-ult', caja).value,
+        saldo_inicial: $('#c-saldo', caja).value, activa: c ? $('#c-activa', caja).checked : true,
+      });
+      cerrarModal();
+      aviso('Cuenta guardada');
+      mostrar('cuentas');
+    } catch (err) {
+      aviso(err.message, true);
+      e.target.disabled = false;
+    }
+  };
+}
+</script>

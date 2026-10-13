@@ -1,4 +1,8 @@
 .clasp.json
+.clasprc.json
+.despliegue
 node_modules/
 .superpowers/
 .tmp-*
+*.png
+!docs/img/*.png

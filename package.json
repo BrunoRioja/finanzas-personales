@@ -1,0 +1,24 @@
+{
+  "name": "finanzas-personales",
+  "version": "0.1.0",
+  "private": true,
+  "description": "App de finanzas personales autoalojada en Google Apps Script + Google Sheets",
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test",
+    "lint": "eslint .",
+    "setup": "clasp create-script --type sheets --title \"Finanzas personales\" --rootDir src",
+    "push": "clasp push --force",
+    "deploy": "node scripts/desplegar.js",
+    "ui": "node tests/ui/ver.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@google/clasp": "^3.4.1",
+    "eslint": "^9.39.5",
+    "globals": "^17.13.0"
+  }
+}

@@ -1,0 +1,104 @@
+<script>
+'use strict';
+// Utilidades del navegador, enrutador de vistas y llamadas al servidor.
+const VISTAS = {};
+const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+const estado = { vista: 'inicio', mes: mesActual(), catalogos: null, filtro: {} };
+
+function pad2(n) { return String(n).padStart(2, '0'); }
+function mesActual() { const d = new Date(); return d.getFullYear() + '-' + pad2(d.getMonth() + 1); }
+function hoyIso() { const d = new Date(); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+function sumarMes(mes, n) {
+  const p = mes.split('-').map(Number);
+  const t = p[0] * 12 + p[1] - 1 + n;
+  return Math.floor(t / 12) + '-' + pad2((t % 12) + 1);
+}
+function nombreMes(mes) { const p = mes.split('-').map(Number); return MESES[p[1] - 1] + ' ' + p[0]; }
+function $(sel, raiz) { return (raiz || document).querySelector(sel); }
+function esc(t) {
+  return String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function dinero(n, moneda) {
+  const v = Number(n) || 0;
+  const simbolo = moneda === 'USD' ? '$ ' : 'S/ ';
+  return (v < 0 ? '−' : '') + simbolo + Math.abs(v).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function api(nombre, ...args) {
+  return new Promise((ok, falla) => {
+    google.script.run
+      .withSuccessHandler(ok)
+      .withFailureHandler(e => falla(new Error(e && e.message ? e.message : String(e))))[nombre](...args);
+  });
+}
+function aviso(texto, malo) {
+  const a = $('#aviso');
+  a.textContent = texto;
+  a.className = malo ? 'mal' : '';
+  a.hidden = false;
+  clearTimeout(aviso.temporizador);
+  aviso.temporizador = setTimeout(() => { a.hidden = true; }, 3500);
+}
+function leerLocal(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function guardarLocal(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* sin almacenamiento: no pasa nada */ } }
+function selectorMes() {
+  return '<div class="mes"><button data-mes="-1" aria-label="Mes anterior">‹</button><span>' + nombreMes(estado.mes) +
+    '</span><button data-mes="1" aria-label="Mes siguiente">›</button></div>';
+}
+function enlazarMes(cont) {
+  cont.querySelectorAll('[data-mes]').forEach(b => {
+    b.onclick = () => { estado.mes = sumarMes(estado.mes, Number(b.dataset.mes)); mostrar(estado.vista); };
+  });
+}
+function categoria(id) {
+  return estado.catalogos.categorias.find(c => c.id === id) || { id: id, nombre: 'Sin categoría', emoji: '❓', color: '#3a3a48' };
+}
+function cuenta(id) { return estado.catalogos.cuentas.find(c => c.id === id) || { id: id, nombre: '—', moneda: 'PEN' }; }
+const TIPOS_CUENTA_ETIQUETA = { debito: 'Débito', credito: 'Crédito', ahorro: 'Ahorro', billetera: 'Billetera', efectivo: 'Efectivo' };
+function etiquetaTipo(tipo) { return TIPOS_CUENTA_ETIQUETA[tipo] || tipo; }
+function campo(etiqueta, control) { return '<div class="campo"><label>' + esc(etiqueta) + '</label>' + control + '</div>'; }
+function seleccion(id, valores, actual, etiquetas) {
+  return '<select class="entrada" id="' + id + '">' + valores.map((v, i) =>
+    '<option value="' + esc(v) + '"' + (v === actual ? ' selected' : '') + '>' + esc(etiquetas ? etiquetas[i] : v) + '</option>').join('') + '</select>';
+}
+async function cargarCatalogos() {
+  estado.catalogos = await api('obtenerCatalogos');
+  return estado.catalogos;
+}
+async function mostrar(vista) {
+  estado.vista = vista;
+  document.querySelectorAll('[data-vista]').forEach(b => b.classList.toggle('activo', b.dataset.vista === vista));
+  const cont = $('#vista');
+  if (!VISTAS[vista]) { cont.innerHTML = '<div class="vacio">Vista no disponible.</div>'; return; }
+  cont.innerHTML = '<div class="cargando">Cargando…</div>';
+  try {
+    await VISTAS[vista](cont);
+  } catch (e) {
+    cont.innerHTML = '<div class="error">' + esc(e.message) + '</div>';
+  }
+}
+function abrirModal(html) {
+  const m = $('#modal');
+  m.innerHTML = '<div class="modal-fondo"></div><div class="modal-caja" role="dialog" aria-modal="true">' + html + '</div>';
+  m.hidden = false;
+  m.querySelector('.modal-fondo').onclick = cerrarModal;
+  return m.querySelector('.modal-caja');
+}
+function cerrarModal() { const m = $('#modal'); m.hidden = true; m.innerHTML = ''; }
+
+async function iniciar() {
+  document.querySelectorAll('[data-vista]').forEach(b => { b.onclick = () => mostrar(b.dataset.vista); });
+  $('#fab').onclick = () => abrirFormMovimiento();
+  try {
+    const est = await api('estadoInstalacion');
+    $('#banner-demo').hidden = !est.modoDemo;
+    document.body.classList.toggle('sin-instalar', !est.instalado);
+    $('#fab').hidden = !est.instalado;
+    if (!est.instalado) return mostrar('asistente');
+    await cargarCatalogos();
+    return mostrar('inicio');
+  } catch (e) {
+    $('#vista').innerHTML = '<div class="error">' + esc(e.message) + '</div>';
+  }
+}
+document.addEventListener('DOMContentLoaded', iniciar);
+</script>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <?!= incluir_('web/estilos'); ?>
+</head>
+<body>
+  <div id="banner-demo" hidden>Modo demo: estás viendo datos ficticios.</div>
+  <header class="barra">
+    <span class="marca">💸 Finanzas</span>
+    <nav>
+      <button class="pestana" data-vista="inicio">Inicio</button>
+      <button class="pestana" data-vista="movimientos">Movimientos</button>
+      <button class="pestana" data-vista="cuentas">Cuentas</button>
+      <button class="pestana" data-vista="ajustes">Ajustes</button>
+    </nav>
+  </header>
+  <main id="vista"></main>
+  <nav class="barra-movil">
+    <button class="pestana" data-vista="inicio"><span>📊</span>Inicio</button>
+    <button class="pestana" data-vista="movimientos"><span>🧾</span>Movimientos</button>
+    <button class="pestana" data-vista="cuentas"><span>🏦</span>Cuentas</button>
+    <button class="pestana" data-vista="ajustes"><span>⚙️</span>Ajustes</button>
+  </nav>
+  <button id="fab" title="Nuevo movimiento" aria-label="Nuevo movimiento" hidden>+</button>
+  <div id="modal" hidden></div>
+  <div id="aviso" role="status" hidden></div>
+  <?!= incluir_('web/cliente'); ?>
+  <?!= incluir_('web/vista-inicio'); ?>
+  <?!= incluir_('web/vista-movimientos'); ?>
+  <?!= incluir_('web/vista-cuentas'); ?>
+  <?!= incluir_('web/vista-ajustes'); ?>
+  <?!= incluir_('web/vista-asistente'); ?>
+</body>
+</html>
