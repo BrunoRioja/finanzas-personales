@@ -1,0 +1,92 @@
+<script>
+'use strict';
+VISTAS.inicio = async function (cont) {
+  const d = await api('obtenerDashboard', estado.mes);
+  const r = d.resumen;
+  const ant = d.resumenAnterior;
+  const nota = r.tasaAhorro == null || ant.tasaAhorro == null ? '' : 'vs ' + ant.tasaAhorro + '% el mes anterior';
+  cont.innerHTML =
+    '<div class="cabecera"><h1>Hola, ' + esc(estado.catalogos.config.nombre) + '</h1>' + selectorMes() + '</div>' +
+    '<div class="grid">' +
+      kpi('Ingresos', dinero(r.ingresos), 'pos') +
+      kpi('Gastos', dinero(r.gastos), '') +
+      kpi('Ahorro del mes', dinero(r.ahorro), r.ahorro < 0 ? 'neg' : 'pos') +
+      kpi('Tasa de ahorro', r.tasaAhorro == null ? '—' : r.tasaAhorro + '%', '', nota) +
+      bloqueCategorias(d.categorias) +
+      bloqueTendencia(d.tendencia) +
+      bloqueSaldos(d.saldos) +
+      bloqueComercios(d.comercios) +
+    '</div>';
+  enlazarMes(cont);
+  cont.querySelectorAll('[data-categoria]').forEach(f => {
+    f.onclick = () => { estado.filtro = { categoria_id: f.dataset.categoria }; mostrar('movimientos'); };
+  });
+};
+
+function kpi(titulo, valor, clase, nota) {
+  return '<section class="tarjeta"><div class="etiqueta">' + esc(titulo) + '</div><div class="kpi num ' + clase + '">' + valor + '</div>' +
+    (nota ? '<div class="etiqueta" style="margin:4px 0 0">' + esc(nota) + '</div>' : '') + '</section>';
+}
+
+// Dona con circunferencia 100 (r = 15.9155): cada arco mide su porcentaje.
+function dona(items) {
+  let acumulado = 0;
+  const arcos = items.map(it => {
+    const arco = '<circle cx="21" cy="21" r="15.9155" fill="none" stroke="' + esc(it.color) + '" stroke-width="6" stroke-dasharray="' +
+      it.porcentaje + ' ' + (100 - it.porcentaje) + '" stroke-dashoffset="' + (25 - acumulado) + '"/>';
+    acumulado += it.porcentaje;
+    return arco;
+  }).join('');
+  return '<svg class="dona" viewBox="0 0 42 42" role="img" aria-label="Gasto por categoría">' +
+    '<circle cx="21" cy="21" r="15.9155" fill="none" style="stroke:var(--borde)" stroke-width="6"/>' + arcos + '</svg>';
+}
+
+function bloqueCategorias(items) {
+  const titulo = '<div class="etiqueta">Gasto por categoría</div>';
+  if (!items.length) return '<section class="tarjeta ancho-2">' + titulo + '<div class="vacio">Sin gastos este mes.</div></section>';
+  const max = Math.max(...items.map(c => c.monto));
+  const filas = items.map(c => {
+    const clic = c.categoria_id !== '_resto' ? ' clic" data-categoria="' + esc(c.categoria_id) + '"' : '"';
+    return '<div class="fila-barra' + clic + '><span>' + esc(c.emoji) + ' ' + esc(c.nombre) + '</span>' +
+      '<span class="mini"><i style="width:' + (c.monto / max * 100) + '%;background:' + esc(c.color) + '"></i></span>' +
+      '<span class="der num">' + dinero(c.monto) + '</span><span class="der tenue num">' + c.porcentaje + '%</span></div>';
+  }).join('');
+  return '<section class="tarjeta ancho-2">' + titulo + '<div class="dona-fila">' + dona(items) + '<div class="filas">' + filas + '</div></div></section>';
+}
+
+function bloqueTendencia(meses) {
+  const max = Math.max(1, ...meses.map(m => Math.max(m.ingresos, m.gastos)));
+  const ancho = 300;
+  const alto = 120;
+  const paso = ancho / meses.length;
+  const barras = meses.map((m, i) => {
+    const x = i * paso + paso / 2;
+    const hi = m.ingresos / max * (alto - 10);
+    const hg = Math.max(0, m.gastos) / max * (alto - 10);
+    const etiqueta = MESES[Number(m.mes.slice(5)) - 1].slice(0, 3).toLowerCase();
+    return '<rect x="' + (x - 15) + '" y="' + (alto - hi) + '" width="14" height="' + hi + '" rx="3" style="fill:var(--positivo)"><title>Ingresos ' + dinero(m.ingresos) + '</title></rect>' +
+      '<rect x="' + (x + 1) + '" y="' + (alto - hg) + '" width="14" height="' + hg + '" rx="3" style="fill:var(--primario)"><title>Gastos ' + dinero(m.gastos) + '</title></rect>' +
+      '<text x="' + x + '" y="' + (alto + 16) + '" text-anchor="middle" font-size="11" style="fill:var(--texto-2)">' + etiqueta + '</text>';
+  }).join('');
+  return '<section class="tarjeta ancho-2"><div class="etiqueta">Últimos 6 meses · <span class="pos">■</span> ingresos <span style="color:var(--primario)">■</span> gastos</div>' +
+    '<svg viewBox="0 0 ' + ancho + ' ' + (alto + 22) + '" width="100%" style="max-height:210px" role="img" aria-label="Ingresos y gastos de los últimos 6 meses">' + barras + '</svg></section>';
+}
+
+function bloqueSaldos(saldos) {
+  const filas = saldos.length ? saldos.map(s =>
+    '<div class="fila-simple"><span>' + esc(s.nombre) + ' <span class="tenue">· ' + esc(s.banco) + '</span></span>' +
+    '<span class="num ' + (s.saldo_pen < 0 ? 'neg' : '') + '">' + dinero(s.saldo_pen) + '</span></div>').join('') : '<div class="vacio">Sin cuentas activas.</div>';
+  return '<section class="tarjeta ancho-2"><div class="etiqueta">Saldos actuales</div>' + filas + '</section>';
+}
+
+function bloqueComercios(lista) {
+  const titulo = '<div class="etiqueta">Comercios donde más gastas</div>';
+  if (!lista.length) return '<section class="tarjeta ancho-2">' + titulo + '<div class="vacio">Sin comercios este mes.</div></section>';
+  const max = Math.max(...lista.map(c => c.monto));
+  const filas = lista.map(c =>
+    '<div class="fila-barra"><span>' + esc(c.comercio) + '</span><span class="mini"><i style="width:' + (c.monto / max * 100) + '%;background:var(--positivo)"></i></span>' +
+    '<span class="der num">' + dinero(c.monto) + '</span><span class="der tenue num">' + c.veces + '×</span></div>').join('');
+  return '<section class="tarjeta ancho-2">' + titulo +
+    '<div class="fila-barra cabeza"><span>Comercio</span><span></span><span class="der">Monto</span><span class="der">Veces</span></div>' + filas + '</section>';
+}
+</script>

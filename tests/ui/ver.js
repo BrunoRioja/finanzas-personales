@@ -2,7 +2,7 @@
 // (tests/ui/stub.js), ejecuta un script y muestra el texto visible de un elemento.
 //
 // Uso: node tests/ui/ver.js "<js a ejecutar>" <id del elemento> [captura.png] [ancho]
-// Ej.: node tests/ui/ver.js "mostrar('movimientos')" vista captura.png 420
+// Ej.: node tests/ui/ver.js "mostrar('movimientos')" vista captura.png 390
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -16,7 +16,11 @@ let html = fs.readFileSync(path.join(WEB, 'Index.html'), 'utf8')
   .replace(/<\?!=\s*incluir_\('web\/([\w-]+)'\);?\s*\?>/g, (_, nombre) => fs.readFileSync(path.join(WEB, nombre + '.html'), 'utf8'));
 const stub = fs.readFileSync(path.join(__dirname, 'stub.js'), 'utf8');
 html = html.replace('<head>', () => '<head>\n<script>' + stub + '</script>');
+// Chrome sin cabeza no baja de ~500 px de ventana: para anchos menores se angosta el body.
+const angostar = Number(ancho) && Number(ancho) < 500
+  ? `document.body.style.width='${Number(ancho)}px';document.body.style.overflow='hidden';` : '';
 const cierre = `<script>
+${angostar}
 window.addEventListener('error', function (e) { window.__error = String(e.message); });
 window.addEventListener('load', function () {
   setTimeout(function () {
@@ -42,7 +46,7 @@ html = html.replace('</body>', () => cierre);
 const tmp = path.join(os.tmpdir(), 'finanzas-ui-' + process.pid + '.html');
 fs.writeFileSync(tmp, html);
 const url = 'file:///' + tmp.replace(/\\/g, '/');
-const base = ['--headless=new', '--disable-gpu', '--hide-scrollbars', '--window-size=' + (ancho || 420) + ',900', '--virtual-time-budget=6000'];
+const base = ['--headless=new', '--disable-gpu', '--hide-scrollbars', '--window-size=' + Math.max(500, Number(ancho) || 420) + ',900', '--virtual-time-budget=6000'];
 try {
   const dom = execFileSync(CHROME, [...base, '--dump-dom', url], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
   const m = /<pre id="__salida"[^>]*>([\s\S]*?)<\/pre>/.exec(dom);
