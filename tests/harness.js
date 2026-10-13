@@ -76,12 +76,97 @@ function crearLibro(id, hojas) {
   };
 }
 
+// Gmail simulado (servicio avanzado Gmail v1). correos = [{ id, de, asunto, html, recibido }]
+function crearGmail(correos, stats, opciones) {
+  const etiquetas = [];
+  const etiquetasDe = {};
+  const b64 = s => Buffer.from(s, 'utf8').toString('base64url');
+  return {
+    _etiquetas: etiquetas,
+    _etiquetasDe: etiquetasDe,
+    Users: {
+      Messages: {
+        list: (usuario, o) => {
+          if (opciones.gmailFalla) throw new Error(opciones.gmailFalla);
+          stats.gmailList++;
+          const despues = Number((/after:(\d+)/.exec(o.q) || [])[1] || 0) * 1000;
+          const dominios = ((/from:\(([^)]*)\)/.exec(o.q) || [])[1] || '').split(' OR ').filter(Boolean);
+          const todos = correos
+            .filter(c => new Date(c.recibido).getTime() >= despues && dominios.some(d => c.de.indexOf(d) >= 0))
+            .sort((a, b) => new Date(b.recibido) - new Date(a.recibido));
+          const desde = Number(o.pageToken || 0);
+          const r = { messages: todos.slice(desde, desde + o.maxResults).map(c => ({ id: c.id, threadId: c.id })) };
+          if (desde + o.maxResults < todos.length) r.nextPageToken = String(desde + o.maxResults);
+          return r;
+        },
+        get: (usuario, id) => {
+          stats.gmailGet++;
+          const c = correos.filter(x => x.id === id)[0];
+          return {
+            id: id,
+            internalDate: String(new Date(c.recibido).getTime()),
+            payload: {
+              mimeType: 'multipart/alternative',
+              headers: [{ name: 'From', value: 'Notificaciones <' + c.de + '>' }, { name: 'Subject', value: c.asunto }],
+              parts: [
+                { mimeType: 'text/plain', body: { data: b64('versión de texto plano') } },
+                { mimeType: 'text/html', body: { data: b64(c.html) } },
+              ],
+            },
+          };
+        },
+        modify: (recurso, usuario, id) => {
+          if (opciones.etiquetaFalla) throw new Error('No se pudo etiquetar');
+          recurso.addLabelIds.forEach(l => {
+            if (!etiquetas.some(x => x.id === l)) throw new Error('Etiqueta inexistente ' + l);
+          });
+          (etiquetasDe[id] = etiquetasDe[id] || []).push(...recurso.addLabelIds);
+          return {};
+        },
+      },
+      Labels: {
+        list: () => ({ labels: etiquetas.slice() }),
+        create: recurso => {
+          const l = { id: 'Label_' + (etiquetas.length + 1), name: recurso.name };
+          etiquetas.push(l);
+          return l;
+        },
+      },
+    },
+  };
+}
+
+// ScriptApp simulado: solo triggers de tiempo.
+function crearScriptApp(triggers) {
+  return {
+    getProjectTriggers: () => triggers.slice(),
+    deleteTrigger: t => { const i = triggers.indexOf(t); if (i >= 0) triggers.splice(i, 1); },
+    newTrigger: funcion => ({
+      timeBased: () => {
+        const t = { funcion: funcion, cada: null, getHandlerFunction: () => funcion };
+        const b = {
+          everyMinutes: n => {
+            if ([1, 5, 10, 15, 30].indexOf(n) < 0) throw new Error('Intervalo de minutos inválido: ' + n);
+            t.cada = n + ' min';
+            return b;
+          },
+          everyHours: n => { t.cada = n + ' h'; return b; },
+          create: () => { triggers.push(t); return t; },
+        };
+        return b;
+      },
+    }),
+  };
+}
+
 function crearEntorno(opciones = {}) {
   let ahora = new Date(opciones.ahora || '2026-10-13T10:00:00');
   const principal = crearLibro('libro-principal', opciones.hojas || {});
   const libros = { [principal.getId()]: principal };
   const propiedades = Object.assign({}, opciones.propiedades || {});
-  const stats = { locks: 0, aperturas: 0 };
+  const stats = { locks: 0, aperturas: 0, gmailList: 0, gmailGet: 0 };
+  const gmail = crearGmail(opciones.correos || [], stats, opciones);
+  const triggers = [];
   let contadorId = 0;
   let contadorLibros = 0;
 
@@ -114,10 +199,20 @@ function crearEntorno(opciones = {}) {
         deleteProperty: k => { delete propiedades[k]; },
       }),
     },
-    LockService: { getScriptLock: () => ({ waitLock: () => { stats.locks++; }, releaseLock() {} }) },
+    LockService: {
+      getScriptLock: () => ({
+        waitLock: () => { stats.locks++; },
+        tryLock: () => { stats.locks++; return !opciones.lockOcupado; },
+        releaseLock() {},
+      }),
+    },
+    Gmail: gmail,
+    ScriptApp: crearScriptApp(triggers),
     Utilities: {
       formatDate: (d, tz, patron) => formatear(d, patron),
       getUuid: () => 'id-' + String(++contadorId).padStart(4, '0'),
+      base64DecodeWebSafe: s => Array.from(Buffer.from(s, 'base64url')),
+      newBlob: bytes => ({ getDataAsString: () => Buffer.from(bytes).toString('utf8') }),
     },
     Session: { getScriptTimeZone: () => 'America/Lima' },
     Logger: { log() {} },
@@ -127,7 +222,7 @@ function crearEntorno(opciones = {}) {
   }
 
   return {
-    principal, libros, propiedades, stats,
+    principal, libros, propiedades, stats, gmail, triggers,
     hojas: principal._hojas,
     llamar(nombre, ...args) {
       const salida = contexto[nombre](...args);
