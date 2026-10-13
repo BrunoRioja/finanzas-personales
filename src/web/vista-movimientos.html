@@ -1,0 +1,179 @@
+<script>
+'use strict';
+const DIAS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+
+VISTAS.movimientos = async function (cont) {
+  const f = estado.filtro;
+  const movs = await api('listarMovimientos', { mes: estado.mes, cuenta_id: f.cuenta_id || '', categoria_id: f.categoria_id || '' });
+  const cat = estado.catalogos;
+  const opcionesCat = '<option value="">Todas las categorías</option>' + cat.categorias.map(c =>
+    '<option value="' + esc(c.id) + '"' + (c.id === f.categoria_id ? ' selected' : '') + '>' + esc(c.emoji + ' ' + c.nombre) + '</option>').join('');
+  const opcionesCta = '<option value="">Todas las cuentas</option>' + cat.cuentas.map(c =>
+    '<option value="' + esc(c.id) + '"' + (c.id === f.cuenta_id ? ' selected' : '') + '>' + esc(c.nombre) + '</option>').join('');
+  cont.innerHTML = '<div class="cabecera"><h1>Movimientos</h1>' + selectorMes() + '</div>' +
+    '<div class="filtros"><select class="entrada" id="f-cat">' + opcionesCat + '</select>' +
+    '<select class="entrada" id="f-cta">' + opcionesCta + '</select>' +
+    '<input class="entrada" id="f-txt" placeholder="Buscar comercio o nota" value="' + esc(f.texto || '') + '"></div>' +
+    '<div id="lista" class="lista"></div>';
+  enlazarMes(cont);
+  $('#f-cat').onchange = e => { estado.filtro.categoria_id = e.target.value; mostrar('movimientos'); };
+  $('#f-cta').onchange = e => { estado.filtro.cuenta_id = e.target.value; mostrar('movimientos'); };
+  $('#f-txt').oninput = e => { estado.filtro.texto = e.target.value; pintarLista(movs); };
+  pintarLista(movs);
+};
+
+function normalizar(t) { return String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }
+
+function fechaLarga(iso) {
+  const p = iso.split('-').map(Number);
+  const d = new Date(p[0], p[1] - 1, p[2]);
+  return DIAS[d.getDay()] + ' ' + p[2] + ' ' + MESES[p[1] - 1].slice(0, 3).toLowerCase();
+}
+
+function pintarLista(movs) {
+  const texto = normalizar(estado.filtro.texto);
+  const visibles = movs.filter(m => !texto || normalizar(m.comercio + ' ' + m.descripcion).indexOf(texto) >= 0);
+  const lista = $('#lista');
+  if (!visibles.length) { lista.innerHTML = '<div class="vacio">No hay movimientos.</div>'; return; }
+  let html = '';
+  let dia = '';
+  visibles.forEach(m => {
+    if (m.fecha !== dia) {
+      dia = m.fecha;
+      const gastoDia = visibles.filter(x => x.fecha === dia && x.tipo === 'gasto').reduce((s, x) => s + x.monto_pen, 0);
+      html += '<div class="dia"><span>' + fechaLarga(dia) + '</span><span class="num">' + (gastoDia ? dinero(gastoDia) : '') + '</span></div>';
+    }
+    html += itemMovimiento(m);
+  });
+  lista.innerHTML = html;
+  lista.querySelectorAll('[data-id]').forEach(el => {
+    el.onclick = () => abrirFormMovimiento(visibles.find(m => m.id === el.dataset.id));
+  });
+}
+
+function itemMovimiento(m) {
+  let icono;
+  let titulo;
+  let sub;
+  let clase = '';
+  if (m.tipo === 'transferencia') {
+    icono = '🔁';
+    titulo = m.descripcion || 'Transferencia';
+    sub = cuenta(m.cuenta_id).nombre + ' → ' + cuenta(m.cuenta_destino_id).nombre;
+    clase = 'tenue';
+  } else {
+    const c = categoria(m.categoria_id);
+    icono = c.emoji;
+    titulo = m.comercio || m.descripcion || c.nombre;
+    sub = c.nombre + ' · ' + cuenta(m.cuenta_id).nombre + (m.moneda !== 'PEN' ? ' · ≈ ' + dinero(m.monto_pen) : '');
+    clase = m.tipo === 'ingreso' ? 'pos' : '';
+  }
+  const monto = (m.tipo === 'ingreso' ? '+' : '') + dinero(m.monto, m.moneda);
+  return '<div class="item" data-id="' + esc(m.id) + '"><div class="icono">' + esc(icono) + '</div>' +
+    '<div class="cuerpo"><div class="titulo">' + esc(titulo) + '</div><div class="sub">' + esc(sub) + '</div></div>' +
+    '<div class="num ' + clase + '">' + monto + '</div></div>';
+}
+
+function cuentaPorDefecto() {
+  const activas = estado.catalogos.cuentas.filter(c => c.activa);
+  const ultima = leerLocal('ultimaCuenta');
+  return (activas.find(c => c.id === ultima) || activas[0] || { id: '' }).id;
+}
+
+function abrirFormMovimiento(mov) {
+  const f = mov ? Object.assign({}, mov) : {
+    tipo: 'gasto', fecha: hoyIso(), monto: '', moneda: '', cuenta_id: cuentaPorDefecto(),
+    cuenta_destino_id: '', categoria_id: '', comercio: '', descripcion: '',
+  };
+  const caja = abrirModal('<h2 class="titulo-modal">' + (mov ? 'Editar movimiento' : 'Nuevo movimiento') + '</h2><div id="form-mov"></div>');
+
+  function leerForm() {
+    const valor = id => { const el = $('#' + id, caja); return el ? el.value : undefined; };
+    ['monto', 'moneda', 'fecha', 'comercio', 'descripcion', 'cuenta_id', 'cuenta_destino_id'].forEach(k => {
+      const v = valor('mv-' + k);
+      if (v !== undefined) f[k] = v;
+    });
+  }
+
+  function pintar() {
+    const cat = estado.catalogos;
+    const activas = cat.cuentas.filter(c => c.activa || c.id === f.cuenta_id || c.id === f.cuenta_destino_id);
+    const idsCuentas = activas.map(c => c.id);
+    const nombresCuentas = activas.map(c => c.nombre);
+    const moneda = f.moneda || cuenta(f.cuenta_id).moneda || 'PEN';
+    const tipos = [['gasto', 'Gasto'], ['ingreso', 'Ingreso'], ['transferencia', 'Transferencia']];
+    let html = '<div class="segmento">' + tipos.map(t =>
+      '<button type="button" data-tipo="' + t[0] + '" class="' + (f.tipo === t[0] ? 'activo' : '') + '">' + t[1] + '</button>').join('') + '</div>';
+    html += '<div class="dos-col" style="grid-template-columns:1fr 92px">' +
+      campo('Monto', '<input class="entrada monto-grande num" id="mv-monto" inputmode="decimal" placeholder="0.00" value="' + esc(f.monto) + '">') +
+      campo('Moneda', seleccion('mv-moneda', ['PEN', 'USD'], moneda)) + '</div>';
+    if (f.tipo === 'transferencia') {
+      html += '<div class="dos-col">' + campo('Desde', seleccion('mv-cuenta_id', idsCuentas, f.cuenta_id, nombresCuentas)) +
+        campo('Hacia', seleccion('mv-cuenta_destino_id', [''].concat(idsCuentas), f.cuenta_destino_id, ['Elige…'].concat(nombresCuentas))) + '</div>';
+    } else {
+      const cats = cat.categorias.filter(c => c.tipo === f.tipo && (c.activa || c.id === f.categoria_id));
+      html += campo('Categoría', '<div class="chips">' + cats.map(c =>
+        '<button type="button" class="chip' + (c.id === f.categoria_id ? ' activo' : '') + '" data-cat="' + esc(c.id) + '">' + esc(c.emoji + ' ' + c.nombre) + '</button>').join('') + '</div>');
+      html += campo('Cuenta', seleccion('mv-cuenta_id', idsCuentas, f.cuenta_id, nombresCuentas));
+    }
+    html += '<div class="dos-col">' + campo('Fecha', '<input class="entrada" type="date" id="mv-fecha" value="' + esc(f.fecha) + '">') +
+      campo(f.tipo === 'ingreso' ? 'De quién' : 'Comercio', '<input class="entrada" id="mv-comercio" value="' + esc(f.comercio) + '">') + '</div>';
+    html += campo('Nota', '<input class="entrada" id="mv-descripcion" value="' + esc(f.descripcion) + '">');
+    html += '<div class="acciones">' + (mov ? '<button type="button" class="boton peligro" id="mv-eliminar">Eliminar</button>' : '') +
+      '<button type="button" class="boton" id="mv-cancelar">Cancelar</button><button type="button" class="boton primario" id="mv-guardar">Guardar</button></div>';
+    $('#form-mov', caja).innerHTML = html;
+
+    caja.querySelectorAll('[data-tipo]').forEach(b => {
+      b.onclick = () => { leerForm(); f.tipo = b.dataset.tipo; f.categoria_id = ''; pintar(); };
+    });
+    caja.querySelectorAll('[data-cat]').forEach(b => {
+      b.onclick = () => {
+        f.categoria_id = b.dataset.cat;
+        caja.querySelectorAll('[data-cat]').forEach(x => x.classList.toggle('activo', x === b));
+      };
+    });
+    $('#mv-cancelar', caja).onclick = cerrarModal;
+    $('#mv-guardar', caja).onclick = e => guardar(e.target);
+    const eliminar = $('#mv-eliminar', caja);
+    if (eliminar) eliminar.onclick = () => borrar(eliminar);
+    if (!mov) $('#mv-monto', caja).focus();
+  }
+
+  async function guardar(boton) {
+    leerForm();
+    boton.disabled = true;
+    try {
+      await api('guardarMovimiento', {
+        id: mov ? mov.id : '', tipo: f.tipo, fecha: f.fecha, monto: f.monto,
+        moneda: f.moneda || cuenta(f.cuenta_id).moneda || 'PEN', cuenta_id: f.cuenta_id,
+        cuenta_destino_id: f.tipo === 'transferencia' ? f.cuenta_destino_id : '',
+        categoria_id: f.tipo === 'transferencia' ? '' : f.categoria_id,
+        comercio: f.comercio, descripcion: f.descripcion,
+      });
+      guardarLocal('ultimaCuenta', f.cuenta_id);
+      cerrarModal();
+      aviso(mov ? 'Movimiento actualizado' : 'Movimiento guardado');
+      mostrar(estado.vista);
+    } catch (e) {
+      aviso(e.message, true);
+      boton.disabled = false;
+    }
+  }
+
+  async function borrar(boton) {
+    if (!boton.dataset.seguro) { boton.dataset.seguro = '1'; boton.textContent = '¿Seguro? Toca otra vez'; return; }
+    boton.disabled = true;
+    try {
+      await api('eliminarMovimiento', mov.id);
+      cerrarModal();
+      aviso('Movimiento eliminado');
+      mostrar(estado.vista);
+    } catch (e) {
+      aviso(e.message, true);
+      boton.disabled = false;
+    }
+  }
+
+  pintar();
+}
+</script>
