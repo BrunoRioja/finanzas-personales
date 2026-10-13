@@ -1,0 +1,77 @@
+<script>
+'use strict';
+VISTAS.ajustes = async function (cont) {
+  const cat = await cargarCatalogos();
+  const chips = tipo => cat.categorias.filter(c => c.tipo === tipo).map(c =>
+    '<button type="button" class="chip' + (c.activa ? '' : ' apagado') + '" data-cat="' + esc(c.id) + '">' + esc(c.emoji + ' ' + c.nombre) + '</button>').join('');
+  cont.innerHTML = '<div class="cabecera"><h1>Ajustes</h1></div>' +
+    '<section class="tarjeta seccion"><div class="etiqueta">General</div><div class="dos-col">' +
+      campo('Tu nombre', '<input class="entrada" id="a-nombre" value="' + esc(cat.config.nombre) + '">') +
+      campo('Tipo de cambio USD → PEN', '<input class="entrada num" id="a-tc" inputmode="decimal" value="' + esc(cat.config.ultimo_tc) + '">') +
+    '</div><button type="button" class="boton primario" id="a-guardar">Guardar</button></section>' +
+    '<section class="tarjeta seccion">' +
+      '<div class="cabecera-seccion"><div class="etiqueta">Categorías de gasto</div><button type="button" class="boton" data-nueva="gasto">+ Nueva</button></div>' +
+      '<div class="chips">' + chips('gasto') + '</div>' +
+      '<div class="cabecera-seccion" style="margin-top:16px"><div class="etiqueta">Categorías de ingreso</div><button type="button" class="boton" data-nueva="ingreso">+ Nueva</button></div>' +
+      '<div class="chips">' + chips('ingreso') + '</div>' +
+    '</section>' +
+    '<section class="tarjeta seccion"><div class="etiqueta">Datos</div>' +
+      '<p class="tenue" style="margin:0">Todo vive en tu propia Google Sheet, en tu cuenta de Google.</p>' +
+      '<div class="acciones"><a class="boton" href="' + esc(cat.urlHoja) + '" target="_blank" rel="noopener">Abrir Google Sheet</a>' +
+      '<button type="button" class="boton" id="a-demo">' + (cat.modoDemo ? 'Salir del modo demo' : 'Ver con datos demo') + '</button></div>' +
+    '</section>';
+  $('#a-guardar').onclick = async e => {
+    e.target.disabled = true;
+    try {
+      await api('guardarAjustes', { nombre: $('#a-nombre').value, ultimo_tc: $('#a-tc').value });
+      aviso('Ajustes guardados');
+      mostrar('ajustes');
+    } catch (err) {
+      aviso(err.message, true);
+      e.target.disabled = false;
+    }
+  };
+  cont.querySelectorAll('[data-cat]').forEach(b => {
+    b.onclick = () => { const c = cat.categorias.find(x => x.id === b.dataset.cat); abrirFormCategoria(c, c.tipo); };
+  });
+  cont.querySelectorAll('[data-nueva]').forEach(b => { b.onclick = () => abrirFormCategoria(null, b.dataset.nueva); });
+  $('#a-demo').onclick = async e => {
+    e.target.disabled = true;
+    try {
+      await api(cat.modoDemo ? 'salirDemo' : 'cargarDemo');
+      iniciar();
+    } catch (err) {
+      aviso(err.message, true);
+      e.target.disabled = false;
+    }
+  };
+};
+
+function abrirFormCategoria(c, tipo) {
+  const v = c || { nombre: '', emoji: '', color: '#7c5cff', activa: true };
+  const caja = abrirModal('<h2 class="titulo-modal">' + (c ? 'Editar categoría' : 'Nueva categoría de ' + tipo) + '</h2>' +
+    '<div class="dos-col" style="grid-template-columns:1fr 80px 64px">' +
+      campo('Nombre', '<input class="entrada" id="k-nombre" value="' + esc(v.nombre) + '">') +
+      campo('Emoji', '<input class="entrada" id="k-emoji" maxlength="4" value="' + esc(v.emoji) + '">') +
+      campo('Color', '<input class="entrada" type="color" id="k-color" value="' + esc(v.color) + '" style="padding:4px;height:42px">') +
+    '</div>' +
+    (c ? '<label class="check"><input type="checkbox" id="k-activa"' + (v.activa ? ' checked' : '') + '> Categoría activa (desactivarla la oculta al registrar, pero conserva el historial)</label>' : '') +
+    '<div class="acciones"><button type="button" class="boton" id="k-cancelar">Cancelar</button><button type="button" class="boton primario" id="k-guardar">Guardar</button></div>');
+  $('#k-cancelar', caja).onclick = cerrarModal;
+  $('#k-guardar', caja).onclick = async e => {
+    e.target.disabled = true;
+    try {
+      await api('guardarCategoria', {
+        id: c ? c.id : '', nombre: $('#k-nombre', caja).value, emoji: $('#k-emoji', caja).value,
+        color: $('#k-color', caja).value, tipo: tipo, activa: c ? $('#k-activa', caja).checked : true,
+      });
+      cerrarModal();
+      aviso('Categoría guardada');
+      mostrar('ajustes');
+    } catch (err) {
+      aviso(err.message, true);
+      e.target.disabled = false;
+    }
+  };
+}
+</script>
