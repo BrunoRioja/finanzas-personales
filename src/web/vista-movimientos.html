@@ -10,12 +10,13 @@ VISTAS.movimientos = async function (cont) {
     '<option value="' + esc(c.id) + '"' + (c.id === f.categoria_id ? ' selected' : '') + '>' + esc(c.emoji + ' ' + c.nombre) + '</option>').join('');
   const opcionesCta = '<option value="">Todas las cuentas</option>' + cat.cuentas.map(c =>
     '<option value="' + esc(c.id) + '"' + (c.id === f.cuenta_id ? ' selected' : '') + '>' + esc(c.nombre) + '</option>').join('');
-  cont.innerHTML = '<div class="cabecera"><h1>Movimientos</h1>' + selectorMes() + '</div>' +
+  cont.innerHTML = '<div class="cabecera"><h1>Movimientos</h1><button type="button" class="boton" id="ir-revisar-mov">Por revisar</button>' + selectorMes() + '</div>' +
     '<div class="filtros"><select class="entrada" id="f-cat">' + opcionesCat + '</select>' +
     '<select class="entrada" id="f-cta">' + opcionesCta + '</select>' +
     '<input class="entrada" id="f-txt" placeholder="Buscar comercio o nota" value="' + esc(f.texto || '') + '"></div>' +
     '<div id="lista" class="lista"></div>';
   enlazarMes(cont);
+  $('#ir-revisar-mov').onclick = () => mostrar('revisar');
   $('#f-cat').onchange = e => { estado.filtro.categoria_id = e.target.value; mostrar('movimientos'); };
   $('#f-cta').onchange = e => { estado.filtro.cuenta_id = e.target.value; mostrar('movimientos'); };
   $('#f-txt').oninput = e => { estado.filtro.texto = e.target.value; pintarLista(movs); };
@@ -47,7 +48,7 @@ function pintarLista(movs) {
   });
   lista.innerHTML = html;
   lista.querySelectorAll('[data-id]').forEach(el => {
-    el.onclick = () => abrirFormMovimiento(visibles.find(m => m.id === el.dataset.id));
+    el.onclick = () => { const m = visibles.find(x => x.id === el.dataset.id); if (m.dividido) abrirDividir(m); else abrirFormMovimiento(m); };
   });
 }
 
@@ -70,7 +71,9 @@ function itemMovimiento(m) {
   }
   const monto = (m.tipo === 'ingreso' ? '+' : '') + dinero(m.monto, m.moneda);
   return '<div class="item" data-id="' + esc(m.id) + '"><div class="icono">' + esc(icono) + '</div>' +
-    '<div class="cuerpo"><div class="titulo">' + esc(titulo) + '</div><div class="sub">' + esc(sub) + '</div></div>' +
+    '<div class="cuerpo"><div class="titulo">' + esc(titulo) + (m.dividido ? ' ✂️' : '') +
+    (m.estado === 'por_revisar' ? '<span class="etiqueta-mini">por revisar</span>' : '') + '</div>' +
+    '<div class="sub">' + (m.origen === 'gmail' ? '📧 ' : '') + esc(sub) + '</div></div>' +
     '<div class="num ' + clase + '">' + monto + '</div></div>';
 }
 
@@ -80,11 +83,13 @@ function cuentaPorDefecto() {
   return (activas.find(c => c.id === ultima) || activas[0] || { id: '' }).id;
 }
 
-function abrirFormMovimiento(mov) {
+function abrirFormMovimiento(mov, opciones) {
+  opciones = opciones || {};
   const f = mov ? Object.assign({}, mov) : {
     tipo: 'gasto', fecha: hoyIso(), monto: '', moneda: '', cuenta_id: cuentaPorDefecto(),
     cuenta_destino_id: '', categoria_id: '', comercio: '', descripcion: '',
   };
+  if (!mov) Object.assign(f, opciones.inicial || {});
   const caja = abrirModal('<h2 class="titulo-modal">' + (mov ? 'Editar movimiento' : 'Nuevo movimiento') + '</h2><div id="form-mov"></div>');
 
   function leerForm() {
@@ -153,6 +158,7 @@ function abrirFormMovimiento(mov) {
         comercio: f.comercio, descripcion: f.descripcion,
       });
       guardarLocal('ultimaCuenta', f.cuenta_id);
+      if (opciones.alGuardar) await opciones.alGuardar();
       cerrarModal();
       aviso(mov ? 'Movimiento actualizado' : 'Movimiento guardado');
       mostrar(estado.vista);

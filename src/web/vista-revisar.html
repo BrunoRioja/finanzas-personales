@@ -1,0 +1,101 @@
+<script>
+'use strict';
+VISTAS.revisar = async function (cont) {
+  const d = await api('obtenerPorRevisar');
+  const tarjetas = d.movimientos.map(m => tarjetaRevisar(m, d.categoriasFrecuentes)).join('');
+  const pendientes = d.pendientes.map(tarjetaPendiente).join('');
+  cont.innerHTML = '<div class="cabecera"><h1>Por revisar</h1><button type="button" class="boton" id="rv-volver">Ver movimientos</button></div>' +
+    (tarjetas || '<div class="vacio">Todo al día: no hay movimientos por revisar. 🎉</div>') +
+    (pendientes ? '<h2 class="subtitulo">Correos que no se pudieron leer</h2>' + pendientes : '');
+  $('#rv-volver').onclick = () => mostrar('movimientos');
+  cont.querySelectorAll('[data-rv]').forEach(t => enlazarTarjetaRevisar(t, d.movimientos.find(m => m.id === t.dataset.rv)));
+  cont.querySelectorAll('[data-pend]').forEach(t => enlazarPendiente(t, d.pendientes.find(p => p.id === t.dataset.pend)));
+};
+
+function etiquetaTipoMov(tipo) { return { gasto: 'Gasto', ingreso: 'Ingreso', transferencia: 'Transferencia' }[tipo] || tipo; }
+function mayusculasSinTildes(t) { return String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/\s+/g, ' ').trim(); }
+function chipCategoria(c) { return '<button type="button" class="chip" data-cat="' + esc(c.id) + '">' + esc(c.emoji + ' ' + c.nombre) + '</button>'; }
+
+function tarjetaRevisar(m, frecuentes) {
+  const cat = estado.catalogos;
+  const activas = cat.cuentas.filter(c => c.activa);
+  const ids = [''].concat(activas.map(c => c.id));
+  const nombres = ['Elige…'].concat(activas.map(c => c.nombre));
+  const titulo = m.comercio || m.descripcion || etiquetaTipoMov(m.tipo);
+  let html = '<section class="tarjeta seccion" data-rv="' + esc(m.id) + '">' +
+    '<div class="fila-simple" style="border:0;padding-top:0"><b>' + esc(titulo) + '</b><b class="num ' + (m.tipo === 'ingreso' ? 'pos' : '') + '">' +
+    (m.tipo === 'ingreso' ? '+' : '') + dinero(m.monto, m.moneda) + '</b></div>' +
+    '<div class="tenue" style="font-size:12px;margin-bottom:10px">📧 ' + esc(fechaLarga(m.fecha) + ' · ' + etiquetaTipoMov(m.tipo) + ' · ' +
+    (m.cuenta_id ? cuenta(m.cuenta_id).nombre : 'cuenta sin identificar') + (m.descripcion && m.comercio ? ' · ' + m.descripcion : '')) + '</div>';
+  if (!m.cuenta_id) html += campo('¿De qué cuenta salió?', seleccion('rv-cta-' + m.id, ids, '', nombres));
+  if (m.tipo === 'transferencia') {
+    if (!m.cuenta_destino_id) html += campo('¿A qué cuenta llegó?', seleccion('rv-dst-' + m.id, ids, '', nombres));
+    return html + '<div class="acciones"><button type="button" class="boton primario" data-confirmar>Confirmar</button></div></section>';
+  }
+  const deTipo = cat.categorias.filter(c => c.tipo === m.tipo && c.activa);
+  const top = (frecuentes[m.tipo] || []).map(id => deTipo.find(c => c.id === id)).filter(Boolean);
+  html += '<div class="chips">' + top.map(chipCategoria).join('') + '<button type="button" class="chip" data-otra>Otra…</button></div>' +
+    '<div class="chips" data-todas hidden style="margin-top:6px">' + deTipo.filter(c => top.indexOf(c) < 0).map(chipCategoria).join('') + '</div>';
+  if (m.comercio) {
+    html += '<label class="check" style="margin-top:10px"><input type="checkbox" data-recordar checked> Recordar la categoría para:</label>' +
+      '<input class="entrada" data-patron value="' + esc(mayusculasSinTildes(m.comercio)) + '" aria-label="Texto del comercio a recordar">';
+  }
+  return html + '<div class="acciones"><button type="button" class="boton" data-dividir>✂️ Dividir</button></div></section>';
+}
+
+function enlazarTarjetaRevisar(t, m) {
+  const otra = t.querySelector('[data-otra]');
+  if (otra) otra.onclick = () => { t.querySelector('[data-todas]').hidden = false; otra.hidden = true; };
+  const valor = id => { const el = t.querySelector('[id="' + id + '"]'); return el ? el.value : ''; };
+  const confirmar = async (boton, categoriaId) => {
+    const recordar = t.querySelector('[data-recordar]');
+    const patron = t.querySelector('[data-patron]');
+    boton.disabled = true;
+    try {
+      const r = await api('categorizarMovimiento', {
+        id: m.id, categoria_id: categoriaId || '', cuenta_id: valor('rv-cta-' + m.id), cuenta_destino_id: valor('rv-dst-' + m.id),
+        recordar: !!(recordar && recordar.checked), patron: patron ? patron.value : '',
+      });
+      aviso(r.confirmados > 1 ? r.confirmados + ' movimientos confirmados' : 'Movimiento confirmado');
+      mostrar('revisar');
+    } catch (err) {
+      aviso(err.message, true);
+      boton.disabled = false;
+    }
+  };
+  t.querySelectorAll('[data-cat]').forEach(b => { b.onclick = () => confirmar(b, b.dataset.cat); });
+  const boton = t.querySelector('[data-confirmar]');
+  if (boton) boton.onclick = () => confirmar(boton, '');
+  const dividir = t.querySelector('[data-dividir]');
+  if (dividir) dividir.onclick = () => {
+    const cuentaElegida = valor('rv-cta-' + m.id);
+    if (!m.cuenta_id && !cuentaElegida) { aviso('Primero elige la cuenta.', true); return; }
+    abrirDividir(Object.assign({}, m, cuentaElegida ? { cuenta_id: cuentaElegida } : {}));
+  };
+}
+
+function tarjetaPendiente(p) {
+  return '<section class="tarjeta seccion" data-pend="' + esc(p.id) + '">' +
+    '<div class="fila-simple" style="border:0;padding-top:0"><b>' + esc(p.asunto) + '</b><span class="tenue">' + esc(fechaLarga(p.fecha)) + '</span></div>' +
+    '<p class="tenue" style="font-size:12px;margin:4px 0 0">' + esc(String(p.resumen).slice(0, 160)) + '…</p>' +
+    '<div class="acciones"><a class="boton" href="https://mail.google.com/mail/u/0/#all/' + encodeURIComponent(p.gmail_id) + '" target="_blank" rel="noopener">Abrir en Gmail</a>' +
+    '<button type="button" class="boton" data-registrar>Registrar a mano</button><button type="button" class="boton" data-descartar>Descartar</button></div></section>';
+}
+
+function enlazarPendiente(t, p) {
+  const descartar = () => api('descartarPendiente', p.id);
+  t.querySelector('[data-registrar]').onclick = () => abrirFormMovimiento(null, { inicial: { fecha: p.fecha }, alGuardar: descartar });
+  const boton = t.querySelector('[data-descartar]');
+  boton.onclick = async () => {
+    boton.disabled = true;
+    try {
+      await descartar();
+      aviso('Correo descartado');
+      mostrar('revisar');
+    } catch (err) {
+      aviso(err.message, true);
+      boton.disabled = false;
+    }
+  };
+}
+</script>

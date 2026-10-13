@@ -7,6 +7,7 @@ VISTAS.inicio = async function (cont) {
   const nota = r.tasaAhorro == null || ant.tasaAhorro == null ? '' : 'vs ' + ant.tasaAhorro + '% el mes anterior';
   cont.innerHTML =
     '<div class="cabecera"><h1>Hola, ' + esc(estado.catalogos.config.nombre) + '</h1>' + selectorMes() + '</div>' +
+    (d.porRevisar ? '<button type="button" class="franja" id="ir-revisar"><span>🔔 <b>' + d.porRevisar + '</b> por revisar</span><span>→</span></button>' : '') +
     '<div class="grid">' +
       kpi('Ingresos', dinero(r.ingresos), 'pos') +
       kpi('Gastos', dinero(r.gastos), '') +
@@ -18,6 +19,8 @@ VISTAS.inicio = async function (cont) {
       bloqueComercios(d.comercios) +
     '</div>';
   enlazarMes(cont);
+  const franja = $('#ir-revisar');
+  if (franja) franja.onclick = () => mostrar('revisar');
   cont.querySelectorAll('[data-categoria]').forEach(f => {
     f.onclick = () => { estado.filtro = { categoria_id: f.dataset.categoria }; mostrar('movimientos'); };
   });

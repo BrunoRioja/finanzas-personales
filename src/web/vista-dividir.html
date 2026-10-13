@@ -1,0 +1,82 @@
+<script>
+'use strict';
+// Modal para dividir un movimiento entre categorías. La última parte se completa sola.
+async function abrirDividir(mov) {
+  const previas = mov.dividido ? await api('obtenerDivisiones', mov.id) : [];
+  const cats = estado.catalogos.categorias.filter(c => c.tipo === mov.tipo && (c.activa || previas.some(p => p.categoria_id === c.id)));
+  const partes = previas.length
+    ? previas.map(p => ({ categoria_id: p.categoria_id, monto: String(p.monto) }))
+    : [{ categoria_id: mov.categoria_id || '', monto: '' }, { categoria_id: '', monto: '' }];
+  const caja = abrirModal('<h2 class="titulo-modal">✂️ Dividir · ' + esc(mov.comercio || 'movimiento') + ' · <span class="num">' + dinero(mov.monto, mov.moneda) + '</span></h2><div id="dv"></div>');
+  const redondear = n => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
+  const restante = () => redondear(mov.monto - partes.slice(0, -1).reduce((s, p) => s + (Number(p.monto) || 0), 0));
+
+  function leer() {
+    caja.querySelectorAll('[data-fila]').forEach(f => {
+      const i = Number(f.dataset.fila);
+      partes[i].categoria_id = f.querySelector('select').value;
+      if (i < partes.length - 1) partes[i].monto = f.querySelector('input').value;
+    });
+  }
+
+  function pintar() {
+    const resto = restante();
+    const filas = partes.map((p, i) => {
+      const ultima = i === partes.length - 1;
+      return '<div class="fila-division" data-fila="' + i + '">' +
+        seleccion('dv-cat-' + i, [''].concat(cats.map(c => c.id)), p.categoria_id, ['Categoría…'].concat(cats.map(c => c.emoji + ' ' + c.nombre))) +
+        '<input class="entrada num" inputmode="decimal" placeholder="0.00" aria-label="Monto" value="' + esc(ultima ? resto.toFixed(2) : p.monto) + '"' + (ultima ? ' readonly' : '') + '>' +
+        (partes.length > 2 ? '<button type="button" class="boton" data-quitar="' + i + '" aria-label="Quitar parte">✕</button>' : '<span></span>') + '</div>';
+    }).join('');
+    const barra = partes.map((p, i) => {
+      const monto = i === partes.length - 1 ? resto : Number(p.monto) || 0;
+      const c = cats.find(x => x.id === p.categoria_id);
+      return '<i style="width:' + Math.max(0, monto / mov.monto * 100) + '%;background:' + esc(c ? c.color : '#3a3a48') + '"></i>';
+    }).join('');
+    $('#dv', caja).innerHTML = filas +
+      '<button type="button" class="boton" id="dv-agregar">+ Agregar categoría</button>' +
+      '<div class="barra-division">' + barra + '</div>' +
+      '<div class="etiqueta ' + (resto * Math.sign(mov.monto) <= 0 ? 'neg' : '') + '">La última parte se completa sola: ' + dinero(resto, mov.moneda) + '</div>' +
+      '<div class="acciones">' + (mov.dividido ? '<button type="button" class="boton peligro" id="dv-quitar">Quitar división</button>' : '') +
+      '<button type="button" class="boton" id="dv-cancelar">Cancelar</button><button type="button" class="boton primario" id="dv-guardar">Guardar</button></div>';
+
+    caja.querySelectorAll('[data-fila] input').forEach(inp => {
+      inp.oninput = () => { leer(); caja.querySelector('[data-fila="' + (partes.length - 1) + '"] input').value = restante().toFixed(2); };
+      inp.onchange = () => { leer(); pintar(); };
+    });
+    caja.querySelectorAll('[data-fila] select').forEach(s => { s.onchange = () => { leer(); pintar(); }; });
+    caja.querySelectorAll('[data-quitar]').forEach(b => { b.onclick = () => { leer(); partes.splice(Number(b.dataset.quitar), 1); pintar(); }; });
+    $('#dv-agregar', caja).onclick = () => { leer(); partes.splice(partes.length - 1, 0, { categoria_id: '', monto: '' }); pintar(); };
+    $('#dv-cancelar', caja).onclick = cerrarModal;
+    $('#dv-guardar', caja).onclick = async e => {
+      leer();
+      const enviar = partes.map((p, i) => ({ categoria_id: p.categoria_id, monto: i === partes.length - 1 ? restante() : p.monto }));
+      e.target.disabled = true;
+      try {
+        await api('dividirMovimiento', { id: mov.id, cuenta_id: mov.cuenta_id || '', partes: enviar });
+        cerrarModal();
+        aviso('Movimiento dividido');
+        mostrar(estado.vista);
+      } catch (err) {
+        aviso(err.message, true);
+        e.target.disabled = false;
+      }
+    };
+    const quitar = $('#dv-quitar', caja);
+    if (quitar) quitar.onclick = async () => {
+      quitar.disabled = true;
+      try {
+        await api('quitarDivision', mov.id);
+        cerrarModal();
+        aviso('División quitada');
+        mostrar(estado.vista);
+      } catch (err) {
+        aviso(err.message, true);
+        quitar.disabled = false;
+      }
+    };
+  }
+
+  pintar();
+}
+</script>
