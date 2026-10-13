@@ -152,6 +152,8 @@ function crearUrlFetch(estado) {
       const datos = JSON.parse(o.payload || '{}');
       estado.llamadas.push({ token: m[1], metodo: m[2], datos });
       let cuerpo;
+      // Falla de red: Apps Script lanza un error cuyo mensaje incluye la URL completa.
+      if (estado.redCaida) throw new Error('Address unavailable: ' + url);
       if (estado.falla) cuerpo = { ok: false, description: estado.falla };
       else if (estado.respuestas[m[2]]) cuerpo = estado.respuestas[m[2]](datos, m[1]);
       else if (m[2] === 'sendMessage') cuerpo = { ok: true, result: { message_id: ++estado.contador } };

@@ -2,8 +2,6 @@
 // la URL y el cuerpo del POST. Todo lo que no traiga el secreto, o no venga del chat
 // vinculado, se ignora en silencio. Nada de aquí crea triggers (se ejecuta en el receptor).
 
-const SEGUNDOS_RECORDAR_UPDATE = 21600; // 6 h: Telegram reintenta mientras no reciba 200
-
 function recibirTelegram(secreto, cuerpo) {
   const props = PropertiesService.getScriptProperties();
   if (!secretoValido_(secreto, props.getProperty('WEBHOOK_SECRET'))) return;
@@ -14,10 +12,7 @@ function recibirTelegram(secreto, cuerpo) {
     return;
   }
   if (!update || typeof update.update_id !== 'number') return;
-  const cache = CacheService.getScriptCache();
-  const clave = 'tg:' + update.update_id;
-  if (cache.get(clave)) return;
-  cache.put(clave, '1', SEGUNDOS_RECORDAR_UPDATE);
+  if (!esUpdateNuevo_(update.update_id)) return;
   const mensaje = update.message;
   const boton = update.callback_query;
   const chat = mensaje ? mensaje.chat : boton && boton.message ? boton.message.chat : null;
@@ -29,6 +24,18 @@ function recibirTelegram(secreto, cuerpo) {
   }
   if (String(chat.id) !== vinculado) return;
   atenderTelegram_(update.update_id, mensaje, boton);
+}
+
+// Telegram reintenta cada update mientras no reciba un 200, y Apps Script siempre responde
+// 302: se recuerda el último update atendido (los ids crecen y llegan en orden porque el
+// webhook se registra con max_connections: 1). Un reenvío o un update más viejo se ignora.
+function esUpdateNuevo_(updateId) {
+  return conBloqueo_(() => {
+    const props = PropertiesService.getScriptProperties();
+    if (updateId <= (Number(props.getProperty('ULTIMO_UPDATE_ID')) || 0)) return false;
+    props.setProperty('ULTIMO_UPDATE_ID', String(updateId));
+    return true;
+  });
 }
 
 // Comparación de tiempo constante: no revela cuántos caracteres coinciden.

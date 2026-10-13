@@ -7,9 +7,16 @@ const URL_API_TELEGRAM = 'https://api.telegram.org/bot';
 function llamarTelegram_(metodo, datos, token) {
   const clave = token || PropertiesService.getScriptProperties().getProperty('TELEGRAM_TOKEN');
   if (!clave) throw new Error('Telegram no está configurado.');
-  const respuesta = UrlFetchApp.fetch(URL_API_TELEGRAM + clave + '/' + metodo, {
-    method: 'post', contentType: 'application/json', payload: JSON.stringify(datos || {}), muteHttpExceptions: true,
-  });
+  let respuesta;
+  try {
+    respuesta = UrlFetchApp.fetch(URL_API_TELEGRAM + clave + '/' + metodo, {
+      method: 'post', contentType: 'application/json', payload: JSON.stringify(datos || {}), muteHttpExceptions: true,
+    });
+  } catch (e) {
+    // Una falla de red trae la URL completa (con el token) en el mensaje: se oculta y
+    // se descarta la pila, que terminaría en la hoja Log.
+    throw new Error('No pude conectar con Telegram: ' + String(e.message).split(clave).join('<token>'));
+  }
   let cuerpo = {};
   try {
     cuerpo = JSON.parse(respuesta.getContentText());

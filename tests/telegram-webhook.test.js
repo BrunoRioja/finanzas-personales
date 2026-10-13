@@ -11,7 +11,7 @@ test('sin el secreto correcto, con JSON inválido o sin update_id no hace nada',
   e.llamar('recibirTelegram', SECRETO, '{no es json');
   e.llamar('recibirTelegram', SECRETO, JSON.stringify({ message: ayuda }));
   assert.strictEqual(e.telegram.llamadas.length, 0);
-  assert.deepStrictEqual(Object.keys(e.cache), []);
+  assert.ok(!('ULTIMO_UPDATE_ID' in e.propiedades));
 });
 
 test('sin secreto configurado se ignora todo, incluso un secreto vacío', () => {
@@ -29,7 +29,7 @@ test('/ayuda responde una vez aunque Telegram reenvíe el mismo update', () => {
   e.enviar(u);
   assert.strictEqual(e.enviados().length, 1);
   assert.match(e.ultimoEnviado().text, /Registrar un gasto/);
-  assert.strictEqual(e.cache['tg:50'], '1');
+  assert.strictEqual(e.propiedades.ULTIMO_UPDATE_ID, '50');
 });
 
 test('/start y /ayuda@prueba_bot muestran la ayuda; un comando desconocido lo dice', () => {
@@ -108,4 +108,18 @@ test('un código vencido no vincula', () => {
   e.escribir('/start AB12CD', 777);
   assert.ok(!('TELEGRAM_CHAT_ID' in e.propiedades));
   assert.strictEqual(e.telegram.llamadas.length, 0);
+});
+
+test('un update ya atendido no se repite aunque la caché se vacíe ni si llega uno más viejo', () => {
+  const e = entornoBot();
+  e.llamar('guardarCuenta', { id: e.cuenta('Débito BCP'), nombre: 'Débito BCP', tipo: 'debito', numeros: '1234', yape: true });
+  e.enviar({ update_id: 7000, message: { message_id: 1, chat: { id: CHAT }, text: 'taxi 12' } });
+  e.fijarAhora('2026-10-13T10:01:00');
+  e.enviar({ update_id: 7001, message: { message_id: 2, chat: { id: CHAT }, text: 'pan 5' } });
+  e.enviar({ update_id: 7002, message: { message_id: 3, chat: { id: CHAT }, text: '/deshacer' } });
+  Object.keys(e.cache).forEach(k => delete e.cache[k]);
+  e.enviar({ update_id: 7002, message: { message_id: 3, chat: { id: CHAT }, text: '/deshacer' } });
+  e.enviar({ update_id: 7000, message: { message_id: 1, chat: { id: CHAT }, text: 'taxi 12' } });
+  assert.deepStrictEqual(e.filas('Movimientos').filter(m => m.origen === 'telegram').map(m => m.comercio), ['taxi']);
+  assert.strictEqual(e.propiedades.ULTIMO_UPDATE_ID, '7002');
 });

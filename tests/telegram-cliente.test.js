@@ -66,3 +66,14 @@ test('llamarTelegram_ con token explícito (antes de guardarlo) y responderBoton
   e.interno('responderBoton_', 'cb2', 'Listo');
   assert.deepStrictEqual(e.llamadas('answerCallbackQuery'), [{ callback_query_id: 'cb1' }, { callback_query_id: 'cb2', text: 'Listo' }]);
 });
+
+test('una falla de red no deja el token en el error ni en el Log', () => {
+  const e = entornoBot();
+  e.telegram.redCaida = true;
+  assert.throws(() => e.interno('enviarMensaje_', 'x'),
+    err => err.message.indexOf(TOKEN) < 0 && /^No pude conectar con Telegram: Address unavailable: https:\/\/api\.telegram\.org\/bot<token>\/sendMessage$/.test(err.message));
+  e.escribir('/ayuda');
+  const log = e.filas('Log');
+  assert.ok(log.length > 0);
+  assert.ok(!JSON.stringify(log).includes(TOKEN));
+});
