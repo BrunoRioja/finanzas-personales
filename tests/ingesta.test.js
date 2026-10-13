@@ -215,7 +215,7 @@ test('el horario configurado se respeta y "Revisar ahora" lee a cualquier hora',
   assert.strictEqual(e.llamar('revisarCorreos').leidos, 7);
 });
 
-test('releerSinCuenta vuelve a leer los importados que quedaron sin cuenta, con los números corregidos', () => {
+test('volverALeerCorreos vuelve a leer los importados que quedaron sin cuenta, con los números corregidos', () => {
   const e = entornoConCorreos();
   const deb = e.cuenta('Débito BCP');
   e.llamar('guardarCuenta', { id: deb, nombre: 'Débito BCP', tipo: 'debito', numeros: '4444', yape: true });
@@ -223,16 +223,38 @@ test('releerSinCuenta vuelve a leer los importados que quedaron sin cuenta, con 
   assert.strictEqual(e.movDe('g1').cuenta_id, '');
   const confirmados = e.filas('Movimientos').filter(m => m.estado === 'confirmado').map(m => m.id).sort();
   e.llamar('guardarCuenta', { id: deb, nombre: 'Débito BCP', tipo: 'debito', numeros: '4444, 1111', yape: true });
-  const r = e.llamar('releerSinCuenta');
-  assert.strictEqual(r.borrados, 1);
+  const r = e.llamar('volverALeerCorreos');
+  assert.strictEqual(r.borrados, 2, 'g1 sin cuenta y el pendiente g6');
   assert.strictEqual(r.creados, 1);
+  assert.strictEqual(r.pendientes, 1, 'g6 sigue sin poder leerse');
   assert.strictEqual(e.movDe('g1').cuenta_id, deb);
   assert.deepStrictEqual(e.filas('Movimientos').filter(m => m.estado === 'confirmado').map(m => m.id).sort(), confirmados);
   assert.strictEqual(e.filas('Movimientos').length, 5);
 });
 
-test('releerSinCuenta no hace nada en modo demo', () => {
+test('volverALeerCorreos no hace nada en modo demo', () => {
   const e = entornoConCorreos();
   e.llamar('cargarDemo');
-  assert.throws(() => e.interno('releerSinCuenta'), /modo demo/i);
+  assert.throws(() => e.interno('volverALeerCorreos'), /modo demo/i);
+});
+
+test('correo en UTF-8 con cabecera que declara latin-1 (Yape) se lee bien', () => {
+  const yape = Object.assign(correoGmail('y1', 'yape-enviado.html', ASUNTOS.yape, '2026-10-02T19:51:00', YAPE), { charsetCabecera: 'ISO-8859-1' });
+  const e = entornoConCorreos([yape]);
+  const r = e.llamar('revisarCorreos');
+  assert.strictEqual(r.creados, 1);
+  assert.strictEqual(r.pendientes, 0);
+  assert.strictEqual(e.movDe('y1').comercio, 'CARLOS PRUEBA R.');
+});
+
+test('volverALeerCorreos también reintenta los correos que no se pudieron leer', () => {
+  const e = entornoConCorreos();
+  e.llamar('revisarCorreos');
+  const g1 = e.movDe('g1');
+  e.interno('eliminarFila_', 'Movimientos', g1.id);
+  e.interno('agregarFilas_', 'Pendientes', [{ id: 'p-g1', gmail_id: 'g1', fecha: '2026-10-06', remitente: 'x', asunto: 'x', resumen: 'x', estado: 'pendiente' }]);
+  const r = e.llamar('volverALeerCorreos');
+  assert.strictEqual(r.borrados, 2, 'pendientes de g1 y g6');
+  assert.ok(e.movDe('g1'), 'g1 vuelve como movimiento');
+  assert.deepStrictEqual(e.filas('Pendientes').filter(p => p.estado === 'pendiente').map(p => p.gmail_id), ['g6'], 'g6 sigue sin poder leerse');
 });

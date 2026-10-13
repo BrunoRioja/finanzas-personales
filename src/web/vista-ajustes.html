@@ -78,7 +78,7 @@ function seccionLectura(l) {
     '<label class="check"><input type="checkbox" id="l-etiquetar"' + (l.etiquetar ? ' checked' : '') + '> Etiquetar en Gmail los correos leídos (Finanzas/Procesado)</label>' +
     '<div class="acciones" id="l-acciones"><button type="button" class="boton primario" id="l-guardar">Guardar</button>' +
     (l.activa ? '<button type="button" class="boton" id="l-revisar">Revisar ahora</button><button type="button" class="boton" id="l-importar">Importar</button>' +
-      '<button type="button" class="boton" id="l-releer">Volver a leer los que quedaron sin cuenta</button>' : '') +
+      '<button type="button" class="boton" id="l-releer">Volver a leer los sin cuenta y los no leídos</button>' : '') +
     '</div></section>';
 }
 
@@ -89,7 +89,7 @@ function enlazarLectura() {
   const importar = $('#l-importar');
   if (importar) importar.onclick = e => ejecutarLectura(e.target, 'Importando', () => api('importarCorreosDesde', $('#l-desde').value));
   const releer = $('#l-releer');
-  if (releer) releer.onclick = e => ejecutarLectura(e.target, 'Volviendo a leer', () => api('releerSinCuenta'));
+  if (releer) releer.onclick = e => ejecutarLectura(e.target, 'Volviendo a leer', () => api('volverALeerCorreos'));
   const ver = $('#l-ver-revisar');
   if (ver) ver.onclick = () => mostrar('revisar');
 }
@@ -140,7 +140,7 @@ async function ejecutarLectura(boton, verbo, primera) {
 
 function textoResultado(t, restantes) {
   if (!t.leidos && !t.borrados) return '✅ Listo: no había correos nuevos.';
-  let texto = '✅ Listo: ' + (t.borrados ? t.borrados + ' sin cuenta vueltos a leer · ' : '') +
+  let texto = '✅ Listo: ' + (t.borrados ? t.borrados + ' vueltos a leer · ' : '') +
     t.leidos + ' correos leídos · ' + t.creados + ' movimientos';
   if (t.porRevisar) texto += ' · ' + t.porRevisar + ' por revisar';
   if (t.pendientes) texto += ' · ' + t.pendientes + (t.pendientes === 1 ? ' no leído' : ' no leídos');

@@ -102,7 +102,7 @@
         ? { leidos: 50, creados: 48, porRevisar: 9, pendientes: 1, ignorados: 1, restantes: 12, etiquetados: 49 }
         : { leidos: 12, creados: 12, porRevisar: 2, pendientes: 0, ignorados: 0, restantes: 0, etiquetados: 12 });
     })(),
-    releerSinCuenta: { borrados: 3, leidos: 3, creados: 3, porRevisar: 1, pendientes: 0, ignorados: 0, restantes: 0, etiquetados: 3 },
+    volverALeerCorreos: { borrados: 3, leidos: 3, creados: 3, porRevisar: 1, pendientes: 0, ignorados: 0, restantes: 0, etiquetados: 3 },
     importarCorreosDesde: { leidos: 50, creados: 45, porRevisar: 6, pendientes: 1, ignorados: 2, restantes: 62, etiquetados: 46 },
     listarReglas: [{ id: 'r1', patron: 'TOTTUS', categoria_id: 'c1', cuenta_id: '', creada_por: 'usuario', usos: 5 }],
     eliminarRegla: { ok: true },

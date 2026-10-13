@@ -37,7 +37,11 @@ function buscarParte_(parte, tipo) {
     // El servicio avanzado puede entregar body.data como texto base64url o como bytes.
     const datos = parte.body.data;
     const bytes = typeof datos === 'string' ? Utilities.base64DecodeWebSafe(datos) : datos;
-    return Utilities.newBlob(bytes).getDataAsString(charsetDe_(parte));
+    // Primero UTF-8: algunos correos (Yape) son UTF-8 pero su cabecera declara latin-1.
+    // Si los bytes no son UTF-8 válido aparecen caracteres de reemplazo y se usa lo declarado.
+    const blob = Utilities.newBlob(bytes);
+    const utf8 = blob.getDataAsString('UTF-8');
+    return utf8.indexOf('\uFFFD') < 0 ? utf8 : blob.getDataAsString(charsetDe_(parte));
   }
   const hijos = parte.parts || [];
   for (let i = 0; i < hijos.length; i++) {

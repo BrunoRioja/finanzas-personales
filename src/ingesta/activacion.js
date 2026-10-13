@@ -48,9 +48,9 @@ function estadoLectura() {
   };
 }
 
-// Borra los importados que siguen sin cuenta (por números que faltaban) y los vuelve a
-// leer de Gmail con los números ya corregidos. No toca nada que el usuario haya revisado.
-function releerSinCuenta() {
+// Borra los importados que siguen sin cuenta (por números que faltaban) y los correos que
+// no se pudieron leer, y los vuelve a leer de Gmail. No toca nada que el usuario haya revisado.
+function volverALeerCorreos() {
   if (PropertiesService.getScriptProperties().getProperty('MODO_DEMO') === 'si') {
     throw new Error('Sal del modo demo para volver a leer tus correos.');
   }
@@ -58,8 +58,10 @@ function releerSinCuenta() {
     const sinCuenta = leerTabla_('Movimientos').filter(m => m.origen === 'gmail' && m.estado === 'por_revisar' &&
       !m.dividido && (!m.cuenta_id || (m.tipo === 'transferencia' && !m.cuenta_destino_id)));
     sinCuenta.forEach(m => eliminarFila_('Movimientos', m.id));
+    const noLeidos = leerTabla_('Pendientes').filter(p => p.estado === 'pendiente');
+    noLeidos.forEach(p => eliminarFila_('Pendientes', p.id));
     guardarConfig_({ cursor_lectura: 0 });
-    return sinCuenta.length;
+    return sinCuenta.length + noLeidos.length;
   });
   return Object.assign({ borrados: borrados }, revisarCorreos());
 }

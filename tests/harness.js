@@ -114,7 +114,7 @@ function crearGmail(correos, stats, opciones) {
               headers: [{ name: 'From', value: c.cabeceraDe || 'Notificaciones <' + c.de + '>' }, { name: 'Subject', value: c.asunto }],
               parts: [
                 { mimeType: 'text/plain', body: { data: b64('versión de texto plano') } },
-                { mimeType: 'text/html', headers: [{ name: 'Content-Type', value: 'text/html; charset="' + (c.charset || 'UTF-8') + '"' }], body: { data: datos } },
+                { mimeType: 'text/html', headers: [{ name: 'Content-Type', value: 'text/html; charset="' + (c.charsetCabecera || c.charset || 'UTF-8') + '"' }], body: { data: datos } },
               ],
             },
           };
