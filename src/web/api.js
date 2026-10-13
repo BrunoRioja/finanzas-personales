@@ -2,12 +2,15 @@
 
 function obtenerCatalogos() {
   const config = leerConfig_();
+  const cuentas = leerTabla_('Cuentas');
+  const tcUsd = Number(config.ultimo_tc) || 0;
   return {
-    cuentas: leerTabla_('Cuentas'),
+    cuentas: cuentas,
     categorias: leerTabla_('Categorias'),
+    saldos: saldosPorCuenta_(leerTabla_('Movimientos'), cuentas, tcUsd),
     config: {
       nombre: config.nombre || '',
-      ultimo_tc: Number(config.ultimo_tc) || 0,
+      ultimo_tc: tcUsd,
       moneda_principal: config.moneda_principal || 'PEN',
     },
     opciones: { bancos: BANCOS, tiposCuenta: TIPOS_CUENTA, monedas: MONEDAS },
@@ -99,4 +102,15 @@ function listarMovimientos(filtro) {
 function eliminarMovimiento(id) {
   conBloqueo_(() => eliminarFila_('Movimientos', id));
   return { ok: true };
+}
+
+function obtenerDashboard(mes) {
+  validarMes_(mes);
+  return construirDashboard_({
+    movs: leerTabla_('Movimientos'),
+    divisiones: leerTabla_('Divisiones'),
+    categorias: leerTabla_('Categorias'),
+    cuentas: leerTabla_('Cuentas'),
+    tcUsd: Number(leerConfig_().ultimo_tc) || 0,
+  }, mes);
 }
