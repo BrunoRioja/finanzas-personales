@@ -10,6 +10,7 @@
     "setup": "clasp create-script --type sheets --title \"Finanzas personales\" --rootDir src",
     "push": "clasp push --force",
     "deploy": "node scripts/desplegar.js",
+    "deploy:receptor": "node scripts/desplegar-receptor.js",
     "ui": "node tests/ui/ver.js"
   },
   "engines": {

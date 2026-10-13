@@ -5,7 +5,7 @@ module.exports = [
   { ignores: ['node_modules/', '.superpowers/'] },
   js.configs.recommended,
   {
-    files: ['src/**/*.js'],
+    files: ['src/**/*.js', 'receptor/**/*.js'],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'script',
