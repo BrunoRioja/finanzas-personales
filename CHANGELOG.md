@@ -14,7 +14,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/); v
 - Receptor del webhook (`npm run deploy:receptor`).
 
 ### Cambiado
-- La app pide un permiso nuevo para conectarse a Telegram (`script.external_request`).
+- La app pide un permiso nuevo para conectarse a Telegram (`script.external_request`): ejecuta una vez `autorizarPermisos` en el editor de la app y vuelve a desplegar.
 
 ## [0.2.0] — 2026-10-13
 
