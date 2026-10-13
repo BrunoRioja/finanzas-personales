@@ -1,0 +1,16 @@
+// Lector de los correos de notificaciones@yape.pe (yapeos enviados).
+// Los yapeos recibidos llegan del BCP y los lee bcp.js.
+
+const REMITENTE_YAPE = 'notificaciones@yape.pe';
+
+function leerCorreoYape_(correo) {
+  if (correo.remitente !== REMITENTE_YAPE) return null;
+  const t = correo.texto;
+  if (!/Acabas de yapear/i.test(t)) return null; // encuestas, publicidad
+  const monto = new RegExp('Monto de yapeo\\*?\\s+' + PATRON_MONTO).exec(t);
+  const nombre = /Nombre del Beneficiario\s+(.+?)\s+N[º°o]\.? de operaci[oó]n/i.exec(t);
+  if (!monto || !nombre) return { pendiente: 'No se pudo leer el yapeo.' };
+  return { crudo: Object.assign({ tipo: 'gasto' }, leerMonto_(monto[1], monto[2]), {
+    comercio: nombre[1].trim(), usa_yape: true, fecha: correo.fecha, ref_externa: 'gmail:' + correo.id,
+  }) };
+}
