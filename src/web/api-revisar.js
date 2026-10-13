@@ -92,3 +92,40 @@ function descartarPendiente(id) {
   conBloqueo_(() => actualizarFila_('Pendientes', id, { estado: 'descartado' }));
   return { ok: true };
 }
+
+function dividirMovimiento(datos) {
+  return conBloqueo_(() => {
+    const mov = leerTabla_('Movimientos').filter(m => m.id === datos.id)[0];
+    if (!mov) throw new Error('El movimiento ya no existe.');
+    const partes = normalizarPartes_(mov, datos.partes, leerTabla_('Categorias'));
+    const cambios = { dividido: true, estado: 'confirmado' };
+    if (!mov.cuenta_id) {
+      if (!datos.cuenta_id) throw new Error('Elige la cuenta del movimiento antes de dividirlo.');
+      cambios.cuenta_id = buscarActiva_(leerTabla_('Cuentas'), datos.cuenta_id, 'La cuenta').id;
+    }
+    if (mov.moneda !== 'PEN' && !(mov.tc > 0)) throw new Error('Configura el tipo de cambio en Ajustes antes de dividir.');
+    cambios.categoria_id = partes.slice().sort((a, b) => Math.abs(b.monto) - Math.abs(a.monto))[0].categoria_id;
+    borrarDivisiones_(mov.id);
+    agregarFilas_('Divisiones', partes.map(p => Object.assign({ id: nuevoId_(), movimiento_id: mov.id }, p)));
+    actualizarFila_('Movimientos', mov.id, cambios);
+    return { ok: true, partes: partes };
+  });
+}
+
+function quitarDivision(id) {
+  conBloqueo_(() => {
+    if (!leerTabla_('Movimientos').some(m => m.id === id)) throw new Error('El movimiento ya no existe.');
+    borrarDivisiones_(id);
+    actualizarFila_('Movimientos', id, { dividido: false });
+  });
+  return { ok: true };
+}
+
+function obtenerDivisiones(id) {
+  return leerTabla_('Divisiones').filter(d => d.movimiento_id === id);
+}
+
+function borrarDivisiones_(movimientoId) {
+  leerTabla_('Divisiones').filter(d => d.movimiento_id === movimientoId)
+    .forEach(d => eliminarFila_('Divisiones', d.id));
+}

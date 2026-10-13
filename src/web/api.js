@@ -108,7 +108,13 @@ function listarMovimientos(filtro) {
 }
 
 function eliminarMovimiento(id) {
-  conBloqueo_(() => eliminarFila_('Movimientos', id));
+  conBloqueo_(() => {
+    const mov = leerTabla_('Movimientos').filter(m => m.id === id)[0];
+    eliminarFila_('Movimientos', id); // lanza "No existe" si ya no está
+    borrarDivisiones_(id);
+    // Un importado que el usuario borra (p. ej. duplicado) no debe volver en la siguiente lectura.
+    if (mov && mov.ref_externa.indexOf('gmail:') === 0) recordarIgnorados_([mov.ref_externa.slice(6)]);
+  });
   return { ok: true };
 }
 
