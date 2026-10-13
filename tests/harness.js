@@ -141,14 +141,38 @@ function crearGmail(correos, stats, opciones) {
   };
 }
 
+// UrlFetchApp simulado: solo la API de Telegram. Registra cada llamada; `estado.falla`
+// hace que Telegram responda error y `estado.respuestas[metodo]` personaliza la respuesta
+// ({ __crudo, __codigo } simula una respuesta que no es JSON).
+function crearUrlFetch(estado) {
+  return {
+    fetch: (url, o) => {
+      const m = /^https:\/\/api\.telegram\.org\/bot([^/]+)\/(\w+)$/.exec(url);
+      if (!m) throw new Error('URL inesperada: ' + url);
+      const datos = JSON.parse(o.payload || '{}');
+      estado.llamadas.push({ token: m[1], metodo: m[2], datos });
+      let cuerpo;
+      if (estado.falla) cuerpo = { ok: false, description: estado.falla };
+      else if (estado.respuestas[m[2]]) cuerpo = estado.respuestas[m[2]](datos, m[1]);
+      else if (m[2] === 'sendMessage') cuerpo = { ok: true, result: { message_id: ++estado.contador } };
+      else if (m[2] === 'getMe') cuerpo = { ok: true, result: { id: 42, is_bot: true, username: 'prueba_bot' } };
+      else cuerpo = { ok: true, result: true };
+      const texto = cuerpo.__crudo !== undefined ? cuerpo.__crudo : JSON.stringify(cuerpo);
+      const codigo = cuerpo.__codigo || (cuerpo.ok ? 200 : 400);
+      return { getResponseCode: () => codigo, getContentText: () => texto };
+    },
+  };
+}
+
 // ScriptApp simulado: solo triggers de tiempo.
 function crearScriptApp(triggers) {
   return {
     getProjectTriggers: () => triggers.slice(),
     deleteTrigger: t => { const i = triggers.indexOf(t); if (i >= 0) triggers.splice(i, 1); },
+    getService: () => ({ getUrl: () => 'https://script.google.com/macros/s/APP-PRUEBA/exec' }),
     newTrigger: funcion => ({
       timeBased: () => {
-        const t = { funcion: funcion, cada: null, getHandlerFunction: () => funcion };
+        const t = { funcion: funcion, cada: null, hora: null, getHandlerFunction: () => funcion };
         const b = {
           everyMinutes: n => {
             if ([1, 5, 10, 15, 30].indexOf(n) < 0) throw new Error('Intervalo de minutos inválido: ' + n);
@@ -156,6 +180,12 @@ function crearScriptApp(triggers) {
             return b;
           },
           everyHours: n => { t.cada = n + ' h'; return b; },
+          atHour: h => {
+            if (!Number.isInteger(h) || h < 0 || h > 23) throw new Error('Hora inválida: ' + h);
+            t.hora = h;
+            return b;
+          },
+          everyDays: n => { t.cada = n + ' d'; return b; },
           create: () => { triggers.push(t); return t; },
         };
         return b;
@@ -172,6 +202,8 @@ function crearEntorno(opciones = {}) {
   const stats = { locks: 0, aperturas: 0, gmailList: 0, gmailGet: 0, gmailEnBloqueo: 0, enBloqueo: false };
   const gmail = crearGmail(opciones.correos || [], stats, opciones);
   const triggers = [];
+  const telegram = { llamadas: [], falla: null, respuestas: {}, contador: 100 };
+  const cache = {};
   let contadorId = 0;
   let contadorLibros = 0;
 
@@ -217,6 +249,14 @@ function crearEntorno(opciones = {}) {
       }),
     },
     Gmail: gmail,
+    UrlFetchApp: crearUrlFetch(telegram),
+    CacheService: {
+      getScriptCache: () => ({
+        get: k => (k in cache ? cache[k] : null),
+        put: (k, v) => { cache[k] = String(v); },
+        remove: k => { delete cache[k]; },
+      }),
+    },
     ScriptApp: crearScriptApp(triggers),
     Utilities: {
       formatDate: (d, tz, patron) => formatear(d, patron),
@@ -232,7 +272,7 @@ function crearEntorno(opciones = {}) {
   }
 
   return {
-    principal, libros, propiedades, stats, gmail, triggers,
+    principal, libros, propiedades, stats, gmail, triggers, telegram, cache,
     hojas: principal._hojas,
     llamar(nombre, ...args) {
       const salida = contexto[nombre](...args);
