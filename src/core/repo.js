@@ -1,19 +1,32 @@
 // Única capa que toca SpreadsheetApp. Convierte filas <-> objetos según ESQUEMA,
 // ubicando cada columna por su encabezado (el usuario puede reordenar o agregar columnas).
 
+// Libro ya abierto en esta ejecución (Apps Script reinicia el estado global en cada
+// llamada del navegador). Abrir un libro cuesta cientos de ms: se abre una vez por clave.
+const LIBRO_ABIERTO = { clave: null, libro: null };
+
 function abrirLibro_() {
-  const props = PropertiesService.getScriptProperties();
-  const demo = props.getProperty('DEMO_SHEET_ID');
-  if (props.getProperty('MODO_DEMO') === 'si' && demo) {
+  const scriptProps = PropertiesService.getScriptProperties();
+  const props = scriptProps.getProperties();
+  const demo = props.DEMO_SHEET_ID;
+  if (props.MODO_DEMO === 'si' && demo) {
+    if (LIBRO_ABIERTO.clave === 'demo:' + demo) return LIBRO_ABIERTO.libro;
     try {
-      return SpreadsheetApp.openById(demo);
+      return recordarLibro_('demo:' + demo, SpreadsheetApp.openById(demo));
     } catch {
       // La hoja demo fue borrada: volver a la real en vez de romper la app.
-      props.setProperty('MODO_DEMO', 'no');
+      scriptProps.setProperty('MODO_DEMO', 'no');
     }
   }
-  const id = props.getProperty('SHEET_ID');
-  return id ? SpreadsheetApp.openById(id) : SpreadsheetApp.getActiveSpreadsheet();
+  const id = props.SHEET_ID || '';
+  if (LIBRO_ABIERTO.clave === 'real:' + id) return LIBRO_ABIERTO.libro;
+  return recordarLibro_('real:' + id, id ? SpreadsheetApp.openById(id) : SpreadsheetApp.getActiveSpreadsheet());
+}
+
+function recordarLibro_(clave, libro) {
+  LIBRO_ABIERTO.clave = clave;
+  LIBRO_ABIERTO.libro = libro;
+  return libro;
 }
 
 // Crea las hojas que falten con encabezados en negrita, fila congelada y formato
@@ -50,7 +63,13 @@ function desdeCelda_(valor, tipo) {
     return valor === '' || valor === null || isNaN(n) ? 0 : n;
   }
   if (tipo === 'booleano') return valor === true || String(valor).toUpperCase() === 'TRUE';
-  if (tipo === 'fecha') return esFecha_(valor) ? formatearFecha_(valor) : String(valor == null ? '' : valor);
+  if (tipo === 'fecha') {
+    if (esFecha_(valor)) return formatearFecha_(valor);
+    // Fecha escrita a mano en formato peruano (dd/mm/aaaa) en una columna de texto.
+    const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(String(valor == null ? '' : valor).trim());
+    if (m) return m[3] + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0');
+    return String(valor == null ? '' : valor);
+  }
   return valor == null ? '' : String(valor);
 }
 
@@ -70,8 +89,9 @@ function leerTabla_(nombre) {
   const valores = hoja_(nombre).getDataRange().getValues();
   const encabezados = valores[0] || [];
   const indices = columnas.map(c => encabezados.indexOf(c[0]));
+  const colClave = encabezados.indexOf(columnas[0][0]);
   return valores.slice(1)
-    .filter(fila => fila.some(v => v !== '' && v !== null))
+    .filter(fila => tieneClave_(fila, colClave))
     .map(fila => {
       const obj = {};
       columnas.forEach((c, i) => { obj[c[0]] = desdeCelda_(indices[i] < 0 ? '' : fila[indices[i]], c[1]); });
@@ -79,13 +99,41 @@ function leerTabla_(nombre) {
     });
 }
 
+// Una fila es un dato solo si tiene clave: casillas o fórmulas que el usuario
+// arrastre en una columna propia no crean filas fantasma.
+function tieneClave_(fila, colClave) {
+  if (colClave < 0) return fila.some(v => v !== '' && v !== null);
+  return fila[colClave] !== '' && fila[colClave] !== null;
+}
+
+// Filas que se agregan al llenarse la hoja (Sheets no deja escribir fuera de getMaxRows).
+const FILAS_POR_AMPLIACION = 500;
+
 function agregarFilas_(nombre, objetos) {
   if (!objetos.length) return;
   const hoja = hoja_(nombre);
-  const encabezados = encabezados_(hoja);
+  const valores = hoja.getDataRange().getValues();
+  const encabezados = valores[0];
   const tipos = tiposDe_(nombre);
-  const filas = objetos.map(o => encabezados.map(h => (h in tipos ? haciaCelda_(o[h], tipos[h]) : '')));
-  hoja.getRange(hoja.getLastRow() + 1, 1, filas.length, encabezados.length).setValues(filas);
+  const colClave = encabezados.indexOf(ESQUEMA[nombre][0][0]);
+  let ultima = 1;
+  valores.forEach((fila, i) => { if (i > 0 && tieneClave_(fila, colClave)) ultima = i + 1; });
+  const inicio = ultima + 1;
+  const fin = inicio + objetos.length - 1;
+  const maximo = hoja.getMaxRows();
+  if (fin > maximo) {
+    const agregar = Math.max(fin - maximo, FILAS_POR_AMPLIACION);
+    hoja.insertRowsAfter(maximo, agregar);
+    encabezados.forEach((h, i) => {
+      if (tipos[h] === 'texto' || tipos[h] === 'fecha') hoja.getRange(maximo + 1, i + 1, agregar, 1).setNumberFormat('@');
+    });
+  }
+  // Las columnas propias del usuario conservan lo que ya tenían en esas filas.
+  const filas = objetos.map((o, k) => {
+    const previa = valores[inicio - 1 + k] || [];
+    return encabezados.map((h, i) => (h in tipos ? haciaCelda_(o[h], tipos[h]) : (previa[i] === undefined ? '' : previa[i])));
+  });
+  hoja.getRange(inicio, 1, filas.length, encabezados.length).setValues(filas);
 }
 
 // Número de fila (1-based) cuya clave (primera columna del esquema) es `id`, o -1.

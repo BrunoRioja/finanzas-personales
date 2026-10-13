@@ -25,8 +25,13 @@ function formatear(d, patron) {
 }
 
 // Libro simulado. `hojas` = { nombreHoja: [[fila1], [fila2], ...] } (fila 1 = encabezados).
+// Como en Sheets real: cada hoja tiene un máximo de filas (1000 al crearla) y escribir
+// fuera de ese máximo lanza error; insertRowsAfter lo agranda.
 function crearLibro(id, hojas) {
   const formatos = {};
+  const aplicados = [];
+  const maxFilas = {};
+  const maximo = nombre => (nombre in maxFilas ? maxFilas[nombre] : (maxFilas[nombre] = Math.max(1000, hojas[nombre].length)));
   const ancho = nombre => Math.max(0, ...hojas[nombre].map(f => f.length));
   const hoja = nombre => ({
     getName: () => nombre,
@@ -35,8 +40,11 @@ function crearLibro(id, hojas) {
     }),
     getLastRow: () => hojas[nombre].length,
     getLastColumn: () => ancho(nombre),
-    getMaxRows: () => 1000,
-    getRange: (r, c, nr = 1, nc = 1) => ({
+    getMaxRows: () => maximo(nombre),
+    insertRowsAfter: (despues, n) => { maxFilas[nombre] = maximo(nombre) + n; },
+    getRange: (r, c, nr = 1, nc = 1) => {
+      if (r + nr - 1 > maximo(nombre)) throw new Error('The coordinates of the range are outside the dimensions of the sheet.');
+      return {
       getValues: () => Array.from({ length: nr }, (_, i) => Array.from({ length: nc }, (_, j) => {
         const v = (hojas[nombre][r - 1 + i] || [])[c - 1 + j];
         return v === undefined ? '' : v;
@@ -45,9 +53,13 @@ function crearLibro(id, hojas) {
         while (hojas[nombre].length < r + i) hojas[nombre].push([]);
         fila.forEach((x, j) => { hojas[nombre][r - 1 + i][c - 1 + j] = x; });
       }),
-      setNumberFormat: f => { for (let j = 0; j < nc; j++) formatos[nombre + '!' + (c + j)] = f; },
+      setNumberFormat: f => {
+        for (let j = 0; j < nc; j++) formatos[nombre + '!' + (c + j)] = f;
+        aplicados.push({ hoja: nombre, fila: r, columna: c, filas: nr, columnas: nc, formato: f });
+      },
       setFontWeight: () => {},
-    }),
+      };
+    },
     appendRow: fila => { hojas[nombre].push(fila.slice()); },
     deleteRow: n => { hojas[nombre].splice(n - 1, 1); },
     setFrozenRows: () => {},
@@ -56,9 +68,11 @@ function crearLibro(id, hojas) {
     getId: () => id,
     getUrl: () => 'https://docs.google.com/spreadsheets/d/' + id,
     getSheetByName: n => (hojas[n] ? hoja(n) : null),
-    insertSheet: n => { hojas[n] = []; return hoja(n); },
+    insertSheet: n => { hojas[n] = []; maxFilas[n] = 1000; return hoja(n); },
     _hojas: hojas,
     _formatos: formatos,
+    _formatosAplicados: aplicados,
+    _maxFilas: maxFilas,
   };
 }
 
@@ -67,7 +81,7 @@ function crearEntorno(opciones = {}) {
   const principal = crearLibro('libro-principal', opciones.hojas || {});
   const libros = { [principal.getId()]: principal };
   const propiedades = Object.assign({}, opciones.propiedades || {});
-  const stats = { locks: 0 };
+  const stats = { locks: 0, aperturas: 0 };
   let contadorId = 0;
   let contadorLibros = 0;
 
@@ -79,8 +93,9 @@ function crearEntorno(opciones = {}) {
   const contexto = vm.createContext({
     console, JSON, Math, Object, Number, String, Array, Error, RegExp, isNaN, isFinite, Date: FechaFija,
     SpreadsheetApp: {
-      getActiveSpreadsheet: () => principal,
+      getActiveSpreadsheet: () => { stats.aperturas++; return principal; },
       openById: id => {
+        stats.aperturas++;
         if (!libros[id]) throw new Error('No se encontró el documento ' + id);
         return libros[id];
       },
@@ -94,6 +109,7 @@ function crearEntorno(opciones = {}) {
     PropertiesService: {
       getScriptProperties: () => ({
         getProperty: k => (k in propiedades ? propiedades[k] : null),
+        getProperties: () => Object.assign({}, propiedades),
         setProperty: (k, v) => { propiedades[k] = String(v); },
         deleteProperty: k => { delete propiedades[k]; },
       }),

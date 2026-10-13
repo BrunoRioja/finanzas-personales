@@ -100,3 +100,49 @@ test('conBloqueo_ toma el bloqueo y devuelve el resultado', () => {
   assert.strictEqual(e.interno('conBloqueo_', () => 7), 7);
   assert.strictEqual(e.stats.locks, 1);
 });
+
+test('agregarFilas_ agranda la hoja cuando se llena y da formato texto a las filas nuevas', () => {
+  const e = crearEntorno();
+  e.interno('crearHojas_', e.principal);
+  e.principal._maxFilas.Reglas = 3;
+  e.interno('agregarFilas_', 'Reglas', [{ id: 'r1', patron: 'A' }, { id: 'r2', patron: 'B' }]);
+  e.interno('agregarFilas_', 'Reglas', [{ id: 'r3', patron: '0042' }, { id: 'r4', patron: '1-2' }]);
+  assert.deepStrictEqual(e.llamar('leerTabla_', 'Reglas').map(r => r.patron), ['A', 'B', '0042', '1-2']);
+  assert.ok(e.principal._maxFilas.Reglas >= 5);
+  const patron = e.principal._formatosAplicados.filter(f => f.hoja === 'Reglas' && f.columna === 2 && f.formato === '@');
+  assert.ok(patron.some(f => f.fila <= 4 && f.fila + f.filas - 1 >= 5), 'filas nuevas con formato texto');
+});
+
+test('filas sin clave (p. ej. casillas o fórmulas en una columna propia) no cuentan como datos', () => {
+  const e = crearEntorno({
+    hojas: {
+      Reglas: [
+        ['id', 'patron', 'categoria_id', 'cuenta_id', 'creada_por', 'usos', 'Hecho'],
+        ['r1', 'A', '', '', '', 0, true],
+        ['', '', '', '', '', '', false],
+        ['', '', '', '', '', '', false],
+      ],
+    },
+  });
+  assert.deepStrictEqual(e.llamar('leerTabla_', 'Reglas').map(r => r.id), ['r1']);
+  e.interno('agregarFilas_', 'Reglas', [{ id: 'r2', patron: 'B' }]);
+  assert.strictEqual(e.hojas.Reglas[2][0], 'r2');
+  assert.strictEqual(e.hojas.Reglas.length, 4);
+});
+
+test('fechas escritas a mano como dd/mm/aaaa se leen como yyyy-MM-dd', () => {
+  const e = crearEntorno({
+    hojas: { Movimientos: [['id', 'fecha'], ['m1', '13/10/2026'], ['m2', '6/1/2026'], ['m3', '2026-10-01']] },
+  });
+  assert.deepStrictEqual(e.llamar('leerTabla_', 'Movimientos').map(m => m.fecha), ['2026-10-13', '2026-01-06', '2026-10-01']);
+});
+
+test('abrirLibro_ abre el libro una sola vez mientras no cambie la configuración', () => {
+  const e = crearEntorno();
+  e.interno('crearHojas_', e.principal);
+  const antes = e.stats.aperturas;
+  e.interno('leerTabla_', 'Cuentas');
+  e.interno('leerTabla_', 'Categorias');
+  e.interno('leerConfig_');
+  assert.ok(e.stats.aperturas - antes <= 1, 'aperturas: ' + (e.stats.aperturas - antes));
+});
