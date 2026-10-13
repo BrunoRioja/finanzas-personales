@@ -81,6 +81,8 @@ function manejarComando_(texto) {
     case '/ayuda':
     case '/help':
       return enviarMensaje_(TEXTO_AYUDA);
+    case '/deshacer':
+      return deshacerUltimo_();
     default:
       return enviarMensaje_('Comando desconocido. Escribe /ayuda.');
   }
