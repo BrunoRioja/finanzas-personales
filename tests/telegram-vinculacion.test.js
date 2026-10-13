@@ -34,7 +34,6 @@ test('conectar guarda los secretos, registra el webhook con el secreto, crea el 
   assert.deepStrictEqual(metodos(e), ['getMe', 'setWebhook']);
   assert.deepStrictEqual(e.telegram.llamadas[1].datos, {
     url: URL_RECEPTOR + '?secret=' + p.WEBHOOK_SECRET, allowed_updates: ['message', 'callback_query'], drop_pending_updates: true,
-    max_connections: 1,
   });
   assert.match(estado.codigo, /^[0-9A-Z]{6}$/);
   assert.deepStrictEqual(estado, {
@@ -115,10 +114,10 @@ test('en modo demo no se puede conectar', () => {
   assert.throws(() => conectar(e), /modo demo/);
 });
 
-test('conectar un bot nuevo olvida el último update del anterior y pide entregas en orden', () => {
+test('conectar un bot nuevo olvida los updates atendidos del anterior y no limita las conexiones', () => {
   const e = entornoInstalado();
-  e.propiedades.ULTIMO_UPDATE_ID = '999999999';
+  e.propiedades.UPDATES_ATENDIDOS = '[999999999]';
   conectar(e);
-  assert.ok(!('ULTIMO_UPDATE_ID' in e.propiedades));
-  assert.strictEqual(e.telegram.llamadas[1].datos.max_connections, 1);
+  assert.ok(!('UPDATES_ATENDIDOS' in e.propiedades));
+  assert.ok(!('max_connections' in e.telegram.llamadas[1].datos));
 });

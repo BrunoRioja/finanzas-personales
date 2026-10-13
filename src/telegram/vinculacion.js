@@ -7,7 +7,7 @@ const PATRON_URL_RECEPTOR = /^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/
 const MINUTOS_CODIGO = 15;
 const PROPIEDADES_TELEGRAM = [
   'TELEGRAM_TOKEN', 'TELEGRAM_CHAT_ID', 'WEBHOOK_SECRET', 'RECEPTOR_URL', 'TELEGRAM_BOT',
-  'TELEGRAM_CODIGO', 'TELEGRAM_CODIGO_VENCE', 'ULTIMO_AVISO_ERROR', 'ULTIMO_UPDATE_ID',
+  'TELEGRAM_CODIGO', 'TELEGRAM_CODIGO_VENCE', 'ULTIMO_AVISO_ERROR', 'UPDATES_ATENDIDOS',
 ];
 
 function textoAlAzar_(largo) {
@@ -34,7 +34,6 @@ function configurarTelegram(datos) {
   const secreto = textoAlAzar_(32);
   llamarTelegram_('setWebhook', {
     url: url + '?secret=' + secreto, allowed_updates: ['message', 'callback_query'], drop_pending_updates: true,
-    max_connections: 1,
   }, token);
   const idHoja = abrirLibro_().getId();
   PROPIEDADES_TELEGRAM.forEach(k => props.deleteProperty(k));

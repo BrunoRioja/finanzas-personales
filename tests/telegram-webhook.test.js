@@ -11,7 +11,7 @@ test('sin el secreto correcto, con JSON inválido o sin update_id no hace nada',
   e.llamar('recibirTelegram', SECRETO, '{no es json');
   e.llamar('recibirTelegram', SECRETO, JSON.stringify({ message: ayuda }));
   assert.strictEqual(e.telegram.llamadas.length, 0);
-  assert.ok(!('ULTIMO_UPDATE_ID' in e.propiedades));
+  assert.ok(!('UPDATES_ATENDIDOS' in e.propiedades));
 });
 
 test('sin secreto configurado se ignora todo, incluso un secreto vacío', () => {
@@ -29,7 +29,7 @@ test('/ayuda responde una vez aunque Telegram reenvíe el mismo update', () => {
   e.enviar(u);
   assert.strictEqual(e.enviados().length, 1);
   assert.match(e.ultimoEnviado().text, /Registrar un gasto/);
-  assert.strictEqual(e.propiedades.ULTIMO_UPDATE_ID, '50');
+  assert.deepStrictEqual(JSON.parse(e.propiedades.UPDATES_ATENDIDOS), [50]);
 });
 
 test('/start y /ayuda@prueba_bot muestran la ayuda; un comando desconocido lo dice', () => {
@@ -110,7 +110,7 @@ test('un código vencido no vincula', () => {
   assert.strictEqual(e.telegram.llamadas.length, 0);
 });
 
-test('un update ya atendido no se repite aunque la caché se vacíe ni si llega uno más viejo', () => {
+test('un update ya atendido no se repite aunque la caché se vacíe; uno más viejo que no se atendió sí se atiende', () => {
   const e = entornoBot();
   e.llamar('guardarCuenta', { id: e.cuenta('Débito BCP'), nombre: 'Débito BCP', tipo: 'debito', numeros: '1234', yape: true });
   e.enviar({ update_id: 7000, message: { message_id: 1, chat: { id: CHAT }, text: 'taxi 12' } });
@@ -121,5 +121,8 @@ test('un update ya atendido no se repite aunque la caché se vacíe ni si llega 
   e.enviar({ update_id: 7002, message: { message_id: 3, chat: { id: CHAT }, text: '/deshacer' } });
   e.enviar({ update_id: 7000, message: { message_id: 1, chat: { id: CHAT }, text: 'taxi 12' } });
   assert.deepStrictEqual(e.filas('Movimientos').filter(m => m.origen === 'telegram').map(m => m.comercio), ['taxi']);
-  assert.strictEqual(e.propiedades.ULTIMO_UPDATE_ID, '7002');
+  // Telegram entrega en paralelo: un update anterior puede llegar después.
+  e.fijarAhora('2026-10-13T10:02:00');
+  e.enviar({ update_id: 6999, message: { message_id: 4, chat: { id: CHAT }, text: 'agua 2' } });
+  assert.deepStrictEqual(e.filas('Movimientos').filter(m => m.origen === 'telegram').map(m => m.comercio), ['taxi', 'agua']);
 });

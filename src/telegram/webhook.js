@@ -26,14 +26,17 @@ function recibirTelegram(secreto, cuerpo) {
   atenderTelegram_(update.update_id, mensaje, boton);
 }
 
+const MAX_UPDATES_ATENDIDOS = 200;
+
 // Telegram reintenta cada update mientras no reciba un 200, y Apps Script siempre responde
-// 302: se recuerda el último update atendido (los ids crecen y llegan en orden porque el
-// webhook se registra con max_connections: 1). Un reenvío o un update más viejo se ignora.
+// 302: se recuerdan los últimos updates atendidos (en propiedades, que no se vacían como la
+// caché). Telegram entrega en paralelo, así que no se asume ningún orden.
 function esUpdateNuevo_(updateId) {
   return conBloqueo_(() => {
     const props = PropertiesService.getScriptProperties();
-    if (updateId <= (Number(props.getProperty('ULTIMO_UPDATE_ID')) || 0)) return false;
-    props.setProperty('ULTIMO_UPDATE_ID', String(updateId));
+    const atendidos = JSON.parse(props.getProperty('UPDATES_ATENDIDOS') || '[]');
+    if (atendidos.indexOf(updateId) >= 0) return false;
+    props.setProperty('UPDATES_ATENDIDOS', JSON.stringify(atendidos.concat([updateId]).slice(-MAX_UPDATES_ATENDIDOS)));
     return true;
   });
 }
