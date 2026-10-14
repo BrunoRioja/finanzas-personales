@@ -83,3 +83,13 @@ test('valida el enlace, la hoja, el modo demo y el estado de la copia sin escrib
   e.llamar('importarHojaAnterior', ID_ANTERIOR);
   assert.throws(imp(ID_ANTERIOR), /ya está instalada/);
 });
+
+test('no importa en una copia que ya tiene datos (importación cortada a medias), así no duplica', () => {
+  const a = hojaAnterior();
+  const e = copiaNueva(a.hojas);
+  e.interno('crearHojas_', e.principal);
+  e.interno('agregarFilas_', 'Cuentas', [{ id: 'resto', nombre: 'De un intento anterior', banco: 'BCP', tipo: 'debito', moneda: 'PEN', activa: true }]);
+  assert.throws(() => e.interno('importarHojaAnterior', ID_ANTERIOR), /ya tiene datos/);
+  assert.deepStrictEqual(e.filas('Movimientos'), [], 'nada escrito');
+  assert.strictEqual(e.filas('Cuentas').length, 1);
+});

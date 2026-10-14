@@ -30,3 +30,12 @@ test('htmlEnlaceApp_ escapa la URL', () => {
   assert.ok(!html.includes('<script>'));
   assert.match(html, /&quot;&gt;&lt;script&gt;/);
 });
+
+test('el manifiesto pide el permiso de interfaz de la hoja si el código usa getUi', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const manifiesto = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'src', 'appsscript.json'), 'utf8'));
+  const usaUi = fs.readFileSync(path.join(__dirname, '..', 'src', 'web', 'menu.js'), 'utf8').includes('getUi(');
+  assert.ok(usaUi);
+  assert.ok(manifiesto.oauthScopes.includes('https://www.googleapis.com/auth/script.container.ui'));
+});

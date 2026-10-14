@@ -11,6 +11,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/); v
 - Guías: instalación por plantilla, bot de Telegram sin clasp y cómo actualizar.
 - `npm run setup:plantilla` / `npm run deploy:plantilla` para mantener la plantilla.
 
+### Permisos
+- Nuevo permiso `script.container.ui` (mostrar el menú y sus ventanas en la hoja). Si instalaste con clasp: después de `npm run deploy`, ejecuta una vez `autorizarPermisos` en el editor, acepta y vuelve a ejecutar `npm run deploy`.
+
 ### Cambiado
 - README renovado: qué hace, cómo funciona (diagrama), decisiones técnicas, calidad y capturas nuevas.
 

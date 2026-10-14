@@ -28,6 +28,11 @@ function importarHojaAnterior(enlace) {
     const libro = abrirLibro_();
     if (estaInstalado_(libro)) throw new Error('Esta app ya está instalada; importa en una copia nueva de la plantilla.');
     if (id === libro.getId()) throw new Error('Ese enlace es esta misma hoja.');
+    // Una importación cortada a medias (p. ej. por el límite de 6 minutos) deja filas: repetirla las duplicaría.
+    const conDatos = TABLAS_IMPORTABLES.filter(t => libro.getSheetByName(t) && filasDe_(libro.getSheetByName(t), t).length);
+    if (conDatos.length) {
+      throw new Error('Esta copia ya tiene datos de un intento anterior (' + conDatos.join(', ') + '). Haz una copia nueva de la plantilla e importa ahí.');
+    }
     let anterior;
     try {
       anterior = SpreadsheetApp.openById(id);
