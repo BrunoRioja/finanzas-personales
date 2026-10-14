@@ -12,6 +12,7 @@ function horaConfig_(valor, porDefecto) {
 function configurarLectura(datos) {
   const frecuencia = String(datos.frecuencia);
   if (FRECUENCIAS_LECTURA.indexOf(frecuencia) < 0) throw new Error('Frecuencia inválida: ' + frecuencia);
+  const desde = datos.importar_desde ? validarFechaImportar_(datos.importar_desde) : '';
   conBloqueo_(() => {
     const actual = leerConfig_();
     const inicio = horaConfig_(datos.horario_inicio, horaConfig_(actual.horario_inicio, HORARIO_INICIO_POR_DEFECTO));
@@ -29,6 +30,8 @@ function configurarLectura(datos) {
       horario_fin: fin,
     };
     if (!actual.importar_desde && frecuencia !== 'apagada') cambios.importar_desde = hoyIso_().slice(0, 8) + '01';
+    // Una fecha nueva reinicia la lectura para que la próxima revisión traiga los correos desde ahí.
+    if (desde && desde !== actual.importar_desde) Object.assign(cambios, { importar_desde: desde, cursor_lectura: 0 });
     guardarConfig_(cambios);
   });
   return estadoLectura();
@@ -66,9 +69,14 @@ function volverALeerCorreos() {
   return Object.assign({ borrados: borrados }, revisarCorreos());
 }
 
-function importarCorreosDesde(fechaIso) {
+function validarFechaImportar_(fechaIso) {
   if (!esFechaIso_(fechaIso)) throw new Error('Fecha inválida: usa aaaa-mm-dd.');
   if (fechaIso > hoyIso_()) throw new Error('La fecha no puede estar en el futuro.');
+  return fechaIso;
+}
+
+function importarCorreosDesde(fechaIso) {
+  validarFechaImportar_(fechaIso);
   conBloqueo_(() => guardarConfig_({ importar_desde: fechaIso, cursor_lectura: 0 }));
   return revisarCorreos();
 }
