@@ -144,9 +144,16 @@ function crearGmail(correos, stats, opciones) {
 // UrlFetchApp simulado: solo la API de Telegram. Registra cada llamada; `estado.falla`
 // hace que Telegram responda error y `estado.respuestas[metodo]` personaliza la respuesta
 // ({ __crudo, __codigo } simula una respuesta que no es JSON).
-function crearUrlFetch(estado) {
+const URL_PAQUETE = 'https://raw.githubusercontent.com/BrunoRioja/finanzas-personales/main/package.json';
+
+function crearUrlFetch(estado, github) {
   return {
     fetch: (url, o) => {
+      if (url === URL_PAQUETE) {
+        github.llamadas++;
+        if (github.falla) throw new Error('Address unavailable: ' + url);
+        return { getResponseCode: () => 200, getContentText: () => JSON.stringify({ name: 'finanzas-personales', version: github.version }) };
+      }
       const m = /^https:\/\/api\.telegram\.org\/bot([^/]+)\/(\w+)$/.exec(url);
       if (!m) throw new Error('URL inesperada: ' + url);
       const datos = JSON.parse(o.payload || '{}');
@@ -207,6 +214,7 @@ function crearEntorno(opciones = {}) {
   const gmail = crearGmail(opciones.correos || [], stats, opciones);
   const triggers = [];
   const telegram = { llamadas: [], falla: null, respuestas: {}, contador: 100 };
+  const github = { version: '0.0.0', falla: false, llamadas: 0 };
   const permisosPedidos = [];
   const cache = {};
   let contadorId = 0;
@@ -254,7 +262,7 @@ function crearEntorno(opciones = {}) {
       }),
     },
     Gmail: gmail,
-    UrlFetchApp: crearUrlFetch(telegram),
+    UrlFetchApp: crearUrlFetch(telegram, github),
     CacheService: {
       getScriptCache: () => ({
         get: k => (k in cache ? cache[k] : null),
@@ -277,7 +285,7 @@ function crearEntorno(opciones = {}) {
   }
 
   return {
-    principal, libros, propiedades, stats, gmail, triggers, telegram, cache, permisosPedidos,
+    principal, libros, propiedades, stats, gmail, triggers, telegram, cache, permisosPedidos, github,
     hojas: principal._hojas,
     llamar(nombre, ...args) {
       const salida = contexto[nombre](...args);
