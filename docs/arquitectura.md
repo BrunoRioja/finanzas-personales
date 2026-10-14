@@ -31,7 +31,7 @@ Telegram ──POST /exec?secret=…──► Receptor (web app anónima, ejecut
 
 - `src/telegram/webhook.js` valida el secreto, descarta updates repetidos (CacheService, 6 h) e ignora otros chats.
 - Lo que arma textos y teclados (`mensajes.js`) y el lector de gastos escritos (`escrito.js`) son funciones puras.
-- Nada que se ejecute desde el receptor crea triggers: el del resumen diario se crea al conectar o guardar en Ajustes.
+- Nada que se ejecute desde el receptor crea triggers: el del resumen diario se crea al conectar o guardar en Ajustes, y el del recordatorio de pagos (`recordarPagos`, diario a las 8:00) al conectar el bot o al abrir la app si falta.
 
 ## Reglas del código
 
@@ -53,6 +53,8 @@ Telegram ──POST /exec?secret=…──► Receptor (web app anónima, ejecut
 | Config | Nombre, tipo de cambio, versión del esquema. Nunca secretos. |
 | Log | Errores de procesos automáticos (desde v0.2). |
 | Presupuestos | `id, categoria_id, monto, desde` (desde v0.5): cada fila vale desde su mes (`desde`, `YYYY-MM`) hasta que otra más reciente de la misma categoría la reemplaza; monto 0 = sin presupuesto. Cambiar un presupuesto agrega o actualiza la fila del mes actual, así que los meses anteriores no cambian. Los avisos ya enviados por mes y categoría se guardan en la propiedad del script `ALERTAS_PRESUPUESTO`. |
+| Recurrentes | `id, nombre, monto, moneda, cuenta_id, categoria_id, dia_mes, activo` (desde v0.6): pagos fijos mensuales (`dia_mes` 1–31; en meses cortos, el último día). Solo se recuerdan, no crean movimientos. |
+| EstadosCuenta | `id, cuenta_id, emitido, total_pen, total_usd, minimo_pen, minimo_usd, fecha_limite, ref_externa` (desde v0.6): lo que pide pagar cada estado de cuenta de la tarjeta. Los pagos cuentan por moneda desde el día siguiente al vencimiento anterior (o 10 días antes del correo). Lo ya recordado por Telegram se guarda en la propiedad `PAGOS_RECORDADOS`. |
 
 ## Pruebas
 
