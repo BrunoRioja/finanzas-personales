@@ -65,6 +65,7 @@ function atenderTelegram_(updateId, mensaje, boton) {
         // Quita el reloj del botón aunque la acción falle.
         try { responderBoton_(boton.id); } catch { /* el mensaje de error de abajo basta */ }
       }
+      revisarPresupuestos_();
       return;
     }
     const texto = String(mensaje.text || '').trim();
@@ -72,8 +73,12 @@ function atenderTelegram_(updateId, mensaje, boton) {
       enviarMensaje_('Por ahora solo entiendo texto. El audio y las fotos llegan en una próxima versión.');
       return;
     }
-    if (texto[0] === '/') manejarComando_(texto);
-    else manejarEscrito_(texto, updateId);
+    if (texto[0] === '/') {
+      manejarComando_(texto);
+    } else {
+      manejarEscrito_(texto, updateId);
+      revisarPresupuestos_();
+    }
   } catch (e) {
     try {
       conBloqueo_(() => registrarLog_('error', 'telegram', e.message, e.stack));

@@ -72,7 +72,7 @@ function contextoMovimientos_() {
 }
 
 function guardarMovimiento(datos) {
-  return conBloqueo_(() => {
+  const resultado = conBloqueo_(() => {
     const ctx = contextoMovimientos_();
     if (datos.id) {
       const previo = leerTabla_('Movimientos').filter(m => m.id === datos.id)[0];
@@ -97,6 +97,8 @@ function guardarMovimiento(datos) {
     agregarFilas_('Movimientos', [nuevo]);
     return nuevo;
   });
+  revisarPresupuestos_();
+  return resultado;
 }
 
 function listarMovimientos(filtro) {
@@ -123,6 +125,7 @@ function eliminarMovimiento(id) {
       }]);
     }
   });
+  revisarPresupuestos_();
   return { ok: true };
 }
 

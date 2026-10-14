@@ -66,6 +66,7 @@ function revisarCorreosSinBloqueo_(ahoraMs) {
   }
   if (avisos.length) conBloqueo_(() => avisos.forEach(a => registrarLog_('aviso', 'etiquetar', a[0], a[1])));
   avisarPorRevisar_(r.nuevosPorRevisar);
+  if (r.creados) revisarPresupuestos_();
   return {
     leidos: leidos.length, creados: r.creados, porRevisar: r.porRevisar, pendientes: r.pendientes,
     ignorados: r.ignorados, restantes: nuevos.length - leidos.length, etiquetados: etiquetados,

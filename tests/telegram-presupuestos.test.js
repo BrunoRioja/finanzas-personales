@@ -111,3 +111,38 @@ test('un gasto de un mes pasado, el modo demo o el bot sin vincular no avisan', 
   e.revisar();
   assert.strictEqual(e.telegram.llamadas.length, 0);
 });
+
+const { ASUNTOS, html } = require('./correos');
+
+test('la lectura de correos avisa si un gasto nuevo cruza el umbral', () => {
+  const e = entornoBot({ correos: [{ id: 'g1', de: 'notificaciones@notificacionesbcp.com.pe', asunto: ASUNTOS.debito, html: html('debito.html'), recibido: '2026-10-06T16:19:00' }] });
+  e.llamar('guardarCuenta', { id: e.cuenta('Débito BCP'), nombre: 'Débito BCP', tipo: 'debito', numeros: '4444, 1111', yape: true });
+  e.interno('guardarConfig_', { importar_desde: '2026-10-01' });
+  e.interno('guardarRegla_', 'TOTTUS', e.categoria('Supermercado'));
+  e.llamar('guardarPresupuestos', { montos: { [e.categoria('Supermercado')]: '100' } });
+  e.llamar('revisarCorreos');
+  assert.match(e.ultimoEnviado().text, /^⚠️ 🛒 Supermercado: S\/ 89\.30 de S\/ 100\.00 \(89 %\)/);
+});
+
+test('un gasto escrito al bot y un gasto guardado en la app avisan', () => {
+  const e = entorno();
+  e.llamar('guardarCuenta', { id: e.cuenta('Débito BCP'), nombre: 'Débito BCP', tipo: 'debito', numeros: '1234', yape: true });
+  e.escribir('mercado 85 super');
+  assert.match(e.ultimoEnviado().text, /^⚠️ 🛒 Supermercado: S\/ 85\.00/);
+  e.llamar('guardarMovimiento', { fecha: '2026-10-13', tipo: 'gasto', monto: 190, cuenta_id: e.cuenta('Débito BCP'), categoria_id: e.com, comercio: 'Pardos' });
+  assert.match(e.ultimoEnviado().text, /^⚠️ 🍽️ Comida fuera: S\/ 190\.00/);
+});
+
+test('categorizar un por revisar desde la app o desde un botón, y dividir, avisan', () => {
+  const e = entorno();
+  const mov = e.porRevisar({ monto: 85, monto_pen: 85 });
+  e.llamar('categorizarMovimiento', { id: mov.id, categoria_id: e.sup });
+  assert.match(e.ultimoEnviado().text, /^⚠️ 🛒 Supermercado: S\/ 85\.00/);
+  const otro = e.porRevisar({ monto: 190, monto_pen: 190, comercio: 'PARDOS' });
+  e.tocar(e.dato('c', otro, e.com));
+  assert.match(e.ultimoEnviado().text, /^⚠️ 🍽️ Comida fuera: S\/ 190\.00/);
+  const mixto = e.porRevisar({ monto: 40, monto_pen: 40, comercio: 'PLAZA VEA' });
+  e.llamar('dividirMovimiento', { id: mixto.id, partes: [{ categoria_id: e.sup, monto: 30 }, { categoria_id: e.com, monto: 10 }] });
+  assert.match(e.ultimoEnviado().text, /^🚨 🛒 Supermercado: S\/ 115\.00 de S\/ 100\.00 \(115 %\)/);
+  assert.strictEqual(e.enviados().length, 3);
+});
