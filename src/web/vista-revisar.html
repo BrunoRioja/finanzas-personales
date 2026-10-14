@@ -40,7 +40,8 @@ function tarjetaRevisar(m, frecuentes) {
     html += '<label class="check" style="margin-top:10px"><input type="checkbox" data-recordar checked> Recordar la categoría para:</label>' +
       '<input class="entrada" data-patron value="' + esc(mayusculasSinTildes(m.comercio)) + '" aria-label="Texto del comercio a recordar">';
   }
-  return html + '<div class="acciones"><button type="button" class="boton" data-dividir>✂️ Dividir</button></div></section>';
+  return html + '<div class="acciones"><button type="button" class="boton" data-dividir>✂️ Dividir</button>' +
+    '<button type="button" class="boton primario" data-guardar>Guardar</button></div></section>';
 }
 
 function enlazarTarjetaRevisar(t, m) {
@@ -50,7 +51,9 @@ function enlazarTarjetaRevisar(t, m) {
   const confirmar = async (boton, categoriaId) => {
     const recordar = t.querySelector('[data-recordar]');
     const patron = t.querySelector('[data-patron]');
+    const texto = boton.textContent;
     boton.disabled = true;
+    boton.textContent = 'Guardando…';
     try {
       const r = await api('categorizarMovimiento', {
         id: m.id, categoria_id: categoriaId || '', cuenta_id: valor('rv-cta-' + m.id), cuenta_destino_id: valor('rv-dst-' + m.id),
@@ -61,9 +64,23 @@ function enlazarTarjetaRevisar(t, m) {
     } catch (err) {
       aviso(err.message, true);
       boton.disabled = false;
+      boton.textContent = texto;
     }
   };
-  t.querySelectorAll('[data-cat]').forEach(b => { b.onclick = () => confirmar(b, b.dataset.cat); });
+  // Elegir una categoría solo la marca; se guarda con el botón, para poder desmarcar "Recordar" antes.
+  let elegida = '';
+  const chips = t.querySelectorAll('[data-cat]');
+  chips.forEach(b => {
+    b.onclick = () => {
+      chips.forEach(c => c.classList.toggle('activo', c === b));
+      elegida = b.dataset.cat;
+    };
+  });
+  const guardar = t.querySelector('[data-guardar]');
+  if (guardar) guardar.onclick = () => {
+    if (!elegida) { aviso('Primero elige una categoría.', true); return; }
+    confirmar(guardar, elegida);
+  };
   const boton = t.querySelector('[data-confirmar]');
   if (boton) boton.onclick = () => confirmar(boton, '');
   const dividir = t.querySelector('[data-dividir]');

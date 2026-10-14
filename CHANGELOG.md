@@ -2,6 +2,11 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/); versiones con [SemVer](https://semver.org/lang/es/).
 
+## [0.7.2] — 2026-10-14
+
+### Corregido
+- Por revisar: tocar una categoría ya no guarda al instante; la marca y se guarda con el botón **Guardar** (al lado de Dividir), que muestra "Guardando…". Así se puede desmarcar "Recordar la categoría" antes de guardar.
+
 ## [0.7.1] — 2026-10-14
 
 ### Corregido
