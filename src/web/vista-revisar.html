@@ -90,7 +90,7 @@ function enlazarTarjetaRevisar(t, m) {
   if (dividir) dividir.onclick = () => {
     const cuentaElegida = valor('rv-cta-' + m.id);
     if (!m.cuenta_id && !cuentaElegida) { aviso('Primero elige la cuenta.', true); return; }
-    abrirDividir(Object.assign({}, m, cuentaElegida ? { cuenta_id: cuentaElegida } : {}));
+    abrirDividir(Object.assign({}, m, { ambito_id: ambitoElegido }, cuentaElegida ? { cuenta_id: cuentaElegida } : {}));
   };
 }
 

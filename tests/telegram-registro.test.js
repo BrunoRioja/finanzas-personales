@@ -77,3 +77,15 @@ test('un gasto escrito con ámbito se guarda con ese ámbito', () => {
   const div = e.llamar('obtenerCatalogos').ambitos.find(a => a.nombre === 'Diversión').id;
   assert.deepStrictEqual([m.comercio, m.categoria_id, m.ambito_id], ['taxi', e.categoria('Transporte'), div]);
 });
+
+test('una hoja v4 se migra al recibir un gasto escrito por el webhook', () => {
+  const e = entorno();
+  delete e.hojas.Ambitos;
+  e.hojas.Movimientos[0] = e.hojas.Movimientos[0].filter(h => h !== 'ambito_id');
+  e.hojas.Divisiones[0] = e.hojas.Divisiones[0].filter(h => h !== 'ambito_id');
+  e.interno('guardarConfig_', { version_esquema: 4 });
+  e.escribir('taxi 12 yape');
+  assert.strictEqual(e.movsBot().length, 1);
+  assert.strictEqual(e.interno('leerConfig_').version_esquema, '5');
+  assert.strictEqual(e.filas('Ambitos').length, 4);
+});

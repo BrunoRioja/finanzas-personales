@@ -31,6 +31,7 @@ function enviarResumenDiario() {
   const props = PropertiesService.getScriptProperties();
   if (props.getProperty('MODO_DEMO') === 'si' || !telegramVinculado_()) return;
   try {
+    asegurarEsquema_();
     const texto = resumenDelDia_(hoyIso_());
     if (!texto) return;
     enviarMensaje_(texto, [[boton_('Todo bien ✓', 'ok')].concat(botonApp_(props.getProperty('APP_URL') || ''))]);

@@ -5,7 +5,7 @@ async function abrirDividir(mov) {
   const previas = mov.dividido ? await api('obtenerDivisiones', mov.id) : [];
   const cats = estado.catalogos.categorias.filter(c => c.tipo === mov.tipo && (c.activa || previas.some(p => p.categoria_id === c.id)));
   const ambs = mov.tipo === 'gasto'
-    ? (estado.catalogos.ambitos || []).filter(a => a.activo || previas.some(p => ambito(p.ambito_id).id === a.id)) : [];
+    ? (estado.catalogos.ambitos || []).filter(a => a.activo || a.id === ambito(mov.ambito_id).id || previas.some(p => ambito(p.ambito_id).id === a.id)) : [];
   const partes = previas.length
     ? previas.map(p => ({ categoria_id: p.categoria_id, monto: String(p.monto), ambito_id: p.ambito_id || '' }))
     : [{ categoria_id: mov.categoria_id || '', monto: '', ambito_id: mov.ambito_id || '' }, { categoria_id: '', monto: '', ambito_id: mov.ambito_id || '' }];

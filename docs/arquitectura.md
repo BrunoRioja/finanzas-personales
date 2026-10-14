@@ -45,7 +45,7 @@ Telegram ──POST /exec?secret=…──► Receptor (web app anónima, ejecut
 | Hoja | Para qué |
 |---|---|
 | Movimientos | Gastos, ingresos y transferencias. `monto` en la moneda original, `monto_pen` en soles. `ambito_id` en los gastos (vacío = Personal). |
-| Divisiones | Partes de un movimiento dividido entre categorías (se usa desde v0.2); cada parte puede llevar su `ambito_id` (vacío = el del movimiento). |
+| Divisiones | Partes de un movimiento dividido entre categorías (se usa desde v0.2); cada parte puede llevar su `ambito_id` (vacío = Personal). |
 | Cuentas | Débito, crédito (saldo negativo = deuda), ahorro, billetera, efectivo. `numeros`: últimos 4 dígitos de cuentas y tarjetas (varios por cuenta); `yape`: la cuenta de la que sale Yape. |
 | Categorias | De gasto o de ingreso; desactivar conserva el historial. |
 | Ambitos | Para qué fue el gasto (Personal, Diversión, Familia, Trabajo; desde v0.8). `Personal` es fijo; desactivar conserva el historial. |

@@ -13,7 +13,7 @@ App de finanzas personales que vive en **tu propia cuenta de Google**: lee los c
 |---|---|
 | ![Inicio en laptop](docs/img/dashboard-laptop.png) | ![Inicio en celular](docs/img/dashboard-movil.png) |
 
-## Qué hace (v0.7)
+## Qué hace (v0.8)
 
 - **Lee los correos de tu banco** (BCP y Yape): consumos con débito y crédito en S/ y $, PLIN, yapeos enviados y recibidos, transferencias, pagos de tarjeta y de servicios. Lo que no sabe categorizar va a una bandeja "Por revisar" y se resuelve con un toque.
 - **Bot de Telegram:** te pregunta solo por las compras que no reconoce, registra lo que escribes (`taxi 12 yape`), responde `/hoy`, `/mes`, `/pagos` y `/deshacer`, y te manda un resumen al final del día.
