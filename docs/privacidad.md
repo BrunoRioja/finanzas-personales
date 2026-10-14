@@ -18,6 +18,12 @@
 - El token del bot, el secreto y tu chat se guardan solo en las propiedades del script de tu app, nunca en la hoja ni en el repositorio.
 - **Desconectar** en Ajustes borra el webhook, el token y el chat.
 
+## Versión y plantilla (v0.7)
+
+- Solo cuando tocas **Ajustes → Buscar actualizaciones**, la app lee el `package.json` público del repositorio en GitHub para saber si hay una versión nueva. No consulta nada por su cuenta y no envía ningún dato tuyo.
+- La plantilla no tiene datos ni configuración: tu copia empieza vacía y su código es tuyo. Nadie más puede cambiarlo ni abrir tu app.
+- Importar datos lee tu hoja anterior desde tu propia cuenta; nada sale de Google.
+
 ## Próximas versiones
 
 - **v0.4 (Gemini):** audios, fotos de boletas y algunos textos se enviarán a la API de Gemini con **tu** clave. En el nivel gratuito, Google puede usar ese contenido para mejorar sus productos; para datos reales se recomienda el nivel de pago con un tope de gasto.

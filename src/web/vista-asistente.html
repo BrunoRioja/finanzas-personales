@@ -87,7 +87,7 @@ VISTAS.asistente = async function (cont) {
         campo('Nombre', '<input class="entrada" id="w-c-nombre" placeholder="Ej.: Débito BCP">') +
         '<div class="dos-col">' + campo('Banco', seleccion('w-c-banco', op.bancos, 'BCP')) + campo('Tipo', seleccion('w-c-tipo', op.tiposCuenta, 'debito', op.tiposCuenta.map(etiquetaTipo))) + '</div>' +
         '<div class="dos-col">' + campo('Moneda', seleccion('w-c-moneda', op.monedas, 'PEN')) +
-        campo('Números de cuenta o tarjeta', '<input class="entrada num" id="w-c-num" inputmode="numeric" placeholder="1063, 7373">') + '</div>' +
+        campo('Números de cuenta o tarjeta', '<input class="entrada num" id="w-c-num" inputmode="numeric" placeholder="1234, 5678">') + '</div>' +
         campo('Saldo actual (negativo si es deuda de tarjeta)', '<input class="entrada num" id="w-c-saldo" inputmode="decimal" placeholder="0.00">') +
         '<label class="check"><input type="checkbox" id="w-c-yape"> Yape sale y entra de esta cuenta</label>' +
         '<button type="button" class="boton" id="w-c-agregar">+ Agregar cuenta</button>' +

@@ -2,6 +2,18 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/); versiones con [SemVer](https://semver.org/lang/es/).
 
+## [0.7.0] — 2026-10-14
+
+### Agregado
+- Plantilla "Hacer una copia": instalación sin programar en 4 pasos, con el menú **💸 Finanzas** en la hoja para publicar y abrir la app.
+- Ajustes → Acerca de: versión instalada y botón "Buscar actualizaciones" (consulta GitHub solo al tocarlo).
+- Importar datos de una hoja anterior desde el asistente (para actualizar a una copia nueva).
+- Guías: instalación por plantilla, bot de Telegram sin clasp y cómo actualizar.
+- `npm run setup:plantilla` / `npm run deploy:plantilla` para mantener la plantilla.
+
+### Cambiado
+- README renovado: qué hace, cómo funciona (diagrama), decisiones técnicas, calidad y capturas nuevas.
+
 ## [0.6.0] — 2026-10-14
 
 ### Agregado

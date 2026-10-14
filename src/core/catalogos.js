@@ -50,7 +50,7 @@ function normalizarCategoria_(datos, existentes, idActual) {
   };
 }
 
-// "1063,7373  1063" → "1063, 7373". Cada número: últimos 4 dígitos de una cuenta o tarjeta.
+// "5101,5202  5101" → "5101, 5202". Cada número: últimos 4 dígitos de una cuenta o tarjeta.
 function normalizarNumeros_(valor) {
   const partes = String(valor == null ? '' : valor).split(/[\s,;]+/).filter(Boolean);
   partes.forEach(n => {

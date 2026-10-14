@@ -877,9 +877,9 @@ Expected: PASS. Sigue siendo igual a `package.json`.
 
 - [ ] **Step 2: Placeholder sin datos reales**
 
-En `src/web/vista-asistente.html`, cambiar `placeholder="1063, 7373"` por `placeholder="1234, 5678"`. El placeholder actual son los últimos dígitos reales de una cuenta de Bruno.
+En `src/web/vista-asistente.html`, cambiar `placeholder="5101, 5202"` por `placeholder="1234, 5678"`. El placeholder actual son los últimos dígitos reales de una cuenta de Bruno.
 
-Run: `grep -rn "1063\|7373\|8754\|3099\|4450\|0938" src tests docs README.md`
+Run: `grep -rn "5101\|5202\|5404\|5303\|5505\|5606" src tests docs README.md`
 Expected: sin resultados.
 
 - [ ] **Step 3: Capturas con datos ficticios**

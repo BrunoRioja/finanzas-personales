@@ -37,24 +37,24 @@ test('la migración es idempotente y no bloquea si no hace falta', () => {
 
 test('normalizarCuenta_ acepta varios números y marca de Yape', () => {
   const e = crearEntorno();
-  const c = e.llamar('normalizarCuenta_', { nombre: 'Gastos', tipo: 'debito', numeros: ' 1063,7373  1063 ', yape: true });
-  assert.strictEqual(c.numeros, '1063, 7373');
+  const c = e.llamar('normalizarCuenta_', { nombre: 'Gastos', tipo: 'debito', numeros: ' 5101,5202  5101 ', yape: true });
+  assert.strictEqual(c.numeros, '5101, 5202');
   assert.strictEqual(c.yape, true);
   assert.strictEqual(e.llamar('normalizarCuenta_', { nombre: 'E', tipo: 'efectivo' }).numeros, '');
-  assert.throws(() => e.interno('normalizarCuenta_', { nombre: 'X', tipo: 'debito', numeros: '1063, 73' }), /4 dígitos: "73"/);
-  assert.deepStrictEqual(e.llamar('numerosDe_', { numeros: '1063, 7373' }), ['1063', '7373']);
+  assert.throws(() => e.interno('normalizarCuenta_', { nombre: 'X', tipo: 'debito', numeros: '5101, 73' }), /4 dígitos: "73"/);
+  assert.deepStrictEqual(e.llamar('numerosDe_', { numeros: '5101, 5202' }), ['5101', '5202']);
 });
 
 test('guardarCuenta rechaza números repetidos entre cuentas y deja una sola cuenta de Yape', () => {
   const e = entornoInstalado();
   const deb = e.cuenta('Débito BCP');
-  e.llamar('guardarCuenta', { id: deb, nombre: 'Débito BCP', banco: 'BCP', tipo: 'debito', numeros: '1063, 7373', yape: true });
-  assert.throws(() => e.interno('guardarCuenta', { nombre: 'Otra', tipo: 'ahorro', numeros: '7373' }), /7373 ya está en la cuenta "Débito BCP"/);
-  const ahorro = e.llamar('guardarCuenta', { nombre: 'Ahorro BCP', tipo: 'ahorro', numeros: '3099', yape: true });
+  e.llamar('guardarCuenta', { id: deb, nombre: 'Débito BCP', banco: 'BCP', tipo: 'debito', numeros: '5101, 5202', yape: true });
+  assert.throws(() => e.interno('guardarCuenta', { nombre: 'Otra', tipo: 'ahorro', numeros: '5202' }), /5202 ya está en la cuenta "Débito BCP"/);
+  const ahorro = e.llamar('guardarCuenta', { nombre: 'Ahorro BCP', tipo: 'ahorro', numeros: '5303', yape: true });
   const cuentas = e.filas('Cuentas');
   assert.strictEqual(cuentas.find(c => c.id === deb).yape, false);
   assert.strictEqual(cuentas.find(c => c.id === ahorro.id).yape, true);
-  assert.doesNotThrow(() => e.interno('guardarCuenta', { id: deb, nombre: 'Débito BCP', tipo: 'debito', numeros: '1063, 7373' }));
+  assert.doesNotThrow(() => e.interno('guardarCuenta', { id: deb, nombre: 'Débito BCP', tipo: 'debito', numeros: '5101, 5202' }));
 });
 
 test('completarAsistente valida números repetidos y una sola cuenta de Yape', () => {

@@ -105,7 +105,7 @@ Regla: solo `repo.js`, `ingesta/`, `telegram/`, `gemini/`, `web/` y `setup/` toc
 `id, nombre, banco, tipo, moneda, saldo_inicial, ultimos4, activa`
 
 - `tipo`: `debito` | `credito` | `ahorro` | `billetera` | `efectivo`
-- `ultimos4` asocia un correo a la cuenta (p. ej. tarjeta `7373`). Yape se asocia por remitente.
+- `ultimos4` asocia un correo a la cuenta (p. ej. tarjeta `5202`). Yape se asocia por remitente.
 - En cuentas de crédito el saldo es negativo (deuda).
 
 ### Categorias
