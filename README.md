@@ -7,7 +7,7 @@
 
 App de finanzas personales que vive en **tu propia cuenta de Google**: lee los correos de tu banco, te pregunta por Telegram solo lo que no reconoce y te muestra en qué se va tu dinero, cuánto llevas de tu presupuesto y qué pagos vienen.
 
-**[📄 Hacer una copia](https://docs.google.com/spreadsheets/d/ID_PLANTILLA/copy)** · 4 pasos, sin programar: [cómo instalarla](docs/instalacion.md)
+**[📄 Hacer una copia](https://docs.google.com/spreadsheets/d/12jTo7S7wRd1xs4XMN9ftS2PyDjCArfTAaT6gun2GemE/copy)** · 4 pasos, sin programar: [cómo instalarla](docs/instalacion.md)
 
 | Laptop | Celular |
 |---|---|
@@ -53,7 +53,7 @@ Todo corre en tu cuenta de Google: Apps Script lee tus correos, guarda en tu hoj
 
 ## Instalación
 
-- **Sin programar (recomendado):** [Hacer una copia](https://docs.google.com/spreadsheets/d/ID_PLANTILLA/copy) y seguir los 4 pasos de [docs/instalacion.md](docs/instalacion.md). El bot de Telegram es opcional: [docs/telegram.md](docs/telegram.md). Para actualizar: [docs/actualizar.md](docs/actualizar.md).
+- **Sin programar (recomendado):** [Hacer una copia](https://docs.google.com/spreadsheets/d/12jTo7S7wRd1xs4XMN9ftS2PyDjCArfTAaT6gun2GemE/copy) y seguir los 4 pasos de [docs/instalacion.md](docs/instalacion.md). El bot de Telegram es opcional: [docs/telegram.md](docs/telegram.md). Para actualizar: [docs/actualizar.md](docs/actualizar.md).
 - **Para desarrolladores (clasp):**
 
 ```bash
