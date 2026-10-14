@@ -80,3 +80,9 @@ test('I6: una operación del BCP que aún no sabemos leer va a pendientes, no se
     { pendiente: 'Operación del BCP que la app aún no sabe leer.' });
   assert.strictEqual(leer(e, 'debito.html', { asunto: 'Constancia de envío de Estado de Cuenta - Servicio de Notificaciones BCP' }), null);
 });
+
+test('htmlATexto_ decodifica las tildes y eñes escritas como entidades con nombre', () => {
+  const e = crearEntorno();
+  assert.strictEqual(e.interno('htmlATexto_', 'Pago m&iacute;nimo &Uacute;ltimo d&iacute;a CONTRASE&Ntilde;A &ndash; &amp;iacute; &foo;'),
+    'Pago mínimo Último día CONTRASEÑA – &iacute; &foo;');
+});
