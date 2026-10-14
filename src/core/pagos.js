@@ -124,3 +124,25 @@ function totalPagosFijos_(recurrentes, tcUsd) {
     .filter(r => r.activo)
     .reduce((s, r) => s + (r.moneda === 'USD' ? Number(r.monto) * (Number(tcUsd) || 0) : Number(r.monto)), 0));
 }
+
+// Valida un pago fijo. Al editar (previo), la cuenta y la categoría que ya usaba sirven
+// aunque después se hayan desactivado.
+function normalizarRecurrente_(datos, cuentas, categorias, previo) {
+  const nombre = String(datos.nombre || '').trim();
+  if (!nombre) throw new Error('Ponle un nombre al pago fijo.');
+  const monto = leerMontoTexto_(datos.monto);
+  if (!(monto > 0)) throw new Error('El monto del pago fijo debe ser mayor que 0.');
+  const moneda = String(datos.moneda || 'PEN');
+  if (MONEDAS.indexOf(moneda) < 0) throw new Error('La moneda debe ser PEN o USD.');
+  const dia = String(datos.dia_mes == null ? '' : datos.dia_mes).trim() === '' ? NaN : Number(datos.dia_mes);
+  if (!Number.isInteger(dia) || dia < 1 || dia > 31) throw new Error('El día del mes debe ser un número del 1 al 31.');
+  if (!datos.categoria_id) throw new Error('Elige una categoría para el pago fijo.');
+  const previos = previo ? [previo.cuenta_id, previo.categoria_id] : [];
+  buscarActiva_(cuentas, datos.cuenta_id, 'La cuenta', previos);
+  const categoria = buscarActiva_(categorias, datos.categoria_id, 'La categoría', previos);
+  if (categoria.tipo !== 'gasto') throw new Error('La categoría de un pago fijo debe ser de gasto.');
+  return {
+    nombre: nombre, monto: monto, moneda: moneda, cuenta_id: datos.cuenta_id, categoria_id: datos.categoria_id,
+    dia_mes: dia, activo: datos.activo !== false,
+  };
+}
