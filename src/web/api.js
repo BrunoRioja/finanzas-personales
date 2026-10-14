@@ -121,10 +121,15 @@ function guardarMovimiento(datos) {
 function listarMovimientos(filtro) {
   filtro = filtro || {};
   const mes = validarMes_(filtro.mes);
+  const ambitos = leerTabla_('Ambitos');
+  const partes = {};
+  leerTabla_('Divisiones').forEach(d => { (partes[d.movimiento_id] = partes[d.movimiento_id] || []).push(d); });
   return leerTabla_('Movimientos')
     .filter(m => mesDe_(m.fecha) === mes)
+    .map(m => Object.assign(m, { ambitos: ambitosDeMovimiento_(m, partes[m.id], ambitos) }))
     .filter(m => !filtro.cuenta_id || m.cuenta_id === filtro.cuenta_id || m.cuenta_destino_id === filtro.cuenta_id)
     .filter(m => !filtro.categoria_id || m.categoria_id === filtro.categoria_id)
+    .filter(m => !filtro.ambito_id || m.ambitos.indexOf(filtro.ambito_id) >= 0)
     .sort((a, b) => (b.fecha + b.creado_en).localeCompare(a.fecha + a.creado_en));
 }
 
@@ -155,6 +160,7 @@ function obtenerDashboard(mes) {
     movs: movs,
     divisiones: divisiones,
     categorias: categorias,
+    ambitos: leerTabla_('Ambitos'),
     cuentas: leerTabla_('Cuentas'),
     tcUsd: Number(leerConfig_().ultimo_tc) || 0,
   }, mes);
