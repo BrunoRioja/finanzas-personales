@@ -163,7 +163,11 @@
     obtenerRecurrentes: RECURRENTES,
     guardarRecurrente: RECURRENTES,
     eliminarRecurrente: RECURRENTES,
-    guardarPresupuestos: { cambiadas: 1, mes: '2026-10', montos: { c1: 600, c2: 450, c3: 250 }, referencia: {}, categorias: [] },
+    guardarPresupuestos: {
+      cambiadas: 1, mes: '2026-10', montos: { c1: 600, c2: 450, c3: 250 },
+      referencia: { c1: { mesPasado: 548.2, promedio3: 571.4 }, c2: { mesPasado: 383, promedio3: 402.7 } },
+      categorias: CATEGORIAS.filter(c => c.tipo === 'gasto'),
+    },
     desvincularTelegram: { configurado: false, vinculado: false, bot: '', codigo: '', enlace: '', hora_resumen: 21, cuenta_bot: '' },
   };
   window.__llamadas = [];
