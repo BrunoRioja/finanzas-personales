@@ -13,6 +13,7 @@ VISTAS.inicio = async function (cont) {
       kpi('Gastos', dinero(r.gastos), '') +
       kpi('Ahorro del mes', dinero(r.ahorro), r.ahorro < 0 ? 'neg' : 'pos') +
       kpi('Tasa de ahorro', r.tasaAhorro == null ? '—' : r.tasaAhorro + '%', '', nota) +
+      bloquePresupuesto(d.presupuesto) +
       bloqueCategorias(d.categorias) +
       bloqueTendencia(d.tendencia) +
       bloqueSaldos(d.saldos) +
@@ -21,6 +22,8 @@ VISTAS.inicio = async function (cont) {
   enlazarMes(cont);
   const franja = $('#ir-revisar');
   if (franja) franja.onclick = () => mostrar('revisar');
+  const irPresupuestos = $('#ir-presupuestos');
+  if (irPresupuestos) irPresupuestos.onclick = () => mostrar('presupuestos');
   cont.querySelectorAll('[data-categoria]').forEach(f => {
     f.onclick = () => { estado.filtro = { categoria_id: f.dataset.categoria }; mostrar('movimientos'); };
   });
@@ -29,6 +32,24 @@ VISTAS.inicio = async function (cont) {
 function kpi(titulo, valor, clase, nota) {
   return '<section class="tarjeta"><div class="etiqueta">' + esc(titulo) + '</div><div class="kpi num ' + clase + '">' + valor + '</div>' +
     (nota ? '<div class="etiqueta" style="margin:4px 0 0">' + esc(nota) + '</div>' : '') + '</section>';
+}
+
+function bloquePresupuesto(p) {
+  const titulo = '<div class="etiqueta">Presupuesto del mes</div>';
+  if (!p || !p.filas.length) {
+    return '<section class="tarjeta ancho-2">' + titulo + '<div class="vacio">Aún no defines presupuestos para este mes. ' +
+      '<button type="button" class="boton" id="ir-presupuestos">Definir presupuestos</button></div></section>';
+  }
+  const claseEstado = { ok: 'tenue', alerta: 'alerta', pasado: 'neg' };
+  const filas = p.filas.map(f =>
+    '<div class="fila-barra ppto clic" data-categoria="' + esc(f.categoria_id) + '"><span>' + esc(f.emoji + ' ' + f.nombre) + '</span>' +
+    '<span class="mini ppto"><i class="' + esc(f.estado) + '" style="width:' + Math.min(100, f.porcentaje) + '%"></i>' +
+    '<b style="left:' + f.ritmo + '%" title="Dónde deberías ir a esta fecha"></b></span>' +
+    '<span class="der num">' + dinero(f.gastado) + '<span class="tenue de-ppto"> de ' + dinero(f.presupuesto) + '</span></span>' +
+    '<span class="der num ' + claseEstado[f.estado] + '">' + f.porcentaje + '%</span></div>').join('');
+  return '<section class="tarjeta ancho-2">' + titulo + '<div class="filas">' + filas + '</div>' +
+    '<div class="pie-ppto"><span>Total: <b class="num">' + dinero(p.total.gastado) + '</b> de ' + dinero(p.total.presupuesto) + '</span>' +
+    '<span class="tenue">Sin presupuesto: ' + dinero(p.sinPresupuesto) + '</span></div></section>';
 }
 
 // Dona con circunferencia 100 (r = 15.9155): cada arco mide su porcentaje.

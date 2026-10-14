@@ -50,6 +50,14 @@
     },
     obtenerDashboard: {
       mes: '2026-10', porRevisar: 4,
+      presupuesto: {
+        filas: [
+          { categoria_id: 'c2', nombre: 'Comida fuera', emoji: '🍽️', color: '#ffb347', gastado: 412, presupuesto: 400, porcentaje: 103, queda: -12, estado: 'pasado', ritmo: 42 },
+          { categoria_id: 'c1', nombre: 'Supermercado', emoji: '🛒', color: '#3ddc97', gastado: 512, presupuesto: 600, porcentaje: 85, queda: 88, estado: 'alerta', ritmo: 42 },
+          { categoria_id: 'c3', nombre: 'Transporte', emoji: '🚕', color: '#7c5cff', gastado: 96, presupuesto: 250, porcentaje: 38, queda: 154, estado: 'ok', ritmo: 42 },
+        ],
+        total: { presupuesto: 1250, gastado: 1020 }, sinPresupuesto: 380,
+      },
       resumen: { ingresos: 3500, gastos: 1842.3, ahorro: 1657.7, tasaAhorro: 47 },
       resumenAnterior: { ingresos: 3500, gastos: 2275, ahorro: 1225, tasaAhorro: 35 },
       categorias: [
@@ -112,6 +120,12 @@
     nuevoCodigoTelegram: { configurado: true, vinculado: false, bot: 'prueba_bot', codigo: 'D4E5F6', enlace: 'https://t.me/prueba_bot?start=D4E5F6', hora_resumen: 21, cuenta_bot: '' },
     guardarTelegram: { configurado: true, vinculado: true, bot: 'prueba_bot', codigo: '', enlace: '', hora_resumen: 20, cuenta_bot: '' },
     probarTelegram: { ok: true },
+    obtenerPresupuestos: {
+      mes: '2026-10', montos: { c1: 600, c2: 400, c3: 250 },
+      referencia: { c1: { mesPasado: 548.2, promedio3: 571.4 }, c2: { mesPasado: 383, promedio3: 402.7 }, c5: { mesPasado: 141.5, promedio3: 150 } },
+      categorias: CATEGORIAS.filter(c => c.tipo === 'gasto'),
+    },
+    guardarPresupuestos: { cambiadas: 1, mes: '2026-10', montos: { c1: 600, c2: 450, c3: 250 }, referencia: {}, categorias: [] },
     desvincularTelegram: { configurado: false, vinculado: false, bot: '', codigo: '', enlace: '', hora_resumen: 21, cuenta_bot: '' },
   };
   window.__llamadas = [];

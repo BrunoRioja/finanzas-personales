@@ -1,0 +1,48 @@
+<script>
+'use strict';
+// Pestaña Presupuestos: un monto por categoría de gasto, que rige desde el mes actual.
+VISTAS.presupuestos = async function (cont) {
+  const p = await api('obtenerPresupuestos');
+  const ref = id => p.referencia[id] || { mesPasado: 0, promedio3: 0 };
+  const filas = p.categorias.map(c =>
+    '<div class="fila-presupuesto"><span class="nombre">' + esc(c.emoji + ' ' + c.nombre) + '</span>' +
+    '<input class="entrada num" inputmode="decimal" data-presupuesto="' + esc(c.id) + '" value="' + (p.montos[c.id] ? esc(p.montos[c.id]) : '') +
+    '" placeholder="—" aria-label="Presupuesto de ' + esc(c.nombre) + '">' +
+    '<span class="tenue ref">Mes pasado ' + dinero(ref(c.id).mesPasado) + ' · promedio ' + dinero(ref(c.id).promedio3) + '</span></div>').join('');
+  cont.innerHTML = '<div class="cabecera"><h1>Presupuestos</h1></div>' +
+    '<section class="tarjeta seccion">' +
+      '<div class="cabecera-seccion"><div class="etiqueta">Total presupuestado</div><div class="kpi num" id="p-total"></div></div>' +
+      '<p class="tenue" style="margin:0 0 12px;font-size:13px">Los cambios rigen desde ' + esc(nombreMes(p.mes).toLowerCase()) +
+        '; los meses anteriores no cambian. Deja vacío lo que no quieras controlar.</p>' +
+      filas +
+      '<div class="acciones"><button type="button" class="boton" id="p-copiar">Usar lo del mes pasado</button>' +
+      '<button type="button" class="boton primario" id="p-guardar">Guardar</button></div>' +
+    '</section>';
+  const entradas = Array.from(cont.querySelectorAll('[data-presupuesto]'));
+  const total = () => {
+    $('#p-total').textContent = dinero(entradas.reduce((s, i) => s + (Number(i.value.trim().replace(',', '.')) || 0), 0));
+  };
+  entradas.forEach(i => { i.oninput = total; });
+  total();
+  $('#p-copiar').onclick = () => {
+    entradas.forEach(i => {
+      const m = ref(i.dataset.presupuesto).mesPasado;
+      if (!i.value.trim() && m > 0) i.value = String(Math.ceil(m / 10) * 10);
+    });
+    total();
+  };
+  $('#p-guardar').onclick = async e => {
+    e.target.disabled = true;
+    try {
+      const montos = {};
+      entradas.forEach(i => { montos[i.dataset.presupuesto] = i.value; });
+      const r = await api('guardarPresupuestos', { montos: montos });
+      aviso(r.cambiadas ? 'Presupuestos guardados' : 'No había cambios');
+      mostrar('presupuestos');
+    } catch (err) {
+      aviso(err.message, true);
+      e.target.disabled = false;
+    }
+  };
+};
+</script>

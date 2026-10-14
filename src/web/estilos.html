@@ -118,8 +118,22 @@ main { max-width: 1180px; margin: 0 auto; padding: 20px 24px 110px; }
 #aviso[hidden] { display: none; }
 #aviso.mal { border-color: var(--negativo); color: var(--negativo); }
 
+.alerta { color: var(--alerta); }
+.fila-barra.ppto { grid-template-columns: minmax(90px, 150px) 1fr auto 44px; }
+.mini.ppto { position: relative; overflow: visible; }
+.mini.ppto i.ok { background: var(--positivo); }
+.mini.ppto i.alerta { background: var(--alerta); }
+.mini.ppto i.pasado { background: var(--negativo); }
+.mini.ppto b { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; background: var(--texto); opacity: .55; border-radius: 1px; }
+.pie-ppto { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: 13px; padding: 10px 4px 0; margin-top: 6px; border-top: 1px solid var(--borde); }
+.fila-presupuesto { display: grid; grid-template-columns: minmax(120px, 1fr) 130px; gap: 4px 12px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--borde); }
+.fila-presupuesto .ref { grid-column: 1 / -1; font-size: 12px; }
+
 /* Celular */
 @media (max-width: 720px) {
+  .fila-barra.ppto { grid-template-columns: minmax(80px, 1fr) 48px auto 38px; }
+  .de-ppto { display: none; }
+  .barra-movil .pestana { min-width: 0; }
   .barra nav { display: none; }
   .barra { padding: 12px 16px; }
   main { padding: 14px 16px 130px; }
