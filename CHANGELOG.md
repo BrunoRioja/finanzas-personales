@@ -2,6 +2,11 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/); versiones con [SemVer](https://semver.org/lang/es/).
 
+## [0.7.1] — 2026-10-14
+
+### Corregido
+- Presupuestos: guardar un presupuesto o un pago fijo ya no recarga toda la pestaña ni te devuelve arriba; redibuja con la respuesta del servidor (la espera baja a la mitad).
+
 ## [0.7.0] — 2026-10-14
 
 ### Agregado

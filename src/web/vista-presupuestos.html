@@ -9,8 +9,26 @@ function montoEscrito(texto) {
   if (/^\d+([.,]\d+)?$/.test(t)) return Number(t.replace(',', '.'));
   return 0;
 }
+// Lo último que se pintó. Guardar redibuja con lo que devuelve el servidor: sin volver a
+// pedir todo (dos consultas más a la hoja) y sin perder la posición en la pantalla.
+const pantallaPresupuestos = { cont: null, p: null, rec: null };
+
 VISTAS.presupuestos = async function (cont) {
   const [p, rec] = await Promise.all([api('obtenerPresupuestos'), api('obtenerRecurrentes')]);
+  Object.assign(pantallaPresupuestos, { cont: cont, p: p, rec: rec });
+  pintarPresupuestos();
+};
+
+function repintarPresupuestos(cambios) {
+  if (estado.vista !== 'presupuestos') return;
+  const y = window.scrollY;
+  Object.assign(pantallaPresupuestos, cambios);
+  pintarPresupuestos();
+  window.scrollTo(0, y);
+}
+
+function pintarPresupuestos() {
+  const { cont, p, rec } = pantallaPresupuestos;
   const ref = id => p.referencia[id] || { mesPasado: 0, promedio3: 0 };
   const filas = p.categorias.map(c =>
     '<div class="fila-presupuesto"><span class="nombre">' + esc(c.emoji + ' ' + c.nombre) + '</span>' +
@@ -46,14 +64,14 @@ VISTAS.presupuestos = async function (cont) {
       entradas.forEach(i => { montos[i.dataset.presupuesto] = i.value; });
       const r = await api('guardarPresupuestos', { montos: montos });
       aviso(r.cambiadas ? 'Presupuestos guardados' : 'No había cambios');
-      mostrar('presupuestos');
+      repintarPresupuestos({ p: r });
     } catch (err) {
       aviso(err.message, true);
       e.target.disabled = false;
     }
   };
   enlazarPagosFijos(cont, rec);
-};
+}
 // Pagos fijos: solo se recuerdan (Telegram e Inicio); no crean movimientos.
 function seccionPagosFijos(rec) {
   const filas = rec.recurrentes.map(r =>
@@ -81,9 +99,9 @@ function enlazarPagosFijos(cont, rec) {
       const r = rec.recurrentes.find(x => x.id === i.dataset.activo);
       i.disabled = true;
       try {
-        await api('guardarRecurrente', Object.assign({}, r, { activo: i.checked }));
+        const nuevo = await api('guardarRecurrente', Object.assign({}, r, { activo: i.checked }));
         aviso(i.checked ? 'Pago fijo activado' : 'Pago fijo pausado');
-        mostrar('presupuestos');
+        repintarPresupuestos({ rec: nuevo });
       } catch (err) {
         aviso(err.message, true);
         i.checked = !i.checked;
@@ -113,13 +131,13 @@ function abrirFormFijo(r, rec) {
   $('#pf-guardar', caja).onclick = async e => {
     e.target.disabled = true;
     try {
-      await api('guardarRecurrente', {
+      const nuevo = await api('guardarRecurrente', {
         id: r ? r.id : '', nombre: $('#pf-nombre', caja).value, monto: $('#pf-monto', caja).value, moneda: $('#pf-moneda', caja).value,
         dia_mes: $('#pf-dia', caja).value, cuenta_id: $('#pf-cuenta', caja).value, categoria_id: $('#pf-categoria', caja).value, activo: v.activo,
       });
       cerrarModal();
       aviso(r ? 'Pago fijo actualizado' : 'Pago fijo guardado');
-      mostrar('presupuestos');
+      repintarPresupuestos({ rec: nuevo });
     } catch (err) {
       aviso(err.message, true);
       e.target.disabled = false;
@@ -131,10 +149,10 @@ function abrirFormFijo(r, rec) {
       if (!eliminar.dataset.seguro) { eliminar.dataset.seguro = '1'; eliminar.textContent = '¿Seguro? Toca otra vez'; return; }
       eliminar.disabled = true;
       try {
-        await api('eliminarRecurrente', r.id);
+        const nuevo = await api('eliminarRecurrente', r.id);
         cerrarModal();
         aviso('Pago fijo eliminado');
-        mostrar('presupuestos');
+        repintarPresupuestos({ rec: nuevo });
       } catch (err) {
         aviso(err.message, true);
         eliminar.disabled = false;
