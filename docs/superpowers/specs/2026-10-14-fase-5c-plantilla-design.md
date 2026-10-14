@@ -17,7 +17,7 @@ Que cualquier persona tenga su propia app sin clonar el repo ni usar la terminal
 Éxito:
 - Desde el README, "Hacer una copia" + 4 pasos guiados dejan la app funcionando en la cuenta de otra persona: dashboard, registro, presupuestos, próximos pagos y lectura de correos.
 - El bot de Telegram se conecta siguiendo `docs/telegram.md`, sin clasp.
-- Ajustes muestra la versión instalada y avisa cuando hay una más nueva.
+- Ajustes muestra la versión instalada y, con el botón "Buscar actualizaciones", dice si hay una más nueva.
 - Quien actualiza copia la plantilla nueva y trae sus datos con "Importar datos de mi hoja anterior".
 - El README presenta el proyecto con capturas actuales, un diagrama de arquitectura, las decisiones técnicas y cómo se prueba.
 
@@ -34,7 +34,7 @@ Fuera de alcance:
 | Tema | Decisión |
 |---|---|
 | Alcance de la plantilla | Núcleo y lectura de correos. Telegram va en una guía aparte. |
-| Actualizaciones | La copia queda congelada en su versión. La app avisa si hay una versión nueva, y para actualizar se copia la plantilla nueva y se importan los datos de la hoja anterior. No hay biblioteca compartida: el código de cada copia es de su dueño. |
+| Actualizaciones | La copia queda congelada en su versión. En Ajustes, el botón "Buscar actualizaciones" (manual, sin consultas automáticas) dice si hay una versión nueva, y para actualizar se copia la plantilla nueva y se importan los datos de la hoja anterior. No hay biblioteca compartida: el código de cada copia es de su dueño. |
 | Idioma | README y guías en español; se mantiene el resumen corto en inglés. |
 
 ---
@@ -80,16 +80,17 @@ Fuera de alcance:
 - Una prueba exige que sea igual a la `version` de `package.json`.
 - En Ajustes se agrega la sección **"Acerca de"**: "Versión 0.7.0", con enlaces al repositorio y al CHANGELOG.
 
-**Aviso de versión nueva**
+**Buscar actualizaciones (manual)**
 - **`compararVersiones_(a, b) → -1 | 0 | 1`:** compara por número cada parte de `x.y.z`, así que `0.10.0 > 0.9.0`. Si un texto no tiene esa forma, se trata como `0.0.0`.
-- **`ultimaVersionPublicada_()`:**
+- **`estadoVersion()` (público):** devuelve `{ actual: VERSION_APP, repo, cambios, actualizar }` sin conectarse a nada. Ajustes lo usa para mostrar la versión.
+- **`buscarActualizacion()` (público):** solo corre cuando la persona toca **"Buscar actualizaciones"** en Ajustes → Acerca de. No hay consultas automáticas ni caché.
   - Lee `https://raw.githubusercontent.com/BrunoRioja/finanzas-personales/main/package.json` con `UrlFetchApp` (`muteHttpExceptions`).
-  - Devuelve su `version` o `''`. Nunca lanza.
-  - Guarda el resultado 12 horas en `CacheService` (clave `ULTIMA_VERSION`), incluido el `''` de un fallo, para no insistir.
-- **`estadoVersion()` (público):** devuelve `{ actual: VERSION_APP, ultima, hayNueva, repo, cambios }`.
-  - `hayNueva = compararVersiones_(ultima, actual) > 0`.
-  - `repo` y `cambios` son los enlaces al repo y al CHANGELOG.
-- **En Ajustes:** si `hayNueva`, la sección "Acerca de" muestra "Hay una versión nueva (x.y.z)" con enlaces a "Novedades" (CHANGELOG) y a "Cómo actualizar" (`docs/actualizar.md`). Si `estadoVersion` falla, la sección muestra solo la versión actual.
+  - Devuelve lo mismo que `estadoVersion()` más `{ ultima, hayNueva, error }`.
+  - Nunca lanza. Si GitHub no responde o la respuesta no trae versión, devuelve `error: true` y `hayNueva: false`.
+- **En Ajustes**, bajo el botón:
+  - "✓ Tienes la última versión (x.y.z)."
+  - "🎉 Hay una versión nueva (x.y.z)", con enlaces a "Novedades" (CHANGELOG) y "Cómo actualizar" (`docs/actualizar.md`).
+  - "No pude consultar GitHub. Intenta más tarde."
 - **Privacidad:** no se envía ningún dato del usuario; es una lectura pública. No hay permisos nuevos, porque `script.external_request` ya existe.
 
 **Importar datos de la hoja anterior (`src/setup/importar.js`)**
@@ -156,7 +157,7 @@ Fuera de alcance:
   4. En la app anterior, apagar la lectura y desconectar el bot.
   5. Volver a activar la lectura y conectar el bot en la nueva.
   - Quien usa clasp: `git pull` + `npm run deploy`.
-- **`docs/privacidad.md`:** agrega la consulta de versión a GitHub (qué se lee, que no se envía nada).
+- **`docs/privacidad.md`:** agrega "Buscar actualizaciones" (solo al tocar el botón; qué se lee, que no se envía nada).
 - **CHANGELOG 0.7.0**, `package.json` 0.7.0 y `VERSION_APP`.
 
 ---
@@ -166,8 +167,8 @@ Fuera de alcance:
 - **`version`:**
   - `VERSION_APP` igual a la de `package.json`;
   - `compararVersiones_` (0.10.0 > 0.9.0, iguales, texto inválido);
-  - `estadoVersion` con versión nueva, igual y GitHub caído (sin aviso, sin lanzar);
-  - la caché evita una segunda consulta.
+  - `estadoVersion` no consulta GitHub;
+  - `buscarActualizacion` consulta cada vez que se pide, con versión nueva, igual y GitHub caído (`error`, sin lanzar).
   - El harness simula `raw.githubusercontent.com` en `UrlFetchApp`.
 - **`importar`:**
   - Copia todas las tablas con sus ids y la configuración elegida, y deja la app instalada.
@@ -180,7 +181,7 @@ Fuera de alcance:
   - "Abrir mi app" con URL muestra el enlace y sin URL muestra los pasos;
   - los textos escapan la URL.
 - **Interfaz:**
-  - Ajustes con "Acerca de" (sin y con aviso);
+  - Ajustes con "Acerca de" y los tres resultados de "Buscar actualizaciones";
   - el asistente con "Importa tus datos" y el resultado;
   - a 390 px y 1280 px.
 - **Prueba real (Bruno):**

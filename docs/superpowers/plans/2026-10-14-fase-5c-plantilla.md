@@ -2,12 +2,12 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Que cualquier persona instale su propia app copiando una hoja plantilla, vea su versión, se entere de versiones nuevas y traiga sus datos de una copia anterior. Además, dejar el README listo para portafolio.
+**Goal:** Que cualquier persona instale su propia app copiando una hoja plantilla, vea su versión, busque actualizaciones con un botón y traiga sus datos de una copia anterior. Además, dejar el README listo para portafolio.
 
 **Architecture:**
 - La plantilla es una Google Sheet con el código de `src/` vinculado. Se mantiene con `npm run deploy:plantilla` y nunca se publica.
 - `src/web/menu.js` agrega el menú 💸 Finanzas en la hoja.
-- `src/core/version.js` y `src/web/api-version.js` muestran la versión y consultan la última publicada en GitHub.
+- `src/core/version.js` y `src/web/api-version.js` muestran la versión y, solo cuando se toca "Buscar actualizaciones", consultan la última publicada en GitHub.
 - `src/setup/importar.js` copia los datos de otra hoja de la app, leyéndolos por encabezados.
 - `leerTabla_` se divide para poder leer otro libro con la misma lógica.
 
@@ -19,7 +19,7 @@
 
 - La plantilla nunca se publica ni ejecuta código: al copiar la hoja, Google copia también las Script Properties del proyecto, y no debe haber ninguna.
 - No hay permisos OAuth nuevos. `SpreadsheetApp.getUi()` usa el scope de spreadsheets y la consulta a GitHub usa `script.external_request`, que ya existen.
-- La consulta de versión no envía datos del usuario, nunca lanza, y guarda su resultado 12 horas en `CacheService` con la clave `ULTIMA_VERSION`, incluso cuando falla.
+- La consulta de versión es manual: solo corre al tocar "Buscar actualizaciones", sin triggers, consultas automáticas ni caché. No envía datos del usuario y nunca lanza.
 - Al importar se copian Cuentas, Categorias, Movimientos, Divisiones, Reglas, Presupuestos, Recurrentes y EstadosCuenta.
   - De Config solo se copian `nombre`, `moneda_principal`, `ultimo_tc`, `hora_resumen`, `horario_inicio`, `horario_fin` y `etiquetar`.
   - Nunca se copian Log, Pendientes ni la configuración de lectura.
@@ -32,13 +32,13 @@
 
 1. **Importar estando en modo demo.** La persona tocó "Solo mirar (datos demo)" en la copia nueva y luego intenta importar. Debe pedirle que salga del modo demo, no escribir en la hoja demo. → Task 3, test `valida el enlace…`.
 2. **Hoja anterior de una versión vieja.** Sin las hojas Presupuestos, Recurrentes o EstadosCuenta, y con el encabezado `ultimos4`. Debe importar lo que haya y dejar vacío lo demás. → Task 3, test `importa una hoja de una versión anterior…`.
-3. **GitHub caído o lento al abrir Ajustes.** Ajustes debe abrir igual, sin aviso de versión nueva, y no insistir en cada apertura. → Task 1, test `sin versión nueva o con GitHub caído…`.
+3. **GitHub caído al tocar "Buscar actualizaciones".** Debe decir "No pude consultar GitHub", sin romper Ajustes ni lanzar. Abrir Ajustes nunca consulta GitHub. → Task 1, tests `estadoVersion no consulta GitHub` y `con GitHub caído…`.
 4. **Una URL con comillas o `<` en el diálogo del menú.** No debe romper ni inyectar HTML. → Task 2, test `htmlEnlaceApp_ escapa la URL`.
 5. **`npm run deploy:plantilla` apuntando por error a la app o al receptor.** Debe negarse antes de subir nada. → Task 5, chequeo en el script y Step 3 de verificación.
 
 ---
 
-### Task 1: Versión de la app y aviso de versión nueva
+### Task 1: Versión de la app y "Buscar actualizaciones"
 
 **Files:**
 - Create: `src/core/version.js`, `src/web/api-version.js`
@@ -50,8 +50,9 @@
   - `VERSION_APP` (texto; en esta tarea `'0.6.0'`, y Task 6 lo sube a `'0.7.0'`)
   - `URL_REPO`
   - `compararVersiones_(a, b) → -1|0|1`
-  - `ultimaVersionPublicada_() → texto`
-  - `estadoVersion() → { actual, ultima, hayNueva, repo, cambios, actualizar }`
+  - `ultimaVersionPublicada_() → texto | null` (null si falla)
+  - `estadoVersion() → { actual, repo, cambios, actualizar }`, sin red
+  - `buscarActualizacion() → { actual, repo, cambios, actualizar, ultima, hayNueva, error }`
   - En el arnés: `e.github = { version, falla, llamadas }`
 
 - [ ] **Step 1: Simular GitHub en el arnés**
@@ -105,36 +106,42 @@ test('compararVersiones_ compara número por número', () => {
   assert.strictEqual(c('', '0.0.0'), 0);
 });
 
-test('estadoVersion avisa si en GitHub hay una versión mayor y guarda la respuesta 12 horas', () => {
+test('estadoVersion no consulta GitHub', () => {
   const e = crearEntorno();
-  e.github.version = '9.0.0';
   assert.deepStrictEqual(e.llamar('estadoVersion'), {
-    actual: paquete.version, ultima: '9.0.0', hayNueva: true, repo: REPO,
-    cambios: REPO + '/blob/main/CHANGELOG.md', actualizar: REPO + '/blob/main/docs/actualizar.md',
+    actual: paquete.version, repo: REPO, cambios: REPO + '/blob/main/CHANGELOG.md', actualizar: REPO + '/blob/main/docs/actualizar.md',
   });
-  e.llamar('estadoVersion');
-  assert.strictEqual(e.github.llamadas, 1);
-  assert.strictEqual(e.cache.ULTIMA_VERSION, '9.0.0');
+  assert.strictEqual(e.github.llamadas, 0);
 });
 
-test('sin versión nueva o con GitHub caído no hay aviso y no lanza', () => {
+test('buscarActualizacion consulta GitHub cada vez que se pide y avisa si hay una versión mayor', () => {
   const e = crearEntorno();
+  e.github.version = '9.0.0';
+  assert.deepStrictEqual(e.llamar('buscarActualizacion'), {
+    actual: paquete.version, repo: REPO, cambios: REPO + '/blob/main/CHANGELOG.md', actualizar: REPO + '/blob/main/docs/actualizar.md',
+    ultima: '9.0.0', hayNueva: true, error: false,
+  });
   e.github.version = paquete.version;
-  assert.strictEqual(e.llamar('estadoVersion').hayNueva, false);
-  const caido = crearEntorno();
-  caido.github.falla = true;
-  const v = caido.llamar('estadoVersion');
-  assert.strictEqual(v.ultima, '');
-  assert.strictEqual(v.hayNueva, false);
-  caido.llamar('estadoVersion');
-  assert.strictEqual(caido.github.llamadas, 1, 'el fallo también se guarda para no insistir');
+  const r = e.llamar('buscarActualizacion');
+  assert.strictEqual(r.hayNueva, false);
+  assert.strictEqual(r.error, false);
+  assert.strictEqual(e.github.llamadas, 2, 'sin caché: cada toque consulta');
+});
+
+test('con GitHub caído buscarActualizacion no lanza y lo dice', () => {
+  const e = crearEntorno();
+  e.github.falla = true;
+  const r = e.llamar('buscarActualizacion');
+  assert.strictEqual(r.error, true);
+  assert.strictEqual(r.hayNueva, false);
+  assert.strictEqual(r.ultima, '');
 });
 ```
 
 - [ ] **Step 3: Verificar que fallan**
 
 Run: `node --test tests/version.test.js`
-Expected: FAIL, 4/4, con `contexto[nombre] is not a function`.
+Expected: FAIL, 5/5, con `contexto[nombre] is not a function`.
 
 - [ ] **Step 4: Implementar**
 
@@ -164,41 +171,42 @@ function compararVersiones_(a, b) {
 Crear `src/web/api-version.js`:
 
 ```js
-// Sección "Acerca de" de Ajustes: versión instalada y aviso si hay una más nueva. Solo
-// lee el package.json público del repositorio; no envía ningún dato de la persona.
+// Sección "Acerca de" de Ajustes: versión instalada y botón "Buscar actualizaciones". La
+// consulta a GitHub es manual (solo al tocar el botón): lee el package.json público del
+// repositorio y no envía ningún dato de la persona.
 
 const URL_PAQUETE_PUBLICADO = 'https://raw.githubusercontent.com/BrunoRioja/finanzas-personales/main/package.json';
-const SEGUNDOS_CACHE_VERSION = 43200;
-
-// Nunca lanza. El resultado (también '' si falla) se guarda 12 horas para no insistir.
-function ultimaVersionPublicada_() {
-  const cache = CacheService.getScriptCache();
-  const guardada = cache.get('ULTIMA_VERSION');
-  if (guardada !== null) return guardada;
-  let version = '';
-  try {
-    const r = UrlFetchApp.fetch(URL_PAQUETE_PUBLICADO, { muteHttpExceptions: true });
-    if (r.getResponseCode() === 200) version = String(JSON.parse(r.getContentText()).version || '');
-  } catch {
-    version = '';
-  }
-  cache.put('ULTIMA_VERSION', version, SEGUNDOS_CACHE_VERSION);
-  return version;
-}
 
 function estadoVersion() {
-  const ultima = ultimaVersionPublicada_();
   return {
-    actual: VERSION_APP, ultima: ultima, hayNueva: compararVersiones_(ultima, VERSION_APP) > 0, repo: URL_REPO,
+    actual: VERSION_APP, repo: URL_REPO,
     cambios: URL_REPO + '/blob/main/CHANGELOG.md', actualizar: URL_REPO + '/blob/main/docs/actualizar.md',
   };
+}
+
+// Versión publicada en GitHub, o null si no se pudo consultar. Nunca lanza.
+function ultimaVersionPublicada_() {
+  try {
+    const r = UrlFetchApp.fetch(URL_PAQUETE_PUBLICADO, { muteHttpExceptions: true });
+    if (r.getResponseCode() !== 200) return null;
+    return String(JSON.parse(r.getContentText()).version || '') || null;
+  } catch {
+    return null;
+  }
+}
+
+function buscarActualizacion() {
+  const ultima = ultimaVersionPublicada_();
+  return Object.assign(estadoVersion(), {
+    ultima: ultima || '', hayNueva: !!ultima && compararVersiones_(ultima, VERSION_APP) > 0, error: !ultima,
+  });
 }
 ```
 
 - [ ] **Step 5: Verificar que pasan**
 
 Run: `node --test tests/version.test.js`
-Expected: PASS, 4/4.
+Expected: PASS, 5/5.
 
 - [ ] **Step 6: Suite, lint y commit**
 
@@ -207,7 +215,7 @@ Expected: verde y lint limpio.
 
 ```bash
 git add src/core/version.js src/web/api-version.js tests/harness.js tests/version.test.js
-git commit -m "feat: versión de la app y aviso de versión nueva desde GitHub"
+git commit -m "feat: versión de la app y búsqueda manual de actualizaciones"
 ```
 
 ---
@@ -609,19 +617,25 @@ git commit -m "feat: importar los datos de una hoja anterior de la app"
 - Modify: `src/web/vista-ajustes.html`, `src/web/vista-asistente.html`, `tests/ui/stub.js`
 
 **Interfaces:**
-- Consumes: `estadoVersion()` (Task 1) e `importarHojaAnterior(enlace)` (Task 3).
-- Produces: funciones del cliente `seccionAcercaDe(v)`, `pintarImportar()` y `pintarImportado(r)` (las dos últimas dentro de `VISTAS.asistente`).
+- Consumes: `estadoVersion()`, `buscarActualizacion()` (Task 1) e `importarHojaAnterior(enlace)` (Task 3).
+- Produces: funciones del cliente `seccionAcercaDe(v)`, `enlazarAcercaDe()`, `textoActualizacion(r)`, `pintarImportar()` y `pintarImportado(r)` (las dos últimas dentro de `VISTAS.asistente`).
 
 - [ ] **Step 1: Stub**
 
 En `tests/ui/stub.js`, junto a `estadoInstalacion`:
 
 ```js
-    // window.VERSION permite ver "Acerca de" sin aviso desde ver.js.
-    estadoVersion: () => window.VERSION || {
-      actual: '0.7.0', ultima: '0.8.0', hayNueva: true, repo: 'https://github.com/BrunoRioja/finanzas-personales',
+    estadoVersion: {
+      actual: '0.7.0', repo: 'https://github.com/BrunoRioja/finanzas-personales',
       cambios: 'https://github.com/BrunoRioja/finanzas-personales/blob/main/CHANGELOG.md',
       actualizar: 'https://github.com/BrunoRioja/finanzas-personales/blob/main/docs/actualizar.md',
+    },
+    // window.ACTUALIZACION permite ver los otros dos resultados desde ver.js.
+    buscarActualizacion: () => window.ACTUALIZACION || {
+      actual: '0.7.0', repo: 'https://github.com/BrunoRioja/finanzas-personales',
+      cambios: 'https://github.com/BrunoRioja/finanzas-personales/blob/main/CHANGELOG.md',
+      actualizar: 'https://github.com/BrunoRioja/finanzas-personales/blob/main/docs/actualizar.md',
+      ultima: '0.8.0', hayNueva: true, error: false,
     },
     importarHojaAnterior: {
       importado: { Cuentas: 6, Categorias: 20, Movimientos: 1234, Divisiones: 12, Reglas: 30, Presupuestos: 6, Recurrentes: 4, EstadosCuenta: 2 },
@@ -640,19 +654,45 @@ En `src/web/vista-ajustes.html`:
 ```
 
 - Después del cierre `'</section>';` de la sección "Datos", que es el último `'</section>';` de `cont.innerHTML`, cambiar ese `'</section>';` por `'</section>' + seccionAcercaDe(version);`.
+- Después de `enlazarReglas();`, agregar `enlazarAcercaDe();`.
 - Agregar, después de la constante `FRECUENCIAS`:
 
 ```js
-// Versión instalada y, si GitHub tiene una más nueva, el aviso con cómo actualizar.
+// Versión instalada y "Buscar actualizaciones": solo consulta GitHub al tocar el botón.
 function seccionAcercaDe(v) {
-  const enlace = (url, texto) => '<a href="' + esc(url) + '" target="_blank" rel="noopener">' + esc(texto) + '</a>';
   return '<section class="tarjeta seccion"><div class="etiqueta">Acerca de</div>' +
     '<p style="margin:0">Finanzas personales' + (v ? ' · versión <b class="num">' + esc(v.actual) + '</b>' : '') + '</p>' +
-    (v && v.hayNueva ? '<div class="resultado-lectura" style="margin-top:10px">🎉 Hay una versión nueva (' + esc(v.ultima) + '). ' +
-      enlace(v.cambios, 'Novedades') + ' · ' + enlace(v.actualizar, 'Cómo actualizar') + '</div>' : '') +
-    (v ? '<div class="acciones"><a class="boton" href="' + esc(v.repo) + '" target="_blank" rel="noopener">Código en GitHub</a>' +
-      '<a class="boton" href="' + esc(v.cambios) + '" target="_blank" rel="noopener">Novedades</a></div>' : '') +
-    '</section>';
+    '<div class="resultado-lectura" id="av-resultado" hidden></div>' +
+    '<div class="acciones"><button type="button" class="boton" id="av-buscar">Buscar actualizaciones</button>' +
+    (v ? '<a class="boton" href="' + esc(v.repo) + '" target="_blank" rel="noopener">Código en GitHub</a>' +
+      '<a class="boton" href="' + esc(v.cambios) + '" target="_blank" rel="noopener">Novedades</a>' : '') +
+    '</div></section>';
+}
+
+function textoActualizacion(r) {
+  const enlace = (url, texto) => '<a href="' + esc(url) + '" target="_blank" rel="noopener">' + esc(texto) + '</a>';
+  if (r.error) return 'No pude consultar GitHub. Intenta más tarde.';
+  if (!r.hayNueva) return '✓ Tienes la última versión (' + esc(r.actual) + ').';
+  return '🎉 Hay una versión nueva (' + esc(r.ultima) + '). ' + enlace(r.cambios, 'Novedades') + ' · ' + enlace(r.actualizar, 'Cómo actualizar');
+}
+
+function enlazarAcercaDe() {
+  $('#av-buscar').onclick = async e => {
+    const caja = $('#av-resultado');
+    e.target.disabled = true;
+    e.target.textContent = 'Buscando…';
+    try {
+      const r = await api('buscarActualizacion');
+      caja.className = 'resultado-lectura' + (r.error ? ' mal' : r.hayNueva ? '' : ' ok');
+      caja.innerHTML = textoActualizacion(r);
+    } catch (err) {
+      caja.className = 'resultado-lectura mal';
+      caja.textContent = err.message;
+    }
+    caja.hidden = false;
+    e.target.disabled = false;
+    e.target.textContent = 'Buscar actualizaciones';
+  };
 }
 ```
 
@@ -709,15 +749,17 @@ En `src/web/vista-asistente.html`, dentro de `pintarPaso1`:
 - [ ] **Step 4: Revisar en Chrome a 390 px y 1280 px**
 
 Run, uno por uno, y mirar cada captura:
-- `node tests/ui/ver.js "mostrar('ajustes')" vista ajustes-1280.png 1280`
-- `node tests/ui/ver.js "mostrar('ajustes')" vista ajustes-390.png 390` (ocultando las secciones previas si hace falta para ver "Acerca de")
+- `node tests/ui/ver.js "mostrar('ajustes');setTimeout(()=>document.getElementById('av-buscar').click(),500)" vista ajustes-1280.png 1280`
+- `node tests/ui/ver.js "window.ACTUALIZACION={actual:'0.7.0',ultima:'0.7.0',hayNueva:false,error:false};mostrar('ajustes');setTimeout(()=>document.getElementById('av-buscar').click(),500)" vista ajustes-al-dia-390.png 390` (ocultando las secciones previas si hace falta para ver "Acerca de")
+- `node tests/ui/ver.js "window.ACTUALIZACION={actual:'0.7.0',ultima:'',hayNueva:false,error:true};mostrar('ajustes');setTimeout(()=>document.getElementById('av-buscar').click(),500)" vista ajustes-error-390.png 390`
 - `node tests/ui/ver.js "mostrar('asistente')" vista asistente-390.png 390`
 - `node tests/ui/ver.js "mostrar('asistente');setTimeout(()=>document.getElementById('w-importar').click(),400)" vista importar-390.png 390`
 - `node tests/ui/ver.js "mostrar('asistente');setTimeout(()=>{document.getElementById('w-importar').click();setTimeout(()=>document.getElementById('w-importar-ya').click(),200)},400)" vista importado-390.png 390`
 
 Expected:
 - No hay errores de JS ni scroll horizontal.
-- "Acerca de" muestra "versión 0.7.0", el aviso "Hay una versión nueva (0.8.0)" y los dos botones.
+- "Acerca de" muestra "versión 0.7.0" y los botones "Buscar actualizaciones", "Código en GitHub" y "Novedades".
+- Al tocar "Buscar actualizaciones" aparece, según el caso, "🎉 Hay una versión nueva (0.8.0)" con sus enlaces, "✓ Tienes la última versión (0.7.0)." o "No pude consultar GitHub. Intenta más tarde.".
 - El asistente muestra "Importar mis datos".
 - La pantalla de importar tiene el campo y los botones.
 - El resultado dice "Importaste 1,234 movimientos, 6 cuentas, 20 categorías, 6 presupuestos, 4 pagos fijos" junto con el recordatorio en rojo.
@@ -729,7 +771,7 @@ Expected: verde y lint limpio.
 
 ```bash
 git add src/web/vista-ajustes.html src/web/vista-asistente.html tests/ui/stub.js
-git commit -m "feat: Acerca de en Ajustes e importar datos en el asistente"
+git commit -m "feat: Acerca de con Buscar actualizaciones e importar datos en el asistente"
 ```
 
 ---
@@ -916,7 +958,7 @@ npm run deploy     # sube el código y publica la web app (solo tú puedes abrir
 - En `## Decisiones técnicas`, agregar al final de la lista:
 
 ```markdown
-- **Copia congelada en vez de biblioteca compartida:** cada copia ejecuta su propio código; nadie (ni el autor) puede cambiarlo desde afuera. Las versiones nuevas se avisan en Ajustes y se instalan copiando la plantilla e importando los datos.
+- **Copia congelada en vez de biblioteca compartida:** cada copia ejecuta su propio código; nadie (ni el autor) puede cambiarlo desde afuera. Las versiones nuevas se buscan con un botón en Ajustes y se instalan copiando la plantilla e importando los datos.
 - **Importación por encabezados:** una hoja de cualquier versión anterior se importa leyendo cada columna por su nombre; lo que no existía queda vacío y la migración completa el resto.
 ```
 
@@ -982,7 +1024,7 @@ Crear `docs/actualizar.md`:
 ```markdown
 # Actualizar a una versión nueva
 
-Tu copia no cambia sola: así nadie (ni el autor) puede modificar el código que corre en tu cuenta. Cuando hay una versión nueva, **Ajustes → Acerca de** lo avisa con un enlace a las [novedades](../CHANGELOG.md).
+Tu copia no cambia sola: así nadie (ni el autor) puede modificar el código que corre en tu cuenta. Para saber si hay una versión nueva, toca **Ajustes → Acerca de → Buscar actualizaciones** (o mira las [novedades](../CHANGELOG.md)).
 
 ## Vía plantilla
 
@@ -1003,7 +1045,7 @@ En `docs/privacidad.md`, agregar antes de `## Próximas versiones`:
 ```markdown
 ## Versión y plantilla (v0.7)
 
-- Al abrir Ajustes, la app lee el `package.json` público del repositorio en GitHub para saber si hay una versión nueva (una vez cada 12 horas). No envía ningún dato tuyo.
+- Solo cuando tocas **Ajustes → Buscar actualizaciones**, la app lee el `package.json` público del repositorio en GitHub para saber si hay una versión nueva. No consulta nada por su cuenta y no envía ningún dato tuyo.
 - La plantilla no tiene datos ni configuración: tu copia empieza vacía y su código es tuyo. Nadie más puede cambiarlo ni abrir tu app.
 - Importar datos lee tu hoja anterior desde tu propia cuenta; nada sale de Google.
 ```
@@ -1017,7 +1059,7 @@ Arriba de `## [0.6.0]`:
 
 ### Agregado
 - Plantilla "Hacer una copia": instalación sin programar en 4 pasos, con el menú **💸 Finanzas** en la hoja para publicar y abrir la app.
-- Ajustes → Acerca de: versión instalada y aviso cuando hay una versión nueva en GitHub.
+- Ajustes → Acerca de: versión instalada y botón "Buscar actualizaciones" (consulta GitHub solo al tocarlo).
 - Importar datos de una hoja anterior desde el asistente (para actualizar a una copia nueva).
 - Guías: instalación por plantilla, bot de Telegram sin clasp y cómo actualizar.
 - `npm run setup:plantilla` / `npm run deploy:plantilla` para mantener la plantilla.
