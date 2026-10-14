@@ -34,7 +34,7 @@ function entornoConCorreos(correos, opciones) {
 test('revisarCorreos importa desde importar_desde: movimientos, pendientes e ignorados', () => {
   const e = entornoConCorreos();
   const r = e.llamar('revisarCorreos');
-  assert.deepStrictEqual(r, { leidos: 7, creados: 5, porRevisar: 3, pendientes: 1, ignorados: 1, restantes: 0, etiquetados: 6 });
+  assert.deepStrictEqual(r, { leidos: 7, creados: 5, porRevisar: 3, pendientes: 1, ignorados: 0, restantes: 0, etiquetados: 7, estadosCuenta: 1 });
   assert.strictEqual(e.movDe('g8'), undefined, 'antes de importar_desde');
   const g1 = e.movDe('g1');
   assert.strictEqual(g1.cuenta_id, e.cuenta('Débito BCP'));
@@ -103,7 +103,7 @@ test('etiqueta en Gmail los correos con movimiento o pendiente; se puede apagar;
   assert.deepStrictEqual(e.gmail._etiquetas.map(l => l.name), ['Finanzas/Procesado']);
   assert.deepStrictEqual(e.gmail._etiquetasDe.g1, ['Label_1']);
   assert.deepStrictEqual(e.gmail._etiquetasDe.g6, ['Label_1']);
-  assert.strictEqual(e.gmail._etiquetasDe.g7, undefined, 'el ignorado no se etiqueta');
+  assert.deepStrictEqual(e.gmail._etiquetasDe.g7, ['Label_1'], 'el estado de cuenta guardado también se etiqueta');
 
   const sin = entornoConCorreos();
   sin.interno('guardarConfig_', { etiquetar: 'no' });
@@ -257,4 +257,39 @@ test('volverALeerCorreos también reintenta los correos que no se pudieron leer'
   assert.strictEqual(r.borrados, 2, 'pendientes de g1 y g6');
   assert.ok(e.movDe('g1'), 'g1 vuelve como movimiento');
   assert.deepStrictEqual(e.filas('Pendientes').filter(p => p.estado === 'pendiente').map(p => p.gmail_id), ['g6'], 'g6 sigue sin poder leerse');
+});
+
+const DE_ESTADO = 'estadodecuenta@notificacionesbcp.com.pe';
+
+test('el estado de cuenta se guarda para la tarjeta BCP sin crear movimientos y no se duplica', () => {
+  const e = entornoConCorreos();
+  e.llamar('revisarCorreos');
+  const ec = e.filas('EstadosCuenta');
+  assert.strictEqual(ec.length, 1);
+  assert.strictEqual(ec[0].cuenta_id, e.cuenta('VISA BCP'));
+  assert.strictEqual(ec[0].emitido, '2026-10-11');
+  assert.strictEqual(ec[0].total_pen, 1234.5);
+  assert.strictEqual(ec[0].minimo_usd, 10);
+  assert.strictEqual(ec[0].fecha_limite, '2026-11-05');
+  assert.strictEqual(ec[0].ref_externa, 'gmail:g7');
+  assert.strictEqual(e.movDe('g7'), undefined);
+  e.interno('guardarConfig_', { cursor_lectura: 0 });
+  e.llamar('revisarCorreos');
+  assert.strictEqual(e.filas('EstadosCuenta').length, 1);
+});
+
+test('sin tarjeta de crédito BCP activa el estado de cuenta va a Por revisar; con dos usa la primera y lo anota', () => {
+  const solo = () => [correoGmail('g7', 'estado-cuenta.html', ASUNTOS.estadoCuenta, '2026-10-11T10:00:00', DE_ESTADO)];
+  const sin = entornoConCorreos(solo());
+  sin.interno('actualizarFila_', 'Cuentas', sin.cuenta('VISA BCP'), { activa: false });
+  sin.llamar('revisarCorreos');
+  assert.strictEqual(sin.filas('EstadosCuenta').length, 0);
+  const pend = sin.filas('Pendientes');
+  assert.strictEqual(pend.length, 1);
+  assert.match(pend[0].resumen, /^No hay una tarjeta de crédito BCP activa/);
+  const dos = entornoConCorreos(solo());
+  dos.llamar('guardarCuenta', { nombre: 'VISA 2', banco: 'BCP', tipo: 'credito', moneda: 'PEN', saldo_inicial: 0, numeros: '5555' });
+  dos.llamar('revisarCorreos');
+  assert.strictEqual(dos.filas('EstadosCuenta')[0].cuenta_id, dos.cuenta('VISA BCP'));
+  assert.ok(dos.filas('Log').some(l => l.nivel === 'aviso' && l.origen === 'estado de cuenta'));
 });

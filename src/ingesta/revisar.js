@@ -66,10 +66,11 @@ function revisarCorreosSinBloqueo_(ahoraMs) {
   }
   if (avisos.length) conBloqueo_(() => avisos.forEach(a => registrarLog_('aviso', 'etiquetar', a[0], a[1])));
   avisarPorRevisar_(r.nuevosPorRevisar);
+  avisarEstadosCuenta_(r.estadosCuenta);
   if (r.creados) revisarPresupuestos_();
   return {
     leidos: leidos.length, creados: r.creados, porRevisar: r.porRevisar, pendientes: r.pendientes,
-    ignorados: r.ignorados, restantes: nuevos.length - leidos.length, etiquetados: etiquetados,
+    ignorados: r.ignorados, restantes: nuevos.length - leidos.length, etiquetados: etiquetados, estadosCuenta: r.estadosCuenta.length,
   };
 }
 
@@ -85,6 +86,7 @@ function guardarLeidos_(leidos, totalNuevos, ahoraMs) {
   const pendientes = [];
   const ignorados = [];
   const aEtiquetar = [];
+  const estados = [];
   leidos.forEach(l => {
     if (conocidos[l.id]) return;
     if (!l.leido) {
@@ -92,11 +94,18 @@ function guardarLeidos_(leidos, totalNuevos, ahoraMs) {
       return;
     }
     aEtiquetar.push(l.id);
-    if (l.leido.pendiente) {
+    const tarjetas = l.leido.estadoCuenta ? tarjetasEstadoCuenta_(ctx.cuentas) : [];
+    if (l.leido.pendiente || (l.leido.estadoCuenta && !tarjetas.length)) {
       pendientes.push({
-        id: nuevoId_(), gmail_id: l.id, fecha: l.correo.fecha, remitente: l.correo.remitente,
-        asunto: l.correo.asunto, resumen: l.correo.texto.slice(0, 300), estado: 'pendiente',
+        id: nuevoId_(), gmail_id: l.id, fecha: l.correo.fecha, remitente: l.correo.remitente, asunto: l.correo.asunto,
+        resumen: (l.leido.pendiente ? '' : 'No hay una tarjeta de crédito BCP activa para este estado de cuenta. ') + l.correo.texto.slice(0, 300),
+        estado: 'pendiente',
       });
+      return;
+    }
+    if (l.leido.estadoCuenta) {
+      if (tarjetas.length > 1) registrarLog_('aviso', 'estado de cuenta', 'Hay varias tarjetas de crédito BCP; se usó "' + tarjetas[0].nombre + '".', l.id);
+      estados.push(Object.assign({ id: nuevoId_(), cuenta_id: tarjetas[0].id }, l.leido.estadoCuenta));
       return;
     }
     if (l.leido.crudo.actualiza_tc) ctx.tcUsd = l.leido.crudo.tc;
@@ -106,6 +115,7 @@ function guardarLeidos_(leidos, totalNuevos, ahoraMs) {
   });
   agregarFilas_('Movimientos', movimientos);
   agregarFilas_('Pendientes', pendientes);
+  agregarFilas_('EstadosCuenta', estados);
   recordarIgnorados_(ignorados);
   contarUsosReglas_(movimientos, ctx.reglas);
   const cambios = {};
@@ -116,7 +126,14 @@ function guardarLeidos_(leidos, totalNuevos, ahoraMs) {
     creados: movimientos.length, porRevisar: movimientos.filter(m => m.estado === 'por_revisar').length,
     pendientes: pendientes.length, ignorados: ignorados.length, aEtiquetar: aEtiquetar,
     nuevosPorRevisar: movimientos.filter(m => m.estado === 'por_revisar'),
+    estadosCuenta: estados,
   };
+}
+
+// El correo del estado de cuenta no trae los últimos 4 dígitos: va a la tarjeta de crédito
+// BCP activa (la primera, si hay varias).
+function tarjetasEstadoCuenta_(cuentas) {
+  return cuentas.filter(c => c.activa && c.tipo === 'credito' && c.banco === 'BCP');
 }
 
 // Sin tocar Gmail: de madrugada el trigger termina al instante.
@@ -140,6 +157,9 @@ function idsConocidos_() {
     if (m.ref_externa.indexOf('gmail:') === 0) conocidos[m.ref_externa.slice(6)] = true;
   });
   leerTabla_('Pendientes').forEach(p => { conocidos[p.gmail_id] = true; });
+  leerTabla_('EstadosCuenta').forEach(x => {
+    if (String(x.ref_externa).indexOf('gmail:') === 0) conocidos[x.ref_externa.slice(6)] = true;
+  });
   idsIgnorados_().forEach(id => { conocidos[id] = true; });
   return conocidos;
 }
@@ -168,6 +188,7 @@ function describirRevision_(r, ms) {
   const partes = [r.leidos + ' correos', r.creados + ' movimientos'];
   if (r.porRevisar) partes.push(r.porRevisar + ' por revisar');
   if (r.pendientes) partes.push(r.pendientes + (r.pendientes === 1 ? ' no leído' : ' no leídos'));
+  if (r.estadosCuenta) partes.push(r.estadosCuenta + (r.estadosCuenta === 1 ? ' estado de cuenta' : ' estados de cuenta'));
   if (r.restantes) partes.push('faltan ' + r.restantes);
   partes.push((ms / 1000).toFixed(1) + ' s');
   return partes.join(' · ');

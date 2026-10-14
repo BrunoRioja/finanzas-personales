@@ -9,7 +9,7 @@ function remitentesBancarios_() {
 }
 
 function lectoresDeCorreo_() {
-  return [leerCorreoBcp_, leerCorreoYape_];
+  return [leerCorreoBcp_, leerEstadoCuentaBcp_, leerCorreoYape_];
 }
 
 function leerCorreoBancario_(correo) {
