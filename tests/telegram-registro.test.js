@@ -20,8 +20,9 @@ test('"taxi 12 yape" guarda un gasto confirmado y responde con Deshacer y Cambia
     ['2026-10-13', 'gasto', 12, 'PEN', 12, e.cuenta('Débito BCP'), e.categoria('Transporte'), 'taxi', 'confirmado', 'tg:' + u]);
   assert.strictEqual(e.filas('Reglas')[0].usos, 1);
   const r = e.ultimoEnviado();
-  assert.strictEqual(r.text, '✓ <b>S/ 12.00</b> · taxi · 🚕 Transporte · Débito BCP');
+  assert.strictEqual(r.text, '✓ <b>S/ 12.00</b> · taxi · 🚕 Transporte · 🙋 Personal · Débito BCP');
   assert.deepStrictEqual(e.botones(r)[0].map(b => b.text), ['Deshacer', 'Cambiar categoría']);
+  assert.deepStrictEqual(e.botones(r)[1].map(b => b.text), ['🎉 Diversión', '👨‍👩‍👧 Familia', '💼 Trabajo']);
 });
 
 test('sin regla ni categoría queda por revisar y pregunta con las categorías', () => {

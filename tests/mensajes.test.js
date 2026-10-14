@@ -92,13 +92,13 @@ test('mensajeAgrupado_, textoCategorizado_, tecladoRecordar_, textoRegistrado_ y
     texto: '📥 <b>7 movimientos nuevos por revisar</b>', teclado: [[{ text: 'Abrir la app', url: URL_APP }]],
   });
   assert.strictEqual(f('mensajeAgrupado_', 7, '').teclado, null);
-  assert.strictEqual(f('textoCategorizado_', MOV, UUID_SUPER, CTX, ' · extra'), f('textoMovimiento_', MOV, CTX) + '\n✓ 🛒 Supermercado · extra');
-  assert.deepStrictEqual(f('tecladoRecordar_', MOV), [[
+  assert.strictEqual(f('textoCategorizado_', MOV, UUID_SUPER, CTX, ' · extra'), f('textoMovimiento_', MOV, CTX) + '\n✓ 🛒 Supermercado · 🙋 Personal · extra');
+  assert.deepStrictEqual(f('tecladoRecordar_', MOV, CTX), [[
     { text: 'Sí, recordar', callback_data: 'r:' + C(UUID_MOV) }, { text: 'Solo esta vez', callback_data: 's:' + C(UUID_MOV) },
   ]]);
   const escrito = Object.assign({}, MOV, { monto: 12, comercio: 'taxi', categoria_id: 'cat-trans', cuenta_id: 'cu-deb' });
-  assert.strictEqual(f('textoRegistrado_', escrito, CTX), '✓ <b>S/ 12.00</b> · taxi · 🚕 Transporte · Débito BCP');
-  assert.deepStrictEqual(f('tecladoRegistrado_', escrito), [[
+  assert.strictEqual(f('textoRegistrado_', escrito, CTX), '✓ <b>S/ 12.00</b> · taxi · 🚕 Transporte · 🙋 Personal · Débito BCP');
+  assert.deepStrictEqual(f('tecladoRegistrado_', escrito, CTX), [[
     { text: 'Deshacer', callback_data: 'd:' + C(UUID_MOV) }, { text: 'Cambiar categoría', callback_data: 'k:' + C(UUID_MOV) },
   ]]);
 });

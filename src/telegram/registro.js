@@ -41,7 +41,7 @@ function manejarEscrito_(texto, updateId) {
     const m = mensajePorRevisar_(r.mov, frecuentes, ctx);
     return enviarMensaje_(m.texto, m.teclado);
   }
-  return enviarMensaje_(textoRegistrado_(r.mov, ctx), tecladoRegistrado_(r.mov));
+  return enviarMensaje_(textoRegistrado_(r.mov, ctx), tecladoRegistrado_(r.mov, ctx));
 }
 
 // /deshacer: el movimiento del bot más reciente de las últimas 24 horas.

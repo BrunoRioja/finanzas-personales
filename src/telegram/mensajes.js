@@ -79,6 +79,29 @@ function nombreCuenta_(cuentas, id) {
   return c ? c.nombre : 'sin cuenta';
 }
 
+function nombreAmbito_(ambitos, id) {
+  const efectivo = ambitoEfectivo_(id, ambitos);
+  const a = (ambitos || []).filter(x => x.id === efectivo)[0] || ambitoPersonal_();
+  return (a.emoji ? a.emoji + ' ' : '') + a.nombre;
+}
+
+// Filas para cambiar el ámbito de un gasto ya categorizado (los otros ámbitos activos, de a 3).
+// `conRecordar` viaja en el botón para volver a preguntar "¿Recordar?" si seguía pendiente.
+function filaAmbitos_(mov, ctx, conRecordar) {
+  if (mov.tipo !== 'gasto' || mov.dividido) return [];
+  const actual = ambitoEfectivo_(mov.ambito_id, ctx.ambitos);
+  const id = compactarId_(mov.id);
+  const botones = ordenarAmbitos_(ctx.ambitos).filter(a => a.activo && a.id !== actual)
+    .map(a => boton_((a.emoji ? a.emoji + ' ' : '') + a.nombre, 'a:' + id + ':' + compactarId_(a.id) + (conRecordar ? ':r' : '')));
+  const filas = [];
+  for (let i = 0; i < botones.length; i += 3) filas.push(botones.slice(i, i + 3));
+  return filas;
+}
+
+function conAmbito_(mov, ctx) {
+  return mov.tipo === 'gasto' && !mov.dividido ? ' · ' + nombreAmbito_(ctx.ambitos, mov.ambito_id) : '';
+}
+
 function textoMovimiento_(mov, ctx) {
   const cuenta = mov.tipo === 'transferencia'
     ? nombreCuenta_(ctx.cuentas, mov.cuenta_id) + ' → ' + nombreCuenta_(ctx.cuentas, mov.cuenta_destino_id)
@@ -123,22 +146,22 @@ function mensajeAgrupado_(cantidad, urlApp) {
 }
 
 function textoCategorizado_(mov, categoriaId, ctx, extra) {
-  return textoMovimiento_(mov, ctx) + '\n✓ ' + escaparHtml_(nombreCategoria_(ctx.categorias, categoriaId)) + (extra || '');
+  return textoMovimiento_(mov, ctx) + '\n✓ ' + escaparHtml_(nombreCategoria_(ctx.categorias, categoriaId) + conAmbito_(mov, ctx)) + (extra || '');
 }
 
-function tecladoRecordar_(mov) {
+function tecladoRecordar_(mov, ctx) {
   const id = compactarId_(mov.id);
-  return [[boton_('Sí, recordar', 'r:' + id), boton_('Solo esta vez', 's:' + id)]];
+  return [[boton_('Sí, recordar', 'r:' + id), boton_('Solo esta vez', 's:' + id)]].concat(filaAmbitos_(mov, ctx, true));
 }
 
 function textoRegistrado_(mov, ctx) {
   return '✓ <b>' + formatoMonto_(mov.monto, mov.moneda) + '</b> · ' + escaparHtml_(mov.comercio) + ' · ' +
-    escaparHtml_(nombreCategoria_(ctx.categorias, mov.categoria_id)) + ' · ' + escaparHtml_(nombreCuenta_(ctx.cuentas, mov.cuenta_id));
+    escaparHtml_(nombreCategoria_(ctx.categorias, mov.categoria_id) + conAmbito_(mov, ctx)) + ' · ' + escaparHtml_(nombreCuenta_(ctx.cuentas, mov.cuenta_id));
 }
 
-function tecladoRegistrado_(mov) {
+function tecladoRegistrado_(mov, ctx) {
   const id = compactarId_(mov.id);
-  return [[boton_('Deshacer', 'd:' + id), boton_('Cambiar categoría', 'k:' + id)]];
+  return [[boton_('Deshacer', 'd:' + id), boton_('Cambiar categoría', 'k:' + id)]].concat(filaAmbitos_(mov, ctx, false));
 }
 
 // movs = movimientos de un día; extras = { porRevisar, noLeidos } de toda la bandeja.
