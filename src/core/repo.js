@@ -85,9 +85,16 @@ function encabezados_(hoja) {
 }
 
 function leerTabla_(nombre) {
+  return filasDe_(hoja_(nombre), nombre);
+}
+
+// Filas de una hoja como objetos del ESQUEMA, ubicando cada columna por su encabezado
+// (con los renombres de versiones anteriores). También lee hojas de otro libro (importar).
+function filasDe_(hoja, nombre) {
   const columnas = ESQUEMA[nombre];
-  const valores = hoja_(nombre).getDataRange().getValues();
-  const encabezados = valores[0] || [];
+  const renombres = RENOMBRES_ESQUEMA[nombre] || {};
+  const valores = hoja.getDataRange().getValues();
+  const encabezados = (valores[0] || []).map(h => renombres[h] || h);
   const indices = columnas.map(c => encabezados.indexOf(c[0]));
   const colClave = encabezados.indexOf(columnas[0][0]);
   return valores.slice(1)
