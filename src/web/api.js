@@ -95,7 +95,7 @@ function guardarMovimiento(datos) {
       const previo = leerTabla_('Movimientos').filter(m => m.id === datos.id)[0];
       if (!previo) throw new Error('El movimiento ya no existe.');
       if (previo.dividido) throw new Error('Este movimiento está dividido; edítalo desde "Dividir".');
-      ctx.idsPrevios = [previo.cuenta_id, previo.cuenta_destino_id, previo.categoria_id];
+      ctx.idsPrevios = [previo.cuenta_id, previo.cuenta_destino_id, previo.categoria_id, previo.ambito_id];
       // Si la moneda no cambia se conserva el tipo de cambio original: editar una nota
       // no debe recalcular en silencio el monto en soles de un gasto pasado.
       const mismaMoneda = (datos.moneda || previo.moneda) === previo.moneda;

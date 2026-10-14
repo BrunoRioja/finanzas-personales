@@ -25,7 +25,7 @@ test('gasto válido en soles', () => {
   assert.deepStrictEqual(norm(e, {}), {
     fecha: '2026-10-06', tipo: 'gasto', monto: 89.3, moneda: 'PEN', tc: 1, monto_pen: 89.3,
     cuenta_id: 'deb', cuenta_destino_id: '', categoria_id: 'super', comercio: 'Tottus', descripcion: '',
-    origen: 'manual', estado: 'confirmado', ref_externa: '', dividido: false,
+    origen: 'manual', estado: 'confirmado', ref_externa: '', dividido: false, ambito_id: '',
   });
 });
 
@@ -84,7 +84,7 @@ test('guardarMovimiento crea con id y creado_en y listarMovimientos lo devuelve'
   assert.ok(m.id);
   assert.strictEqual(m.creado_en, '2026-10-13 10:00:00');
   assert.strictEqual(e.stats.locks, locks + 1);
-  assert.deepStrictEqual(e.llamar('listarMovimientos', { mes: '2026-10' }), [Object.assign({ ambito_id: '' }, m)]);
+  assert.deepStrictEqual(e.llamar('listarMovimientos', { mes: '2026-10' }), [m]);
   assert.deepStrictEqual(e.llamar('listarMovimientos', { mes: '2026-09' }), []);
 });
 
