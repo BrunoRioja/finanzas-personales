@@ -522,7 +522,7 @@ test('al cruzar el 80 % avisa una sola vez, con lo que queda y los días restant
   const m = e.ultimoEnviado();
   assert.strictEqual(m.text, '⚠️ 🛒 Supermercado: S/ 85.00 de S/ 100.00 (85 %). Te quedan S/ 15.00 para 19 días.');
   assert.deepStrictEqual(e.botones(m), [[{ text: 'Abrir la app', url: URL_APP }]]);
-  assert.deepStrictEqual(e.registro(), { '2026-10': { [e.sup]: 80 } });
+  assert.deepStrictEqual(e.registro(), { '2026-10': { [e.sup]: 80, [e.com]: 0 } });
 });
 
 test('pasar del 100 % de golpe avisa solo el 100 %; justo 100 % dice que llegó al tope', () => {
@@ -543,7 +543,10 @@ test('varias categorías que cruzan a la vez van en un solo mensaje, la más alt
   e.gasto(190, { categoria_id: e.com });
   e.revisar();
   assert.strictEqual(e.enviados().length, 1);
-  assert.deepStrictEqual(e.ultimoEnviado().text.split('\n').map(l => l.slice(0, 18)), ['⚠️ 🍽️ Comida fuera', '⚠️ 🛒 Supermercado']);
+  const lineas = e.ultimoEnviado().text.split('\n');
+  assert.strictEqual(lineas.length, 2);
+  assert.ok(lineas[0].startsWith('⚠️ 🍽️ Comida fuera: S/ 190.00'), lineas[0]);
+  assert.ok(lineas[1].startsWith('⚠️ 🛒 Supermercado: S/ 85.00'), lineas[1]);
 });
 
 test('subir el presupuesto vuelve a armar el aviso; bajarlo por debajo de lo gastado no avisa', () => {
@@ -579,7 +582,7 @@ test('con Telegram caído el aviso queda pendiente y sale en la siguiente revisi
   e.gasto(85);
   e.telegram.falla = 'Bad Gateway';
   e.revisar();
-  assert.ok(!e.propiedades.ALERTAS_PRESUPUESTO);
+  assert.strictEqual(e.registro()['2026-10'][e.sup], 0);
   assert.strictEqual(e.filas('Log').filter(l => l.origen === 'telegram' && l.nivel === 'aviso').length, 1);
   e.telegram.falla = null;
   e.revisar();
@@ -1211,4 +1214,3 @@ Pedirle, en orden:
 2. En el **Inicio**, ver el bloque "Presupuesto del mes" con las barras, el ritmo y "Sin presupuesto".
 3. Poner a una categoría un presupuesto apenas por encima de lo gastado (por ejemplo, gastado S/ 85 → presupuesto S/ 100) y luego registrar por el bot un gasto que la cruce (`prueba 10 <categoría>`). Expected: llega el aviso ⚠️ o 🚨. Luego `/deshacer` y restaurar el presupuesto real.
 4. `/mes` en el chat: aparece la sección "Presupuestos" si hay alguna en alerta.
-````
