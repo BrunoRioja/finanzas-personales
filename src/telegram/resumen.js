@@ -20,8 +20,10 @@ function resumenDelDia_(fecha) {
 
 function resumenDelMes_(mes) {
   const movs = leerTabla_('Movimientos');
-  const porCategoria = gastoPorCategoria_(lineasCategoria_(movs, leerTabla_('Divisiones')), leerTabla_('Categorias'), mes);
-  return textoMes_(mes, resumenMes_(movs, mes), porCategoria);
+  const categorias = leerTabla_('Categorias');
+  const lineas = lineasCategoria_(movs, leerTabla_('Divisiones'));
+  const presupuesto = presupuestoVsReal_(lineas, presupuestosVigentes_(leerTabla_('Presupuestos'), mes), categorias, mes, hoyIso_());
+  return textoMes_(mes, resumenMes_(movs, mes), gastoPorCategoria_(lineas, categorias, mes), presupuesto);
 }
 
 // La llama el trigger diario. No lanza: un fallo queda en el Log y se avisa (máx. 1 por hora).

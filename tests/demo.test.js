@@ -49,3 +49,16 @@ test('cargarDemo recrea la hoja demo si fue borrada', () => {
   assert.notStrictEqual(e.propiedades.DEMO_SHEET_ID, 'borrada');
   assert.strictEqual(e.llamar('estadoInstalacion').modoDemo, true);
 });
+
+test('el demo trae 6 presupuestos con alguna categoría en alerta y otra pasada', () => {
+  const e = crearEntorno();
+  const d = e.llamar('generarDatosDemo_', '2026-10-20');
+  assert.strictEqual(d.presupuestos.length, 6);
+  assert.ok(d.presupuestos.every(p => p.desde === '2026-08' && p.monto >= 50));
+  const r = e.llamar('presupuestoVsReal_', e.llamar('lineasCategoria_', d.movimientos, []),
+    e.llamar('presupuestosVigentes_', d.presupuestos, '2026-10'), d.categorias, '2026-10', '2026-10-20');
+  const estados = r.filas.map(x => x.estado);
+  assert.ok(estados.indexOf('alerta') >= 0 && estados.indexOf('pasado') >= 0, estados.join(', '));
+  e.llamar('cargarDemo');
+  assert.strictEqual(e.libros[e.propiedades.DEMO_SHEET_ID]._hojas.Presupuestos.length, 7);
+});

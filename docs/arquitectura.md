@@ -52,6 +52,7 @@ Telegram ──POST /exec?secret=…──► Receptor (web app anónima, ejecut
 | Pendientes | Correos bancarios que ningún lector pudo leer (se registran a mano o se descartan). |
 | Config | Nombre, tipo de cambio, versión del esquema. Nunca secretos. |
 | Log | Errores de procesos automáticos (desde v0.2). |
+| Presupuestos | `id, categoria_id, monto, desde` (desde v0.5): cada fila vale desde su mes (`desde`, `YYYY-MM`) hasta que otra más reciente de la misma categoría la reemplaza; monto 0 = sin presupuesto. Cambiar un presupuesto agrega o actualiza la fila del mes actual, así que los meses anteriores no cambian. Los avisos ya enviados por mes y categoría se guardan en la propiedad del script `ALERTAS_PRESUPUESTO`. |
 
 ## Pruebas
 

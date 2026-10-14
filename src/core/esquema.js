@@ -1,6 +1,6 @@
 // Hojas y columnas de la base de datos. La fila 1 de cada hoja son estos encabezados.
 // La primera columna de cada hoja es su clave. Tipos: texto | numero | fecha (yyyy-MM-dd) | booleano.
-const VERSION_ESQUEMA = 2;
+const VERSION_ESQUEMA = 3;
 
 const ESQUEMA = {
   Movimientos: [
@@ -28,6 +28,7 @@ const ESQUEMA = {
     ['id', 'texto'], ['gmail_id', 'texto'], ['fecha', 'fecha'], ['remitente', 'texto'], ['asunto', 'texto'],
     ['resumen', 'texto'], ['estado', 'texto'],
   ],
+  Presupuestos: [['id', 'texto'], ['categoria_id', 'texto'], ['monto', 'numero'], ['desde', 'texto']],
   Config: [['clave', 'texto'], ['valor', 'texto']],
   Log: [['fecha', 'texto'], ['nivel', 'texto'], ['origen', 'texto'], ['mensaje', 'texto'], ['detalle', 'texto']],
 };

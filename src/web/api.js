@@ -72,7 +72,7 @@ function contextoMovimientos_() {
 }
 
 function guardarMovimiento(datos) {
-  return conBloqueo_(() => {
+  const resultado = conBloqueo_(() => {
     const ctx = contextoMovimientos_();
     if (datos.id) {
       const previo = leerTabla_('Movimientos').filter(m => m.id === datos.id)[0];
@@ -97,6 +97,8 @@ function guardarMovimiento(datos) {
     agregarFilas_('Movimientos', [nuevo]);
     return nuevo;
   });
+  revisarPresupuestos_();
+  return resultado;
 }
 
 function listarMovimientos(filtro) {
@@ -123,20 +125,25 @@ function eliminarMovimiento(id) {
       }]);
     }
   });
+  revisarPresupuestos_();
   return { ok: true };
 }
 
 function obtenerDashboard(mes) {
   validarMes_(mes);
   const movs = leerTabla_('Movimientos');
+  const divisiones = leerTabla_('Divisiones');
+  const categorias = leerTabla_('Categorias');
   const dashboard = construirDashboard_({
     movs: movs,
-    divisiones: leerTabla_('Divisiones'),
-    categorias: leerTabla_('Categorias'),
+    divisiones: divisiones,
+    categorias: categorias,
     cuentas: leerTabla_('Cuentas'),
     tcUsd: Number(leerConfig_().ultimo_tc) || 0,
   }, mes);
   dashboard.porRevisar = movs.filter(m => m.estado === 'por_revisar').length +
     leerTabla_('Pendientes').filter(p => p.estado === 'pendiente').length;
+  dashboard.presupuesto = presupuestoVsReal_(lineasCategoria_(movs, divisiones),
+    presupuestosVigentes_(leerTabla_('Presupuestos'), mes), categorias, mes, hoyIso_());
   return dashboard;
 }

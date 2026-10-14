@@ -28,7 +28,7 @@ function categoriasFrecuentes_(movs, categorias) {
 }
 
 function categorizarMovimiento(datos) {
-  return conBloqueo_(() => {
+  const resultado = conBloqueo_(() => {
     const movs = leerTabla_('Movimientos');
     const mov = movs.filter(m => m.id === datos.id)[0];
     if (!mov) throw new Error('El movimiento ya no existe.');
@@ -60,6 +60,8 @@ function categorizarMovimiento(datos) {
     }
     return { confirmados: confirmados, regla: regla };
   });
+  revisarPresupuestos_();
+  return resultado;
 }
 
 // Dentro del bloqueo: crea o actualiza la regla del comercio y confirma los demás
@@ -104,7 +106,7 @@ function descartarPendiente(id) {
 }
 
 function dividirMovimiento(datos) {
-  return conBloqueo_(() => {
+  const resultado = conBloqueo_(() => {
     const mov = leerTabla_('Movimientos').filter(m => m.id === datos.id)[0];
     if (!mov) throw new Error('El movimiento ya no existe.');
     const partes = normalizarPartes_(mov, datos.partes, leerTabla_('Categorias'));
@@ -120,6 +122,8 @@ function dividirMovimiento(datos) {
     actualizarFila_('Movimientos', mov.id, cambios);
     return { ok: true, partes: partes };
   });
+  revisarPresupuestos_();
+  return resultado;
 }
 
 function quitarDivision(id) {
@@ -128,6 +132,7 @@ function quitarDivision(id) {
     borrarDivisiones_(id);
     actualizarFila_('Movimientos', id, { dividido: false });
   });
+  revisarPresupuestos_();
   return { ok: true };
 }
 

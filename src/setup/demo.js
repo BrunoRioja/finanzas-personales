@@ -53,7 +53,17 @@ function generarDatosDemo_(hoyIso) {
     if (rnd() < 0.05) agregar(fecha, 'gasto', entre(60, 160), 'demo-visa', { categoria_id: cat('Ropa'), comercio: elegir(['Saga Falabella', 'Zara']) });
     if (rnd() < 0.06) agregar(fecha, 'gasto', entre(15, 40), 'demo-debito', { categoria_id: cat('Aseo personal'), comercio: 'Inkafarma' });
   }
-  return { cuentas: cuentas, categorias: categorias, movimientos: movimientos };
+  // Presupuestos sobre lo gastado este mes: factor < 1 queda pasado, ~1.15 en alerta, > 1.3 holgado.
+  const mes = hoyIso.slice(0, 7);
+  const gastoDelMes = nombre => movimientos
+    .filter(m => m.categoria_id === cat(nombre) && m.tipo === 'gasto' && m.fecha.slice(0, 7) === mes)
+    .reduce((s, m) => s + m.monto_pen, 0);
+  const presupuestos = [['Supermercado', 1.15], ['Comida fuera', 0.8], ['Transporte', 2], ['Bodega', 1.6], ['Suscripciones', 1.4], ['Salud y gym', 1.5]]
+    .map((p, i) => ({
+      id: 'demo-ppto-' + (i + 1), categoria_id: cat(p[0]),
+      monto: Math.max(50, Math.ceil(gastoDelMes(p[0]) * p[1] / 10) * 10), desde: sumarMeses_(mes, -2),
+    }));
+  return { cuentas: cuentas, categorias: categorias, movimientos: movimientos, presupuestos: presupuestos };
 }
 
 function cargarDemo() {
@@ -76,6 +86,7 @@ function cargarDemo() {
       agregarFilas_('Cuentas', datos.cuentas);
       agregarFilas_('Categorias', datos.categorias);
       agregarFilas_('Movimientos', datos.movimientos);
+      agregarFilas_('Presupuestos', datos.presupuestos);
       guardarConfig_({
         nombre: 'Demo', moneda_principal: 'PEN', ultimo_tc: 3.75, modo_bot: 'B', hora_resumen: '21:00',
         version_esquema: VERSION_ESQUEMA, instalado: 'si',

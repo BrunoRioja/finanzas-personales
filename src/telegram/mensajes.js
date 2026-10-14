@@ -162,7 +162,7 @@ function textoResumen_(movs, ctx, extras) {
 }
 
 // resumen = resumenMes_(…); porCategoria = gastoPorCategoria_(…).
-function textoMes_(mes, resumen, porCategoria) {
+function textoMes_(mes, resumen, porCategoria, presupuesto) {
   const lineas = [
     '📅 <b>Mes ' + escaparHtml_(mes) + '</b>',
     '💰 Ingresos: ' + formatoMonto_(resumen.ingresos, 'PEN'),
@@ -173,6 +173,12 @@ function textoMes_(mes, resumen, porCategoria) {
     lineas.push('', '<b>Top categorías</b>');
     porCategoria.slice(0, 5).forEach(c => lineas.push('• ' + escaparHtml_((c.emoji ? c.emoji + ' ' : '') + c.nombre) +
       ' — ' + formatoMonto_(c.monto, 'PEN') + ' (' + c.porcentaje + ' %)'));
+  }
+  const enAlerta = presupuesto ? presupuesto.filas.filter(f => f.estado !== 'ok') : [];
+  if (enAlerta.length) {
+    lineas.push('', '<b>Presupuestos</b>');
+    enAlerta.forEach(f => lineas.push('• ' + escaparHtml_((f.emoji ? f.emoji + ' ' : '') + f.nombre) + ' ' + f.porcentaje + ' % · ' +
+      (f.queda >= 0 ? 'quedan ' + formatoMonto_(f.queda, 'PEN') : 'pasado por ' + formatoMonto_(-f.queda, 'PEN'))));
   }
   return lineas.join('\n');
 }

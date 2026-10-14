@@ -71,3 +71,11 @@ test('configurarResumen_ deja un solo trigger diario a la hora pedida; horaResum
   e.interno('guardarConfig_', { hora_resumen: 'basura' });
   assert.strictEqual(e.interno('horaResumen_'), 21);
 });
+
+test('/mes muestra los presupuestos en alerta', () => {
+  const e = entornoBot();
+  e.llamar('guardarPresupuestos', { montos: { [e.categoria('Supermercado')]: '50' } });
+  gasto(e);
+  e.escribir('/mes');
+  assert.match(e.ultimoEnviado().text, /\n\n<b>Presupuestos<\/b>\n• 🛒 Supermercado 92 % · quedan S\/ 4\.10$/);
+});
