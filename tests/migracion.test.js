@@ -21,7 +21,7 @@ test('estadoInstalacion migra una hoja v1 a v2 sin perder datos', () => {
   assert.strictEqual(cuenta.yape, false);
   assert.strictEqual(cuenta.saldo_inicial, 100);
   assert.ok(e.hojas.Pendientes, 'crea la hoja Pendientes');
-  assert.strictEqual(e.llamar('leerConfig_').version_esquema, '3');
+  assert.strictEqual(e.llamar('leerConfig_').version_esquema, '4');
   assert.strictEqual(e.principal._formatos['Cuentas!9'], undefined, 'yape es booleano: sin formato texto');
 });
 
@@ -72,6 +72,18 @@ test('una hoja v2 pasa a v3 con la hoja Presupuestos, sin tocar los datos', () =
   const movimientos = JSON.stringify(e.hojas.Movimientos);
   e.llamar('estadoInstalacion');
   assert.deepStrictEqual(e.hojas.Presupuestos[0], ['id', 'categoria_id', 'monto', 'desde']);
-  assert.strictEqual(e.llamar('leerConfig_').version_esquema, '3');
+  assert.strictEqual(e.llamar('leerConfig_').version_esquema, '4');
+  assert.strictEqual(JSON.stringify(e.hojas.Movimientos), movimientos);
+});
+test('una hoja v3 pasa a v4 con Recurrentes y EstadosCuenta, sin tocar los datos', () => {
+  const e = entornoInstalado();
+  delete e.hojas.Recurrentes;
+  delete e.hojas.EstadosCuenta;
+  e.interno('guardarConfig_', { version_esquema: 3 });
+  const movimientos = JSON.stringify(e.hojas.Movimientos);
+  e.llamar('estadoInstalacion');
+  assert.deepStrictEqual(e.hojas.Recurrentes[0], ['id', 'nombre', 'monto', 'moneda', 'cuenta_id', 'categoria_id', 'dia_mes', 'activo']);
+  assert.deepStrictEqual(e.hojas.EstadosCuenta[0], ['id', 'cuenta_id', 'emitido', 'total_pen', 'total_usd', 'minimo_pen', 'minimo_usd', 'fecha_limite', 'ref_externa']);
+  assert.strictEqual(e.llamar('leerConfig_').version_esquema, '4');
   assert.strictEqual(JSON.stringify(e.hojas.Movimientos), movimientos);
 });
