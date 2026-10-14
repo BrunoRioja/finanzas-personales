@@ -15,6 +15,7 @@ function obtenerPresupuestos() {
 function guardarPresupuestos(datos) {
   const mes = mesDe_(hoyIso_());
   const cambiadas = conBloqueo_(() => guardarPresupuestosSinAvisar_((datos && datos.montos) || {}, mes));
+  ajustarAlertasPresupuesto_(cambiadas);
   return Object.assign({ cambiadas: cambiadas.length }, obtenerPresupuestos());
 }
 
