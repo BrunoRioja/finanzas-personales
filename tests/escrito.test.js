@@ -17,17 +17,23 @@ const CATEGORIAS = [
   { id: 'ca-sueldo', nombre: 'Sueldo', tipo: 'ingreso', activa: true },
 ];
 const REGLAS = [{ id: 're-taxi', patron: 'TAXI', categoria_id: 'ca-trans' }];
-const leer = (texto, extra) => e.llamar('leerEscrito_', texto, Object.assign({ cuentas: CUENTAS, categorias: CATEGORIAS, reglas: REGLAS, cuentaBot: '' }, extra));
+const AMBITOS = [
+  { id: 'personal', nombre: 'Personal', activo: true },
+  { id: 'am-div', nombre: 'Diversión', activo: true },
+  { id: 'am-trab', nombre: 'Trabajo', activo: true },
+  { id: 'am-viejo', nombre: 'Vacaciones', activo: false },
+];
+const leer = (texto, extra) => e.llamar('leerEscrito_', texto, Object.assign({ cuentas: CUENTAS, categorias: CATEGORIAS, reglas: REGLAS, ambitos: AMBITOS, cuentaBot: '' }, extra));
 
 test('"taxi 12 yape": cuenta de Yape y categoría por regla', () => {
   assert.deepStrictEqual(leer('taxi 12 yape'), {
-    ok: true, tipo: 'gasto', monto: 12, descripcion: 'taxi', cuenta_id: 'cu-deb', categoria_id: 'ca-trans', regla_id: 're-taxi',
+    ok: true, tipo: 'gasto', monto: 12, descripcion: 'taxi', cuenta_id: 'cu-deb', categoria_id: 'ca-trans', regla_id: 're-taxi', ambito_id: '',
   });
 });
 
 test('"almuerzo 25.50 efectivo comida": cuenta de efectivo y categoría por inicio de palabra', () => {
   assert.deepStrictEqual(leer('almuerzo 25.50 efectivo comida'), {
-    ok: true, tipo: 'gasto', monto: 25.5, descripcion: 'almuerzo', cuenta_id: 'cu-bill', categoria_id: 'ca-comida', regla_id: '',
+    ok: true, tipo: 'gasto', monto: 25.5, descripcion: 'almuerzo', cuenta_id: 'cu-bill', categoria_id: 'ca-comida', regla_id: '', ambito_id: '',
   });
 });
 
@@ -76,4 +82,29 @@ test('errores: sin monto, monto cero, sin descripción', () => {
   assert.match(leer('taxi 0').error, /mayor que cero/);
   assert.match(leer('12').error, /Falta la descripción/);
   assert.strictEqual(leer('').ok, false);
+});
+
+test('ámbito por nombre completo o prefijo de 4+ letras; Personal queda vacío', () => {
+  assert.strictEqual(leer('taxi 15 diversión').ambito_id, 'am-div');
+  assert.strictEqual(leer('taxi 15 dive yape').ambito_id, 'am-div');
+  assert.strictEqual(leer('almuerzo 30 trabajo comida').ambito_id, 'am-trab');
+  assert.strictEqual(leer('almuerzo 30 trabajo comida').categoria_id, 'ca-comida');
+  assert.strictEqual(leer('taxi 15 personal').ambito_id, '');
+  assert.strictEqual(leer('taxi 15').ambito_id, '');
+  assert.strictEqual(leer('taxi 15 div').descripcion, 'taxi div', '3 letras no alcanzan');
+  assert.strictEqual(leer('hotel 90 vacaciones').ambito_id, '', 'un ámbito desactivado no se reconoce');
+});
+
+test('un prefijo que calza con una categoría y un ámbito no se asigna', () => {
+  const r = leer('jabon 8 pers', { categorias: CATEGORIAS.concat([{ id: 'ca-aseo', nombre: 'Aseo personal', tipo: 'gasto', activa: true }]) });
+  assert.deepStrictEqual([r.ambito_id, r.descripcion], ['', 'jabon pers']);
+});
+
+test('un ingreso ignora los ámbitos', () => {
+  const r = leer('+ sueldo 3500 trabajo');
+  assert.deepStrictEqual([r.tipo, r.ambito_id, r.descripcion], ['ingreso', '', 'sueldo trabajo']);
+});
+
+test('sin ctx.ambitos sigue funcionando', () => {
+  assert.strictEqual(leer('taxi 12 yape', { ambitos: undefined }).ambito_id, '');
 });

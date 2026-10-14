@@ -4,6 +4,7 @@ function contextoBot_() {
   return {
     cuentas: leerTabla_('Cuentas'),
     categorias: leerTabla_('Categorias'),
+    ambitos: leerTabla_('Ambitos'),
     urlApp: PropertiesService.getScriptProperties().getProperty('APP_URL') || '',
     hoy: hoyIso_(),
   };
@@ -14,7 +15,7 @@ function registrarEscrito_(texto, updateId) {
     const config = leerConfig_();
     const cuentas = leerTabla_('Cuentas');
     const reglas = leerTabla_('Reglas');
-    const leido = leerEscrito_(texto, { cuentas: cuentas, categorias: leerTabla_('Categorias'), reglas: reglas, cuentaBot: config.cuenta_bot || '' });
+    const leido = leerEscrito_(texto, { cuentas: cuentas, categorias: leerTabla_('Categorias'), reglas: reglas, ambitos: leerTabla_('Ambitos'), cuentaBot: config.cuenta_bot || '' });
     if (!leido.ok) return { error: leido.error };
     const cuenta = cuentas.filter(c => c.id === leido.cuenta_id)[0];
     const tc = cuenta.moneda === 'PEN' ? 1 : Number(config.ultimo_tc) || 0;
@@ -23,7 +24,7 @@ function registrarEscrito_(texto, updateId) {
       id: nuevoId_(), fecha: hoyIso_(), tipo: leido.tipo, monto: leido.monto, moneda: cuenta.moneda, tc: tc,
       monto_pen: redondear2_(leido.monto * tc), cuenta_id: cuenta.id, cuenta_destino_id: '', categoria_id: leido.categoria_id,
       comercio: leido.descripcion, descripcion: '', origen: 'telegram', estado: leido.categoria_id ? 'confirmado' : 'por_revisar',
-      ref_externa: 'tg:' + updateId, dividido: false, creado_en: formatearFecha_(new Date(), 'yyyy-MM-dd HH:mm:ss'),
+      ref_externa: 'tg:' + updateId, dividido: false, ambito_id: leido.ambito_id, creado_en: formatearFecha_(new Date(), 'yyyy-MM-dd HH:mm:ss'),
     };
     agregarFilas_('Movimientos', [mov]);
     if (leido.regla_id) contarUsosReglas_([{ regla_id: leido.regla_id }], reglas);

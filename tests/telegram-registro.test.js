@@ -68,3 +68,11 @@ test('/deshacer borra el último gasto del bot de las últimas 24 h y nada más'
   assert.strictEqual(e.movsBot().length, 1);
   assert.ok(e.filas('Movimientos').some(m => m.comercio === 'manual'));
 });
+
+test('un gasto escrito con ámbito se guarda con ese ámbito', () => {
+  const e = entorno();
+  e.escribir('taxi 15 diversión yape');
+  const [m] = e.movsBot();
+  const div = e.llamar('obtenerCatalogos').ambitos.find(a => a.nombre === 'Diversión').id;
+  assert.deepStrictEqual([m.comercio, m.categoria_id, m.ambito_id], ['taxi', e.categoria('Transporte'), div]);
+});

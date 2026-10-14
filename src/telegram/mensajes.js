@@ -11,9 +11,10 @@ const PATRON_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{1
 
 const TEXTO_AYUDA = [
   '<b>Registrar un gasto</b>',
-  'Escribe: descripción monto [cuenta] [categoría]',
+  'Escribe: descripción monto [cuenta] [categoría] [ámbito]',
   '• <code>taxi 12 yape</code>',
   '• <code>almuerzo 25.50 efectivo comida</code>',
+  '• <code>taxi 15 diversión</code> (sin ámbito = Personal)',
   '• <code>+ sueldo 3500</code> (ingreso)',
   '',
   '<b>Comandos</b>',
