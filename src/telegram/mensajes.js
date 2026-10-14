@@ -19,6 +19,7 @@ const TEXTO_AYUDA = [
   '<b>Comandos</b>',
   '/hoy — resumen del día',
   '/mes — resumen del mes',
+  '/pagos — próximos pagos (30 días)',
   '/deshacer — borra lo último que registraste aquí',
   '/ayuda — este mensaje',
 ].join('\n');

@@ -100,6 +100,8 @@ function manejarComando_(texto) {
       return enviarMensaje_(resumenDelDia_(hoyIso_()) || 'Hoy no hay movimientos.');
     case '/mes':
       return enviarMensaje_(resumenDelMes_(mesDe_(hoyIso_())));
+    case '/pagos':
+      return enviarMensaje_(textoPagos_(proximosPagosDeHoy_()));
     case '/deshacer':
       return deshacerUltimo_();
     default:

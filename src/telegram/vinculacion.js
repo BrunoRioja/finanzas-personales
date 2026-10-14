@@ -45,6 +45,7 @@ function configurarTelegram(datos) {
   if (!props.getProperty('SHEET_ID')) props.setProperty('SHEET_ID', idHoja);
   nuevoCodigo_(props);
   configurarResumen_(horaResumen_());
+  configurarRecordatorioPagos_();
   return estadoTelegram();
 }
 
@@ -100,5 +101,6 @@ function desvincularTelegram() {
   }
   PROPIEDADES_TELEGRAM.forEach(k => props.deleteProperty(k));
   borrarTriggersResumen_();
+  borrarTriggersRecordatorio_();
   return estadoTelegram();
 }
