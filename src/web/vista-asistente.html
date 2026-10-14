@@ -24,7 +24,8 @@ VISTAS.asistente = async function (cont) {
       campo('¿Cómo te llamas?', '<input class="entrada" id="w-nombre" value="' + esc(datos.nombre) + '">') +
       campo('Tipo de cambio USD → PEN (para gastos en dólares)', '<input class="entrada num" id="w-tc" inputmode="decimal" value="' + esc(datos.tc_usd) + '">') +
       '<div class="acciones"><button type="button" class="boton" id="w-demo">Solo mirar (datos demo)</button>' +
-      '<button type="button" class="boton primario" id="w-sig">Siguiente</button></div></div>';
+      '<button type="button" class="boton primario" id="w-sig">Siguiente</button></div>' +
+      '<p class="tenue" style="margin-top:22px">¿Ya usabas la app en otra hoja? <button type="button" class="boton" id="w-importar">Importar mis datos</button></p></div>';
     $('#w-sig').onclick = () => {
       datos.nombre = $('#w-nombre').value.trim();
       datos.tc_usd = $('#w-tc').value;
@@ -36,6 +37,42 @@ VISTAS.asistente = async function (cont) {
       e.target.disabled = true;
       try { await api('cargarDemo'); iniciar(); } catch (err) { aviso(err.message, true); e.target.disabled = false; }
     };
+    $('#w-importar').onclick = () => pintarImportar();
+  }
+
+  function pintarImportar() {
+    cont.innerHTML = '<div class="asistente"><h1>Importar tus datos</h1>' +
+      '<p class="tenue">Pega el enlace de la Google Sheet de tu app anterior. Se copian tus cuentas, categorías, movimientos, ' +
+      'presupuestos y pagos fijos; tu hoja anterior no cambia.</p>' +
+      campo('Enlace de tu hoja anterior', '<input class="entrada" id="w-enlace" placeholder="https://docs.google.com/spreadsheets/d/…">') +
+      '<div class="acciones"><button type="button" class="boton" id="w-atras">Atrás</button>' +
+      '<button type="button" class="boton primario" id="w-importar-ya">Importar</button></div></div>';
+    $('#w-atras').onclick = () => pintarPaso1();
+    $('#w-importar-ya').onclick = async e => {
+      e.target.disabled = true;
+      e.target.textContent = 'Importando…';
+      try {
+        pintarImportado(await api('importarHojaAnterior', $('#w-enlace').value));
+      } catch (err) {
+        aviso(err.message, true);
+        e.target.disabled = false;
+        e.target.textContent = 'Importar';
+      }
+    };
+  }
+
+  function pintarImportado(r) {
+    const n = r.importado;
+    const partes = [[n.Movimientos, 'movimientos'], [n.Cuentas, 'cuentas'], [n.Categorias, 'categorías'],
+      [n.Presupuestos, 'presupuestos'], [n.Recurrentes, 'pagos fijos']]
+      .filter(p => p[0]).map(p => p[0].toLocaleString('es-PE') + ' ' + p[1]);
+    cont.innerHTML = '<div class="asistente"><h1>Listo ✅</h1>' +
+      '<p>Importaste ' + esc(partes.join(', ') || 'tu configuración') + '.</p>' +
+      '<div class="resultado-lectura mal" style="margin:14px 0">Importante: en tu app anterior, ve a <b>Ajustes</b>, apaga la ' +
+      'lectura de correos y desconecta el bot. Si no, las dos apps leerán los mismos correos.</div>' +
+      '<p class="tenue">En esta app, activa la lectura de correos y conecta el bot desde Ajustes.</p>' +
+      '<div class="acciones"><button type="button" class="boton primario" id="w-ir">Ir a mi app</button></div></div>';
+    $('#w-ir').onclick = () => iniciar();
   }
 
   function pintarPaso2() {
