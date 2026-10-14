@@ -3,27 +3,41 @@
 [![CI](https://github.com/BrunoRioja/finanzas-personales/actions/workflows/ci.yml/badge.svg)](https://github.com/BrunoRioja/finanzas-personales/actions/workflows/ci.yml)
 ![Licencia MIT](https://img.shields.io/badge/licencia-MIT-7c5cff)
 
-> **EN —** Self-hosted personal finance app built on Google Apps Script + Google Sheets. Each person runs their own copy in their own Google account: no servers, no shared data. Roadmap: bank-notification emails parsed automatically, a Telegram bot that only asks about what it doesn't know, and Gemini for voice notes and receipts.
+> **EN —** Self-hosted personal finance app built on Google Apps Script + Google Sheets. Each person runs their own copy in their own Google account: no servers, no shared data. It reads bank notification emails (BCP, Yape), has a Telegram bot that only asks about what it doesn't recognize, tracks monthly budgets and upcoming card and fixed payments. Install it with one "Make a copy" click. Gemini (receipts) is future work.
 
-App de finanzas personales que vive en **tu propia cuenta de Google**. Registra gastos, ingresos y transferencias, y muestra en un dashboard en qué se va tu dinero — en el celular y en la laptop.
+App de finanzas personales que vive en **tu propia cuenta de Google**: lee los correos de tu banco, te pregunta por Telegram solo lo que no reconoce y te muestra en qué se va tu dinero, cuánto llevas de tu presupuesto y qué pagos vienen.
+
+**[📄 Hacer una copia](https://docs.google.com/spreadsheets/d/12jTo7S7wRd1xs4XMN9ftS2PyDjCArfTAaT6gun2GemE/copy)** · 4 pasos, sin programar: [cómo instalarla](docs/instalacion.md)
 
 | Laptop | Celular |
 |---|---|
-| ![Dashboard en laptop](docs/img/dashboard-laptop.png) | ![Dashboard en celular](docs/img/dashboard-movil.png) |
+| ![Inicio en laptop](docs/img/dashboard-laptop.png) | ![Inicio en celular](docs/img/dashboard-movil.png) |
 
-## Qué hace hoy (v0.6)
+## Qué hace (v0.7)
 
-- **Lectura automática de correos** del BCP y Yape (consumos con débito y crédito en S/ y $, PLIN, yapeos enviados y recibidos, transferencias entre cuentas, pago de tarjeta, pago de servicios), cada 5 minutos o con la frecuencia que elijas.
-- **Bandeja "Por revisar"**: lo que la app no sabe categorizar se resuelve con un toque y queda como regla para la próxima vez.
-- **Bot de Telegram:** te pregunta solo por las compras que no reconoce (un toque para elegir la categoría y recordarla), registra lo que escribes (`taxi 12 yape`), responde `/hoy`, `/mes`, `/pagos` y `/deshacer`, y te manda un resumen a las 21:00 los días con movimientos.
-- **Presupuestos por categoría:** pones un monto a las categorías que quieres controlar (con lo que gastaste el mes pasado como referencia), el Inicio muestra cuánto llevas contra lo planeado y el bot te avisa al llegar al 80 % y al 100 %.
-- **Próximos pagos:** lee el correo del estado de cuenta VISA del BCP (total, mínimo y último día de pago en S/ y $), sabe qué parte ya pagaste y te recuerda por Telegram 3 días antes y el mismo día, junto con tus pagos fijos (suscripciones, gimnasio, alquiler). Bloque en el Inicio y comando `/pagos`.
-- **Dividir** una compra entre varias categorías (supermercado + aseo + ropa).
-- **Dashboard:** ingresos, gastos, ahorro y tasa de ahorro del mes; gasto por categoría; tendencia de 6 meses; saldos por cuenta; comercios donde más gastas.
-- **Movimientos:** registro rápido desde el botón **+**, filtros por mes, cuenta, categoría y texto. Gastos en soles y dólares.
-- **Cuentas y categorías** configurables; tarjetas de crédito con deuda en negativo.
-- **Asistente de instalación** que pregunta tus bancos, cuentas y categorías.
-- **Modo demo** con datos ficticios en una hoja aparte.
+- **Lee los correos de tu banco** (BCP y Yape): consumos con débito y crédito en S/ y $, PLIN, yapeos enviados y recibidos, transferencias, pagos de tarjeta y de servicios. Lo que no sabe categorizar va a una bandeja "Por revisar" y se resuelve con un toque.
+- **Bot de Telegram:** te pregunta solo por las compras que no reconoce, registra lo que escribes (`taxi 12 yape`), responde `/hoy`, `/mes`, `/pagos` y `/deshacer`, y te manda un resumen al final del día.
+- **Presupuestos por categoría:** con lo del mes pasado como referencia; el Inicio muestra cuánto llevas y el bot te avisa al 80 % y al 100 %.
+- **Próximos pagos:** lee el estado de cuenta de tu tarjeta (total, mínimo y fecha límite en S/ y $), sabe qué parte ya pagaste y te recuerda tus pagos fijos y la tarjeta 3 días antes y el mismo día.
+- **Dashboard y movimientos:** ingresos, gastos, ahorro y tasa de ahorro; gasto por categoría; tendencia de 6 meses; saldos por cuenta; comercios donde más gastas; dividir una compra entre categorías.
+- **Instalación con "Hacer una copia"**, actualización importando tus datos y **modo demo** con datos ficticios.
+
+<img src="docs/img/presupuestos-movil.png" alt="Presupuestos y pagos fijos" width="320">
+
+## Cómo funciona
+
+```mermaid
+flowchart LR
+  Gmail["Gmail<br/>(correos del banco)"] -->|trigger de lectura| Lectores["Lectores por banco<br/>(funciones puras)"]
+  Lectores --> Hoja[("Tu Google Sheet")]
+  App["App web<br/>(solo tú)"] <--> Hoja
+  Telegram -->|webhook| Receptor["Receptor público<br/>(sin datos)"]
+  Receptor -->|biblioteca| Bot["Lógica del bot"]
+  Bot <--> Hoja
+  Bot -->|avisos, resumen, recordatorios| Telegram
+```
+
+Todo corre en tu cuenta de Google: Apps Script lee tus correos, guarda en tu hoja y publica la app solo para ti. El único punto público es el receptor del bot, que no guarda nada y solo acepta mensajes con un secreto.
 
 ## Hoja de ruta
 
@@ -35,11 +49,12 @@ App de finanzas personales que vive en **tu propia cuenta de Google**. Registra 
 | v0.4 | Gemini: foto de boleta para dividir compras (a decidir con el uso real) | ⏸️ |
 | v0.5 | Presupuestos por categoría y avisos por Telegram | ✅ |
 | v0.6 | Próximos pagos: estado de cuenta de la tarjeta y pagos recurrentes | ✅ |
-| v0.7 | Plantilla "Hacer una copia" y pulido del README | ⏳ |
+| v0.7 | Plantilla "Hacer una copia" y pulido del README | ✅ |
 
 ## Instalación
 
-Ver [docs/instalacion.md](docs/instalacion.md). Resumen para desarrolladores:
+- **Sin programar (recomendado):** [Hacer una copia](https://docs.google.com/spreadsheets/d/12jTo7S7wRd1xs4XMN9ftS2PyDjCArfTAaT6gun2GemE/copy) y seguir los 4 pasos de [docs/instalacion.md](docs/instalacion.md). El bot de Telegram es opcional: [docs/telegram.md](docs/telegram.md). Para actualizar: [docs/actualizar.md](docs/actualizar.md).
+- **Para desarrolladores (clasp):**
 
 ```bash
 git clone https://github.com/BrunoRioja/finanzas-personales.git
@@ -62,14 +77,22 @@ npm run deploy     # sube el código y publica la web app (solo tú puedes abrir
 - **Gmail con el permiso mínimo útil:** `gmail.modify` solo para buscar, leer y etiquetar; la app recuerda qué correos ya leyó por su id, no por la etiqueta.
 - **Bot sin abrir la app:** un receptor público mínimo recibe el webhook de Telegram y usa la app como biblioteca; la app y los datos siguen siendo "solo yo" ([docs/arquitectura.md](docs/arquitectura.md)).
 
+- **Copia congelada en vez de biblioteca compartida:** cada copia ejecuta su propio código; nadie (ni el autor) puede cambiarlo desde afuera. Las versiones nuevas se buscan con un botón en Ajustes y se instalan copiando la plantilla e importando los datos.
+- **Importación por encabezados:** una hoja de cualquier versión anterior se importa leyendo cada columna por su nombre; lo que no existía queda vacío y la migración completa el resto.
+
 Más detalle en [docs/arquitectura.md](docs/arquitectura.md) y el diseño completo en [docs/superpowers/specs](docs/superpowers/specs/2026-10-13-app-finanzas-design.md).
 
-## Desarrollo
+## Calidad y desarrollo
+
+- **Pruebas:** unas 250 pruebas con `node:test` sobre un arnés (`tests/harness.js`) que simula Sheets, Gmail, Telegram, triggers, propiedades y caché, así que todo el flujo (correo → movimiento → aviso por Telegram) se prueba sin tocar Google.
+- **Correos reales anonimizados** como casos de prueba de cada lector.
+- **CI** en GitHub Actions (pruebas + ESLint) en cada push.
+- **Interfaz revisada en Chrome** a 390 px y 1280 px con datos simulados.
 
 ```bash
-npm test          # pruebas (node:test)
+npm test          # pruebas
 npm run lint      # ESLint
-npm run ui -- "mostrar('movimientos')" vista captura.png 420   # revisar la interfaz en Chrome con datos simulados
+npm run ui -- "mostrar('movimientos')" vista captura.png 420   # captura de la interfaz con datos simulados
 ```
 
 ## Privacidad

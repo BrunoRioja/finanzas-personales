@@ -144,9 +144,16 @@ function crearGmail(correos, stats, opciones) {
 // UrlFetchApp simulado: solo la API de Telegram. Registra cada llamada; `estado.falla`
 // hace que Telegram responda error y `estado.respuestas[metodo]` personaliza la respuesta
 // ({ __crudo, __codigo } simula una respuesta que no es JSON).
-function crearUrlFetch(estado) {
+const URL_PAQUETE = 'https://raw.githubusercontent.com/BrunoRioja/finanzas-personales/main/package.json';
+
+function crearUrlFetch(estado, github) {
   return {
     fetch: (url, o) => {
+      if (url === URL_PAQUETE) {
+        github.llamadas++;
+        if (github.falla) throw new Error('Address unavailable: ' + url);
+        return { getResponseCode: () => 200, getContentText: () => JSON.stringify({ name: 'finanzas-personales', version: github.version }) };
+      }
       const m = /^https:\/\/api\.telegram\.org\/bot([^/]+)\/(\w+)$/.exec(url);
       if (!m) throw new Error('URL inesperada: ' + url);
       const datos = JSON.parse(o.payload || '{}');
@@ -167,13 +174,13 @@ function crearUrlFetch(estado) {
 }
 
 // ScriptApp simulado: solo triggers de tiempo.
-function crearScriptApp(triggers, permisos) {
+function crearScriptApp(triggers, permisos, servicio) {
   return {
     AuthMode: { FULL: 'FULL' },
     requireAllScopes: modo => { permisos.push(modo); },
     getProjectTriggers: () => triggers.slice(),
     deleteTrigger: t => { const i = triggers.indexOf(t); if (i >= 0) triggers.splice(i, 1); },
-    getService: () => ({ getUrl: () => 'https://script.google.com/macros/s/APP-PRUEBA/exec' }),
+    getService: () => ({ getUrl: () => servicio.url }),
     newTrigger: funcion => ({
       timeBased: () => {
         const t = { funcion: funcion, cada: null, hora: null, getHandlerFunction: () => funcion };
@@ -200,13 +207,24 @@ function crearScriptApp(triggers, permisos) {
 
 function crearEntorno(opciones = {}) {
   let ahora = new Date(opciones.ahora || '2026-10-13T10:00:00');
-  const principal = crearLibro('libro-principal', opciones.hojas || {});
+  const principal = crearLibro(opciones.idPrincipal || 'libro-principal', opciones.hojas || {});
   const libros = { [principal.getId()]: principal };
   const propiedades = Object.assign({}, opciones.propiedades || {});
   const stats = { locks: 0, aperturas: 0, gmailList: 0, gmailGet: 0, gmailEnBloqueo: 0, enBloqueo: false };
   const gmail = crearGmail(opciones.correos || [], stats, opciones);
   const triggers = [];
   const telegram = { llamadas: [], falla: null, respuestas: {}, contador: 100 };
+  const github = { version: '0.0.0', falla: false, llamadas: 0 };
+  const servicio = { url: 'https://script.google.com/macros/s/APP-PRUEBA/exec' };
+  const ui = {
+    menus: [], dialogos: [],
+    createMenu: titulo => {
+      const menu = { titulo: titulo, items: [] };
+      const b = { addItem: (texto, funcion) => { menu.items.push([texto, funcion]); return b; }, addToUi: () => { ui.menus.push(menu); } };
+      return b;
+    },
+    showModalDialog: (salida, titulo) => { ui.dialogos.push({ titulo: titulo, html: salida.getContent() }); },
+  };
   const permisosPedidos = [];
   const cache = {};
   let contadorId = 0;
@@ -220,6 +238,7 @@ function crearEntorno(opciones = {}) {
   const contexto = vm.createContext({
     console, JSON, Math, Object, Number, String, Array, Error, RegExp, isNaN, isFinite, Date: FechaFija,
     SpreadsheetApp: {
+      getUi: () => ui,
       getActiveSpreadsheet: () => { stats.aperturas++; return principal; },
       openById: id => {
         stats.aperturas++;
@@ -254,7 +273,7 @@ function crearEntorno(opciones = {}) {
       }),
     },
     Gmail: gmail,
-    UrlFetchApp: crearUrlFetch(telegram),
+    UrlFetchApp: crearUrlFetch(telegram, github),
     CacheService: {
       getScriptCache: () => ({
         get: k => (k in cache ? cache[k] : null),
@@ -262,7 +281,13 @@ function crearEntorno(opciones = {}) {
         remove: k => { delete cache[k]; },
       }),
     },
-    ScriptApp: crearScriptApp(triggers, permisosPedidos),
+    ScriptApp: crearScriptApp(triggers, permisosPedidos, servicio),
+    HtmlService: {
+      createHtmlOutput: html => {
+        const salida = { setWidth: () => salida, setHeight: () => salida, getContent: () => String(html) };
+        return salida;
+      },
+    },
     Utilities: {
       formatDate: (d, tz, patron) => formatear(d, patron),
       getUuid: () => 'id-' + String(++contadorId).padStart(4, '0'),
@@ -277,7 +302,7 @@ function crearEntorno(opciones = {}) {
   }
 
   return {
-    principal, libros, propiedades, stats, gmail, triggers, telegram, cache, permisosPedidos,
+    principal, libros, propiedades, stats, gmail, triggers, telegram, cache, permisosPedidos, github, ui, servicio,
     hojas: principal._hojas,
     llamar(nombre, ...args) {
       const salida = contexto[nombre](...args);

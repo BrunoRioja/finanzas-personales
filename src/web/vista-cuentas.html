@@ -26,7 +26,7 @@ function abrirFormCuenta(c) {
     campo('Nombre', '<input class="entrada" id="c-nombre" placeholder="Ej.: Débito BCP" value="' + esc(v.nombre) + '">') +
     '<div class="dos-col">' + campo('Banco', seleccion('c-banco', op.bancos, v.banco)) + campo('Tipo', seleccion('c-tipo', op.tiposCuenta, v.tipo, op.tiposCuenta.map(etiquetaTipo))) + '</div>' +
     '<div class="dos-col">' + campo('Moneda', seleccion('c-moneda', op.monedas, v.moneda)) +
-    campo('Números de cuenta o tarjeta', '<input class="entrada num" id="c-num" inputmode="numeric" placeholder="1063, 7373" value="' + esc(v.numeros) + '">') + '</div>' +
+    campo('Números de cuenta o tarjeta', '<input class="entrada num" id="c-num" inputmode="numeric" placeholder="5101, 5202" value="' + esc(v.numeros) + '">') + '</div>' +
     campo('Saldo inicial (negativo si es deuda de tarjeta)', '<input class="entrada num" id="c-saldo" inputmode="decimal" value="' + esc(v.saldo_inicial) + '">') +
     '<label class="check"><input type="checkbox" id="c-yape"' + (v.yape ? ' checked' : '') + '> Yape sale y entra de esta cuenta</label>' +
     (c ? '<label class="check"><input type="checkbox" id="c-activa"' + (v.activa ? ' checked' : '') + '> Cuenta activa</label>' : '') +

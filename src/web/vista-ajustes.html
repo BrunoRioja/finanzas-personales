@@ -1,7 +1,8 @@
 <script>
 'use strict';
 VISTAS.ajustes = async function (cont) {
-  const [cat, lectura, reglas, telegram] = await Promise.all([cargarCatalogos(), api('estadoLectura'), api('listarReglas'), api('estadoTelegram')]);
+  const [cat, lectura, reglas, telegram, version] = await Promise.all([cargarCatalogos(), api('estadoLectura'), api('listarReglas'),
+    api('estadoTelegram'), api('estadoVersion').catch(() => null)]);
   const chips = tipo => cat.categorias.filter(c => c.tipo === tipo).map(c =>
     '<button type="button" class="chip' + (c.activa ? '' : ' apagado') + '" data-cat="' + esc(c.id) + '">' + esc(c.emoji + ' ' + c.nombre) + '</button>').join('');
   cont.innerHTML = '<div class="cabecera"><h1>Ajustes</h1></div>' +
@@ -20,7 +21,7 @@ VISTAS.ajustes = async function (cont) {
       '<p class="tenue" style="margin:0">Todo vive en tu propia Google Sheet, en tu cuenta de Google.</p>' +
       '<div class="acciones"><a class="boton" href="' + esc(cat.urlHoja) + '" target="_blank" rel="noopener">Abrir Google Sheet</a>' +
       '<button type="button" class="boton" id="a-demo">' + (cat.modoDemo ? 'Salir del modo demo' : 'Ver con datos demo') + '</button></div>' +
-    '</section>';
+    '</section>' + seccionAcercaDe(version);
   $('#a-guardar').onclick = async e => {
     e.target.disabled = true;
     try {
@@ -39,6 +40,7 @@ VISTAS.ajustes = async function (cont) {
   enlazarLectura();
   enlazarTelegram();
   enlazarReglas();
+  enlazarAcercaDe();
   $('#a-demo').onclick = async e => {
     e.target.disabled = true;
     try {
@@ -55,6 +57,43 @@ const FRECUENCIAS = [
   ['apagada', 'Apagada'], ['5', 'Cada 5 minutos'], ['15', 'Cada 15 minutos'], ['30', 'Cada 30 minutos'],
   ['60', 'Cada hora'], ['manual', 'Solo cuando toque "Revisar ahora"'],
 ];
+
+// Versión instalada y "Buscar actualizaciones": solo consulta GitHub al tocar el botón.
+function seccionAcercaDe(v) {
+  return '<section class="tarjeta seccion"><div class="etiqueta">Acerca de</div>' +
+    '<p style="margin:0">Finanzas personales' + (v ? ' · versión <b class="num">' + esc(v.actual) + '</b>' : '') + '</p>' +
+    '<div class="resultado-lectura" id="av-resultado" hidden></div>' +
+    '<div class="acciones"><button type="button" class="boton" id="av-buscar">Buscar actualizaciones</button>' +
+    (v ? '<a class="boton" href="' + esc(v.repo) + '" target="_blank" rel="noopener">Código en GitHub</a>' +
+      '<a class="boton" href="' + esc(v.cambios) + '" target="_blank" rel="noopener">Novedades</a>' : '') +
+    '</div></section>';
+}
+
+function textoActualizacion(r) {
+  const enlace = (url, texto) => '<a href="' + esc(url) + '" target="_blank" rel="noopener">' + esc(texto) + '</a>';
+  if (r.error) return 'No pude consultar GitHub. Intenta más tarde.';
+  if (!r.hayNueva) return '✓ Tienes la última versión (' + esc(r.actual) + ').';
+  return '🎉 Hay una versión nueva (' + esc(r.ultima) + '). ' + enlace(r.cambios, 'Novedades') + ' · ' + enlace(r.actualizar, 'Cómo actualizar');
+}
+
+function enlazarAcercaDe() {
+  $('#av-buscar').onclick = async e => {
+    const caja = $('#av-resultado');
+    e.target.disabled = true;
+    e.target.textContent = 'Buscando…';
+    try {
+      const r = await api('buscarActualizacion');
+      caja.className = 'resultado-lectura' + (r.error ? ' mal' : r.hayNueva ? '' : ' ok');
+      caja.innerHTML = textoActualizacion(r);
+    } catch (err) {
+      caja.className = 'resultado-lectura mal';
+      caja.textContent = err.message;
+    }
+    caja.hidden = false;
+    e.target.disabled = false;
+    e.target.textContent = 'Buscar actualizaciones';
+  };
+}
 // Resultado de la última acción de lectura: se muestra fijo hasta la siguiente.
 let resultadoLectura = null;
 

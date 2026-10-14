@@ -1,6 +1,6 @@
 {
   "name": "finanzas-personales",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "private": true,
   "description": "App de finanzas personales autoalojada en Google Apps Script + Google Sheets",
   "license": "MIT",
@@ -11,6 +11,8 @@
     "push": "clasp push --force",
     "deploy": "node scripts/desplegar.js",
     "deploy:receptor": "node scripts/desplegar-receptor.js",
+    "setup:plantilla": "node scripts/desplegar-plantilla.js",
+    "deploy:plantilla": "node scripts/desplegar-plantilla.js",
     "ui": "node tests/ui/ver.js"
   },
   "engines": {

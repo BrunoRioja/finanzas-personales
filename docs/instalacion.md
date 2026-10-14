@@ -40,7 +40,7 @@ Requisitos: Node 20 o superior, una cuenta de Google y la [API de Apps Script ac
 5. Abre la URL. Google pedirá autorizar el acceso a tus hojas (es tu propio script). Luego aparece el **asistente**: tu nombre, tipo de cambio, tus cuentas y categorías.
 
 6. Guarda la URL en la pantalla de inicio del celular (Chrome → menú → "Agregar a la pantalla principal").
-7. **Lectura de correos (opcional):** en **Cuentas**, pon en cada cuenta los últimos 4 dígitos de su número y de su tarjeta (por ejemplo `1063, 7373`) y marca la cuenta de la que sale Yape. Luego en **Ajustes → Lectura de correos** elige la frecuencia y toca **Guardar**: Google pedirá permiso para leer y etiquetar tus correos.
+7. **Lectura de correos (opcional):** en **Cuentas**, pon en cada cuenta los últimos 4 dígitos de su número y de su tarjeta (por ejemplo `5101, 5202`) y marca la cuenta de la que sale Yape. Luego en **Ajustes → Lectura de correos** elige la frecuencia y toca **Guardar**: Google pedirá permiso para leer y etiquetar tus correos.
 
 ### Actualizar a una versión nueva
 
@@ -65,9 +65,17 @@ Si la versión nueva pide permisos nuevos (lo dice el CHANGELOG), ejecuta una ve
 
 El receptor usa siempre el último código de la app: después de un `npm run deploy` no hay que volver a desplegarlo.
 
-## Vía plantilla ("Hacer una copia") — llega en v0.5
+## Vía plantilla ("Hacer una copia") — recomendada
 
-Para quien no quiera usar la terminal: una Sheet plantilla con el código incluido, que se copia con un clic.
+No necesitas programar ni instalar nada. Todo queda en tu cuenta de Google.
+
+1. **Haz tu copia.** Abre [Hacer una copia](https://docs.google.com/spreadsheets/d/12jTo7S7wRd1xs4XMN9ftS2PyDjCArfTAaT6gun2GemE/copy) y toca **Hacer una copia**. Se crea en tu Drive una hoja con el código de la app incluido.
+2. **Publica tu app.** En tu copia, abre el menú **💸 Finanzas → Cómo publicar mi app** (si no aparece, recarga la hoja). **El primer clic solo pide los permisos** (ver abajo); cuando termines de aceptarlos, vuelve a tocar **Cómo publicar mi app** y sigue los pasos: *Extensiones → Apps Script → Implementar → Nueva implementación → App web → Ejecutar como: Yo → Quién tiene acceso: Solo yo → Implementar*.
+   - Google pedirá permisos al primer clic del menú. Verás **"Google no verificó esta app"**: aparece porque el código es tuyo y no pasó por la verificación de Google, no porque sea peligroso. Toca **Configuración avanzada → Ir a … (no seguro)** y acepta. Los permisos son: tu hoja (guardar los datos y mostrar el menú 💸 Finanzas), Gmail (leer los correos del banco y etiquetarlos, nunca borrar ni enviar), triggers (leer correos y recordarte pagos solos) y conexiones externas (Telegram y saber si hay una versión nueva).
+3. **Abre tu app** (menú **💸 Finanzas → Abrir mi app**, o la URL que copiaste) y completa el asistente: tu nombre, tus cuentas y tus categorías. ¿Ya usabas la app? Toca **Importar mis datos** ([cómo actualizar](actualizar.md)).
+4. **Activa la lectura de correos** en **Ajustes → Lectura de correos** (opcional: el bot de Telegram con [docs/telegram.md](telegram.md)).
+
+Guarda la URL de tu app en favoritos o en la pantalla de inicio del celular.
 
 ## Probar sin datos reales
 

@@ -27,9 +27,9 @@ Fuera de alcance (fases siguientes): bot de Telegram (3), Gemini como respaldo d
 
 | Cuenta en la app | Números que aparecen en los correos | Uso |
 |---|---|---|
-| Débito BCP (Cuenta digital) | `1063` (cuenta) y `7373` (tarjeta de débito) | Gastos diarios, Yape, pagos virtuales, servicios. Saldo bajo. |
-| Ahorro BCP (Clásica) | `3099` | Ahorro; solo transfiere a la digital. |
-| VISA BCP | `8754` (VISA Oro) | Consumos en S/ y $. |
+| Débito BCP (Cuenta digital) | `5101` (cuenta) y `5202` (tarjeta de débito) | Gastos diarios, Yape, pagos virtuales, servicios. Saldo bajo. |
+| Ahorro BCP (Clásica) | `5303` | Ahorro; solo transfiere a la digital. |
+| VISA BCP | `5404` (VISA Oro) | Consumos en S/ y $. |
 
 Bruno corrige los nombres y números de sus cuentas desde la vista Cuentas tras desplegar la fase 2 (hoy los nombres "Débito BCP"/"Ahorro BCP" están invertidos respecto al uso).
 
@@ -39,7 +39,7 @@ Bruno corrige los nombres y números de sus cuentas desde la vista Cuentas tras 
 
 | Hoja | Cambio |
 |---|---|
-| Cuentas | `ultimos4` → **`numeros`**: lista de números de 4 dígitos separados por coma (`"1063, 7373"`). Nueva columna **`yape`** (booleano): la cuenta de la que sale/entra Yape; como máximo una. |
+| Cuentas | `ultimos4` → **`numeros`**: lista de números de 4 dígitos separados por coma (`"5101, 5202"`). Nueva columna **`yape`** (booleano): la cuenta de la que sale/entra Yape; como máximo una. |
 | Movimientos | Sin columnas nuevas. `origen = 'gmail'` para lo importado; `estado = 'por_revisar'` cuando falta categoría o cuenta; `ref_externa = 'gmail:<id del mensaje>'`. |
 | Reglas | Se usan: `patron` (texto normalizado), `categoria_id`, `creada_por` (`usuario`), `usos`. |
 | **Pendientes** (nueva) | Correos bancarios que ningún lector entendió: `id, gmail_id, fecha, remitente, asunto, resumen, estado (pendiente/descartado)`. |
@@ -68,14 +68,14 @@ Remitentes aceptados (comparación exacta, en minúsculas): `notificaciones@noti
 
 | Tipo de correo (asunto / frase clave) | Resultado |
 |---|---|
-| "Realizaste un consumo con tu Tarjeta de Débito/Crédito BCP" — frase `Realizaste un consumo de S/ 89.30 con tu Tarjeta de … BCP en <COMERCIO>.` + `Número de Tarjeta … ****7373` | gasto, `numero_origen` = últimos 4 de la tarjeta, comercio |
+| "Realizaste un consumo con tu Tarjeta de Débito/Crédito BCP" — frase `Realizaste un consumo de S/ 89.30 con tu Tarjeta de … BCP en <COMERCIO>.` + `Número de Tarjeta … ****5202` | gasto, `numero_origen` = últimos 4 de la tarjeta, comercio |
 | Igual con `$ 23.60` | gasto en USD (tc = último conocido, se aplica al guardar) |
 | Comercio `PLIN-<NOMBRE>` | gasto, comercio = `<NOMBRE>` (sin el prefijo) |
 | yape.pe "¡Acabas de yapear exitosamente!" — `Monto de yapeo S/ 11.00`, `Nombre del Beneficiario <NOMBRE>` | gasto, `usa_yape`, comercio = beneficiario |
 | "Constancia de recepción de Yapeo" — `Recibiste un yapeo de S/ 200.00 de <NOMBRE>.` | ingreso, `usa_yape`, comercio = remitente |
-| "Constancia de Transferencia Entre mis Cuentas" — `Monto transferido S/ 290.26`, `Desde … **** 3099`, `Enviado a … **** 1063` | transferencia 3099 → 1063 |
-| "Constancia de Pago de Tarjeta de Crédito Propia" — `Monto pagado $ 105.52`, `Tipo de cambio S/ 3.4770`, `Pagado a VISA … **** 8754`, `Desde … **** 1063` | transferencia 1063 → 8754 en la moneda pagada, con `tc` del correo; actualiza `Config.ultimo_tc` |
-| "CONSTANCIA DE PAGO DE SERVICIO" — `Empresa: CLARO`, `Cuenta de origen: … **** 1063`, `Monto total: S/ 24.47` | gasto, comercio = empresa |
+| "Constancia de Transferencia Entre mis Cuentas" — `Monto transferido S/ 290.26`, `Desde … **** 5303`, `Enviado a … **** 5101` | transferencia 5303 → 5101 |
+| "Constancia de Pago de Tarjeta de Crédito Propia" — `Monto pagado $ 105.52`, `Tipo de cambio S/ 3.4770`, `Pagado a VISA … **** 5404`, `Desde … **** 5101` | transferencia 5101 → 5404 en la moneda pagada, con `tc` del correo; actualiza `Config.ultimo_tc` |
+| "CONSTANCIA DE PAGO DE SERVICIO" — `Empresa: CLARO`, `Cuenta de origen: … **** 5101`, `Monto total: S/ 24.47` | gasto, comercio = empresa |
 | Estado de cuenta, encuestas, publicidad, otros asuntos | `null` → se ignora (no es pendiente) |
 | Remitente bancario aceptado + asunto de operación reconocido pero la frase/montos no se pudieron leer | va a **Pendientes** |
 

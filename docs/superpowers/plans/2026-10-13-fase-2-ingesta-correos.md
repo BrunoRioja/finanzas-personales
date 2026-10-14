@@ -68,7 +68,7 @@
 - Crear: `tests/migracion.test.js`
 
 **Interfaces:**
-- Produce: `VERSION_ESQUEMA = 2`; `RENOMBRES_ESQUEMA = { Cuentas: { ultimos4: 'numeros' } }`; `migrarEsquema_(libro)`; `migrarSiHaceFalta_() → bool` (sin bloqueo); `asegurarEsquema_()` (toma bloqueo solo si hay que migrar); `estadoActual_() → {instalado, modoDemo}` (sin migrar); `estadoInstalacion()` (migra y luego `estadoActual_`); `normalizarNumeros_(valor) → '1063, 7373'`; `numerosDe_(cuenta) → ['1063','7373']`; `validarNumerosUnicos_(cuenta, otras)` (lanza `El número N ya está en la cuenta "X".`); `normalizarCuenta_` devuelve `{nombre, banco, tipo, moneda, saldo_inicial, numeros, activa, yape}`. En el navegador: `textoNumeros(numeros) → ' · •••• 1063 · •••• 7373'`.
+- Produce: `VERSION_ESQUEMA = 2`; `RENOMBRES_ESQUEMA = { Cuentas: { ultimos4: 'numeros' } }`; `migrarEsquema_(libro)`; `migrarSiHaceFalta_() → bool` (sin bloqueo); `asegurarEsquema_()` (toma bloqueo solo si hay que migrar); `estadoActual_() → {instalado, modoDemo}` (sin migrar); `estadoInstalacion()` (migra y luego `estadoActual_`); `normalizarNumeros_(valor) → '5101, 5202'`; `numerosDe_(cuenta) → ['5101','5202']`; `validarNumerosUnicos_(cuenta, otras)` (lanza `El número N ya está en la cuenta "X".`); `normalizarCuenta_` devuelve `{nombre, banco, tipo, moneda, saldo_inicial, numeros, activa, yape}`. En el navegador: `textoNumeros(numeros) → ' · •••• 5101 · •••• 5202'`.
 
 - [ ] **Paso 1: Actualizar pruebas existentes al esquema v2**
 
@@ -130,24 +130,24 @@ test('la migración es idempotente y no bloquea si no hace falta', () => {
 
 test('normalizarCuenta_ acepta varios números y marca de Yape', () => {
   const e = crearEntorno();
-  const c = e.llamar('normalizarCuenta_', { nombre: 'Gastos', tipo: 'debito', numeros: ' 1063,7373  1063 ', yape: true });
-  assert.strictEqual(c.numeros, '1063, 7373');
+  const c = e.llamar('normalizarCuenta_', { nombre: 'Gastos', tipo: 'debito', numeros: ' 5101,5202  5101 ', yape: true });
+  assert.strictEqual(c.numeros, '5101, 5202');
   assert.strictEqual(c.yape, true);
   assert.strictEqual(e.llamar('normalizarCuenta_', { nombre: 'E', tipo: 'efectivo' }).numeros, '');
-  assert.throws(() => e.interno('normalizarCuenta_', { nombre: 'X', tipo: 'debito', numeros: '1063, 73' }), /4 dígitos: "73"/);
-  assert.deepStrictEqual(e.llamar('numerosDe_', { numeros: '1063, 7373' }), ['1063', '7373']);
+  assert.throws(() => e.interno('normalizarCuenta_', { nombre: 'X', tipo: 'debito', numeros: '5101, 73' }), /4 dígitos: "73"/);
+  assert.deepStrictEqual(e.llamar('numerosDe_', { numeros: '5101, 5202' }), ['5101', '5202']);
 });
 
 test('guardarCuenta rechaza números repetidos entre cuentas y deja una sola cuenta de Yape', () => {
   const e = entornoInstalado();
   const deb = e.cuenta('Débito BCP');
-  e.llamar('guardarCuenta', { id: deb, nombre: 'Débito BCP', banco: 'BCP', tipo: 'debito', numeros: '1063, 7373', yape: true });
-  assert.throws(() => e.interno('guardarCuenta', { nombre: 'Otra', tipo: 'ahorro', numeros: '7373' }), /7373 ya está en la cuenta "Débito BCP"/);
-  const ahorro = e.llamar('guardarCuenta', { nombre: 'Ahorro BCP', tipo: 'ahorro', numeros: '3099', yape: true });
+  e.llamar('guardarCuenta', { id: deb, nombre: 'Débito BCP', banco: 'BCP', tipo: 'debito', numeros: '5101, 5202', yape: true });
+  assert.throws(() => e.interno('guardarCuenta', { nombre: 'Otra', tipo: 'ahorro', numeros: '5202' }), /5202 ya está en la cuenta "Débito BCP"/);
+  const ahorro = e.llamar('guardarCuenta', { nombre: 'Ahorro BCP', tipo: 'ahorro', numeros: '5303', yape: true });
   const cuentas = e.filas('Cuentas');
   assert.strictEqual(cuentas.find(c => c.id === deb).yape, false);
   assert.strictEqual(cuentas.find(c => c.id === ahorro.id).yape, true);
-  assert.doesNotThrow(() => e.interno('guardarCuenta', { id: deb, nombre: 'Débito BCP', tipo: 'debito', numeros: '1063, 7373' }));
+  assert.doesNotThrow(() => e.interno('guardarCuenta', { id: deb, nombre: 'Débito BCP', tipo: 'debito', numeros: '5101, 5202' }));
 });
 
 test('completarAsistente valida números repetidos y una sola cuenta de Yape', () => {
@@ -273,7 +273,7 @@ Agregar al final del archivo:
 
 ```js
 
-// "1063,7373  1063" → "1063, 7373". Cada número: últimos 4 dígitos de una cuenta o tarjeta.
+// "5101,5202  5101" → "5101, 5202". Cada número: últimos 4 dígitos de una cuenta o tarjeta.
 function normalizarNumeros_(valor) {
   const partes = String(valor == null ? '' : valor).split(/[\s,;]+/).filter(Boolean);
   partes.forEach(n => {
@@ -371,13 +371,13 @@ function textoNumeros(numeros) {
 En `src/web/vista-cuentas.html` reemplazar:
 - `esc(c.banco + ' · ' + etiquetaTipo(c.tipo) + ' · ' + c.moneda + (c.ultimos4 ? ' · •••• ' + c.ultimos4 : ''))` → `esc(c.banco + ' · ' + etiquetaTipo(c.tipo) + ' · ' + c.moneda + textoNumeros(c.numeros) + (c.yape ? ' · Yape' : ''))`
 - `ultimos4: '', saldo_inicial: 0, activa: true };` → `numeros: '', saldo_inicial: 0, activa: true, yape: false };`
-- `campo('Últimos 4 dígitos', '<input class="entrada num" id="c-ult" inputmode="numeric" maxlength="4" value="' + esc(v.ultimos4) + '">') + '</div>' +` → `campo('Números de cuenta o tarjeta', '<input class="entrada num" id="c-num" inputmode="numeric" placeholder="1063, 7373" value="' + esc(v.numeros) + '">') + '</div>' +`
+- `campo('Últimos 4 dígitos', '<input class="entrada num" id="c-ult" inputmode="numeric" maxlength="4" value="' + esc(v.ultimos4) + '">') + '</div>' +` → `campo('Números de cuenta o tarjeta', '<input class="entrada num" id="c-num" inputmode="numeric" placeholder="5101, 5202" value="' + esc(v.numeros) + '">') + '</div>' +`
 - `(c ? '<label class="check"><input type="checkbox" id="c-activa"` → `'<label class="check"><input type="checkbox" id="c-yape"' + (v.yape ? ' checked' : '') + '> Yape sale y entra de esta cuenta</label>' +\n    (c ? '<label class="check"><input type="checkbox" id="c-activa"`
 - `tipo: $('#c-tipo', caja).value, moneda: $('#c-moneda', caja).value, ultimos4: $('#c-ult', caja).value,` → `tipo: $('#c-tipo', caja).value, moneda: $('#c-moneda', caja).value, numeros: $('#c-num', caja).value, yape: $('#c-yape', caja).checked,`
 
 En `src/web/vista-asistente.html` reemplazar:
 - `esc(c.banco + ' · ' + etiquetaTipo(c.tipo) + ' · ' + c.moneda + (c.ultimos4 ? ' · •••• ' + c.ultimos4 : ''))` → `esc(c.banco + ' · ' + etiquetaTipo(c.tipo) + ' · ' + c.moneda + textoNumeros(c.numeros) + (c.yape ? ' · Yape' : ''))`
-- `campo('Últimos 4 dígitos', '<input class="entrada num" id="w-c-ult" inputmode="numeric" maxlength="4">') + '</div>' +` → `campo('Números de cuenta o tarjeta', '<input class="entrada num" id="w-c-num" inputmode="numeric" placeholder="1063, 7373">') + '</div>' +`
+- `campo('Últimos 4 dígitos', '<input class="entrada num" id="w-c-ult" inputmode="numeric" maxlength="4">') + '</div>' +` → `campo('Números de cuenta o tarjeta', '<input class="entrada num" id="w-c-num" inputmode="numeric" placeholder="5101, 5202">') + '</div>' +`
 - `campo('Saldo actual (negativo si es deuda de tarjeta)', '<input class="entrada num" id="w-c-saldo" inputmode="decimal" placeholder="0.00">') +` → `campo('Saldo actual (negativo si es deuda de tarjeta)', '<input class="entrada num" id="w-c-saldo" inputmode="decimal" placeholder="0.00">') +\n        '<label class="check"><input type="checkbox" id="w-c-yape"> Yape sale y entra de esta cuenta</label>' +`
 - `moneda: $('#w-c-moneda').value, ultimos4: $('#w-c-ult').value.trim(), saldo_inicial: $('#w-c-saldo').value,` → `moneda: $('#w-c-moneda').value, numeros: $('#w-c-num').value.trim(), saldo_inicial: $('#w-c-saldo').value, yape: $('#w-c-yape').checked,`
 - `if (nueva.ultimos4 && !/^\d{4}$/.test(nueva.ultimos4)) { aviso('Los últimos 4 dígitos deben ser 4 números.', true); return; }` → `if (nueva.numeros && !/^\d{4}([\s,]+\d{4})*$/.test(nueva.numeros)) { aviso('Cada número debe tener 4 dígitos, separados por coma.', true); return; }\n      if (nueva.yape && datos.cuentas.some(c => c.yape)) { aviso('Solo una cuenta puede ser la de Yape.', true); return; }`
@@ -517,8 +517,8 @@ Expected: `"error": null`; `texto` contiene `•••• 4444 · •••• 1
 Run: `node tests/ui/ver.js "mostrar('cuentas'); setTimeout(function(){document.getElementById('nueva-cuenta').click()},300)" modal`
 Expected: `"error": null`; `texto` contiene `Números de cuenta o tarjeta` y `Yape sale y entra de esta cuenta`.
 
-Run: `node tests/ui/ver.js "document.body.classList.add('sin-instalar'); mostrar('asistente'); setTimeout(function(){ document.getElementById('w-nombre').value='Ana'; document.getElementById('w-sig').click(); setTimeout(function(){ document.getElementById('w-c-nombre').value='Débito BCP'; document.getElementById('w-c-num').value='1063, 7373'; document.getElementById('w-c-yape').checked=true; document.getElementById('w-c-agregar').click(); },100)},300)" vista`
-Expected: `"error": null`; `texto` contiene `•••• 1063 · •••• 7373 · Yape`.
+Run: `node tests/ui/ver.js "document.body.classList.add('sin-instalar'); mostrar('asistente'); setTimeout(function(){ document.getElementById('w-nombre').value='Ana'; document.getElementById('w-sig').click(); setTimeout(function(){ document.getElementById('w-c-nombre').value='Débito BCP'; document.getElementById('w-c-num').value='5101, 5202'; document.getElementById('w-c-yape').checked=true; document.getElementById('w-c-agregar').click(); },100)},300)" vista`
+Expected: `"error": null`; `texto` contiene `•••• 5101 · •••• 5202 · Yape`.
 
 - [ ] **Paso 14: Pruebas, lint y commit**
 
@@ -3016,7 +3016,7 @@ En `docs/privacidad.md`, reemplazar la sección "Próximas versiones" por:
 En `docs/instalacion.md`, después del paso 6 de la vía desarrollador agregar:
 
 ```markdown
-7. **Lectura de correos (opcional):** en **Cuentas**, pon en cada cuenta los últimos 4 dígitos de su número y de su tarjeta (por ejemplo `1063, 7373`) y marca la cuenta de la que sale Yape. Luego en **Ajustes → Lectura de correos** elige la frecuencia y toca **Guardar**: Google pedirá permiso para leer y etiquetar tus correos.
+7. **Lectura de correos (opcional):** en **Cuentas**, pon en cada cuenta los últimos 4 dígitos de su número y de su tarjeta (por ejemplo `5101, 5202`) y marca la cuenta de la que sale Yape. Luego en **Ajustes → Lectura de correos** elige la frecuencia y toca **Guardar**: Google pedirá permiso para leer y etiquetar tus correos.
 ```
 
 En `CHANGELOG.md`, agregar arriba de `## [0.1.0]`:
@@ -3058,7 +3058,7 @@ Expected: `Despliegue actualizado: AKfycbyBLby7…` (misma URL).
 - [ ] **Paso 5: Activación real con Bruno**
 
 Pedir a Bruno que abra la app (Google pedirá **autorizar de nuevo** por los permisos nuevos de Gmail y triggers) y:
-1. **Cuentas:** renombrar y completar: "Débito BCP" (Cuenta digital) → números `1063, 7373`, marcar Yape; "Ahorro BCP" (Clásica) → `3099`, sin Yape; "VISA BCP" → `8754`. Corregir los nombres invertidos de la fase 1 si aplica.
+1. **Cuentas:** renombrar y completar: "Débito BCP" (Cuenta digital) → números `5101, 5202`, marcar Yape; "Ahorro BCP" (Clásica) → `5303`, sin Yape; "VISA BCP" → `5404`. Corregir los nombres invertidos de la fase 1 si aplica.
 2. **Ajustes → Lectura de correos:** frecuencia "Cada 5 minutos", etiquetar activado, **Guardar**; luego **Importar desde la fecha** con `2026-10-01` (repetir si dice "faltan N").
 3. Revisar la franja "por revisar" en Inicio y la bandeja: categorizar algunos con "Recordar", dividir una compra.
 4. Confirmar en Gmail que los correos procesados tienen la etiqueta `Finanzas/Procesado`.

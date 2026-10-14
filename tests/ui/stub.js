@@ -45,6 +45,22 @@
   const ESTADO_LECTURA = { activa: true, frecuencia: '5', etiquetar: true, importar_desde: '2026-10-01', ultima_revision: '2026-10-13 10:00:00', info: '12 correos · 10 nuevos · 3 por revisar · 1.4 s', horario_inicio: 7, horario_fin: 24 };
   const DATOS = {
     estadoInstalacion: { instalado: true, modoDemo: false },
+    estadoVersion: {
+      actual: '0.7.0', repo: 'https://github.com/BrunoRioja/finanzas-personales',
+      cambios: 'https://github.com/BrunoRioja/finanzas-personales/blob/main/CHANGELOG.md',
+      actualizar: 'https://github.com/BrunoRioja/finanzas-personales/blob/main/docs/actualizar.md',
+    },
+    // window.ACTUALIZACION permite ver los otros dos resultados desde ver.js.
+    buscarActualizacion: () => window.ACTUALIZACION || {
+      actual: '0.7.0', repo: 'https://github.com/BrunoRioja/finanzas-personales',
+      cambios: 'https://github.com/BrunoRioja/finanzas-personales/blob/main/CHANGELOG.md',
+      actualizar: 'https://github.com/BrunoRioja/finanzas-personales/blob/main/docs/actualizar.md',
+      ultima: '0.8.0', hayNueva: true, error: false,
+    },
+    importarHojaAnterior: {
+      importado: { Cuentas: 6, Categorias: 20, Movimientos: 1234, Divisiones: 12, Reglas: 30, Presupuestos: 6, Recurrentes: 4, EstadosCuenta: 2 },
+      estado: { instalado: true, modoDemo: false },
+    },
     datosAsistente: {
       bancos: ['BCP', 'Interbank', 'BBVA', 'Scotiabank', 'Banco de la Nación', 'Yape', 'Plin', 'Efectivo', 'Otro'],
       tiposCuenta: ['debito', 'credito', 'ahorro', 'billetera', 'efectivo'], monedas: ['PEN', 'USD'],

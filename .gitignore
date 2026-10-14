@@ -7,3 +7,4 @@ node_modules/
 *.png
 !docs/img/*.png
 receptor/appsscript.json
+plantilla/src/
