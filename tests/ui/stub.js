@@ -17,6 +17,14 @@
     { id: 'a2', nombre: 'VISA BCP', banco: 'BCP', tipo: 'credito', saldo_pen: -1326.2 },
     { id: 'a3', nombre: 'Efectivo', banco: 'Efectivo', tipo: 'efectivo', saldo_pen: 64 },
   ];
+  const RECURRENTES = {
+    recurrentes: [
+      { id: 'r2', nombre: 'Gimnasio', monto: 120, moneda: 'PEN', cuenta_id: 'a1', categoria_id: 'c4', dia_mes: 8, activo: true },
+      { id: 'r1', nombre: 'Spotify', monto: 20.9, moneda: 'PEN', cuenta_id: 'a1', categoria_id: 'c4', dia_mes: 13, activo: true },
+      { id: 'r3', nombre: 'Nube', monto: 2.99, moneda: 'USD', cuenta_id: 'a2', categoria_id: 'c4', dia_mes: 20, activo: false },
+    ],
+    totalMensual: 140.9, cuentas: CUENTAS, categorias: CATEGORIAS.filter(c => c.tipo === 'gasto'), tc: 3.75,
+  };
   const mov = (id, fecha, tipo, monto, cuenta_id, categoria_id, comercio, extra) => Object.assign({
     id, fecha, tipo, monto, moneda: 'PEN', tc: 1, monto_pen: monto, cuenta_id, cuenta_destino_id: '', categoria_id, comercio,
     descripcion: '', origen: 'manual', estado: 'confirmado', ref_externa: '', dividido: false, creado_en: fecha + ' 12:00:00',
@@ -57,6 +65,17 @@
           { categoria_id: 'c3', nombre: 'Transporte', emoji: '🚕', color: '#7c5cff', gastado: 96, presupuesto: 250, porcentaje: 38, queda: 154, estado: 'ok', ritmo: 42 },
         ],
         total: { presupuesto: 1250, gastado: 1020 }, sinPresupuesto: 380,
+      },
+      proximosPagos: {
+        pagos: [
+          { tipo: 'recurrente', id: 'r1', nombre: 'Spotify', emoji: '📺', fecha: '2026-10-13', dias: 0, monto: 20.9, moneda: 'PEN', cuenta: 'Débito BCP' },
+          { tipo: 'recurrente', id: 'r4', nombre: 'Seguro', emoji: '🏠', fecha: '2026-10-15', dias: 2, monto: 75, moneda: 'PEN', cuenta: 'Débito BCP' },
+          { tipo: 'tarjeta', id: 'ec1', nombre: 'VISA BCP', emoji: '💳', fecha: '2026-10-20', dias: 7, vencido: false,
+            pen: { total: 845.3, minimo: 120, pagado: 845.3, falta: 0, estado: 'pagado' },
+            usd: { total: 45.6, minimo: 10, pagado: 0, falta: 45.6, estado: 'pendiente' } },
+          { tipo: 'recurrente', id: 'r2', nombre: 'Gimnasio', emoji: '💪', fecha: '2026-11-08', dias: 26, monto: 120, moneda: 'PEN', cuenta: 'Débito BCP' },
+        ],
+        porPagar: 386.9,
       },
       resumen: { ingresos: 3500, gastos: 1842.3, ahorro: 1657.7, tasaAhorro: 47 },
       resumenAnterior: { ingresos: 3500, gastos: 2275, ahorro: 1225, tasaAhorro: 35 },
@@ -125,6 +144,9 @@
       referencia: { c1: { mesPasado: 548.2, promedio3: 571.4 }, c2: { mesPasado: 383, promedio3: 402.7 }, c5: { mesPasado: 141.5, promedio3: 150 } },
       categorias: CATEGORIAS.filter(c => c.tipo === 'gasto'),
     },
+    obtenerRecurrentes: RECURRENTES,
+    guardarRecurrente: RECURRENTES,
+    eliminarRecurrente: RECURRENTES,
     guardarPresupuestos: { cambiadas: 1, mes: '2026-10', montos: { c1: 600, c2: 450, c3: 250 }, referencia: {}, categorias: [] },
     desvincularTelegram: { configurado: false, vinculado: false, bot: '', codigo: '', enlace: '', hora_resumen: 21, cuenta_bot: '' },
   };
