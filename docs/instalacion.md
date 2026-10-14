@@ -52,6 +52,19 @@ npm run deploy
 
 Tus datos no se tocan: viven en la Sheet.
 
+Si la versión nueva pide permisos nuevos (lo dice el CHANGELOG), ejecuta una vez `autorizarPermisos` en el editor de la app, acepta, y vuelve a ejecutar `npm run deploy`.
+
+### Bot de Telegram (opcional, desde v0.3)
+
+1. En Telegram, abre **@BotFather**, envía `/newbot`, elige un nombre y un usuario terminado en `bot`, y copia el **token**.
+2. En la carpeta del proyecto: `npm run deploy:receptor`. Crea un segundo proyecto de Apps Script, el *receptor*, que solo recibe los mensajes de Telegram y se los pasa a la app. Imprime dos URLs: la del **editor** del receptor y la **URL del receptor**.
+3. Abre la URL del editor, elige la función `autorizar`, toca **Ejecutar** y acepta los permisos. Sin este paso Google responde "Acceso denegado" a Telegram.
+4. Actualiza la app (`npm run deploy`). Luego, en el editor de la app, ejecuta una vez la función `autorizarPermisos` (archivo `setup/permisos`) y acepta el permiso nuevo ("conectarse a un servicio externo"), que la app usa para escribirle a Telegram. La app web no muestra la pantalla de permisos: corre como su dueño. Si aceptas después del despliegue, vuelve a ejecutar `npm run deploy`.
+5. En la app, **Ajustes → Telegram**: pega el token y la URL del receptor y toca **Conectar**.
+6. Envía al bot el código que aparece (`/start XXXXXX`, o toca **Abrir Telegram**) y luego **Ya lo envié**. Desde ese momento el bot solo atiende a tu chat.
+
+El receptor usa siempre el último código de la app: después de un `npm run deploy` no hay que volver a desplegarlo.
+
 ## Vía plantilla ("Hacer una copia") — llega en v0.5
 
 Para quien no quiera usar la terminal: una Sheet plantilla con el código incluido, que se copia con un clic.

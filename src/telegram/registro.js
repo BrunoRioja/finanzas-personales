@@ -1,0 +1,59 @@
+// Gastos escritos en el chat: se guardan con origen "telegram" y se pueden deshacer.
+
+function contextoBot_() {
+  return {
+    cuentas: leerTabla_('Cuentas'),
+    categorias: leerTabla_('Categorias'),
+    urlApp: PropertiesService.getScriptProperties().getProperty('APP_URL') || '',
+    hoy: hoyIso_(),
+  };
+}
+
+function registrarEscrito_(texto, updateId) {
+  return conBloqueo_(() => {
+    const config = leerConfig_();
+    const cuentas = leerTabla_('Cuentas');
+    const reglas = leerTabla_('Reglas');
+    const leido = leerEscrito_(texto, { cuentas: cuentas, categorias: leerTabla_('Categorias'), reglas: reglas, cuentaBot: config.cuenta_bot || '' });
+    if (!leido.ok) return { error: leido.error };
+    const cuenta = cuentas.filter(c => c.id === leido.cuenta_id)[0];
+    const tc = cuenta.moneda === 'PEN' ? 1 : Number(config.ultimo_tc) || 0;
+    if (!tc) return { error: 'Configura el tipo de cambio en Ajustes para registrar en ' + cuenta.moneda + '.' };
+    const mov = {
+      id: nuevoId_(), fecha: hoyIso_(), tipo: leido.tipo, monto: leido.monto, moneda: cuenta.moneda, tc: tc,
+      monto_pen: redondear2_(leido.monto * tc), cuenta_id: cuenta.id, cuenta_destino_id: '', categoria_id: leido.categoria_id,
+      comercio: leido.descripcion, descripcion: '', origen: 'telegram', estado: leido.categoria_id ? 'confirmado' : 'por_revisar',
+      ref_externa: 'tg:' + updateId, dividido: false, creado_en: formatearFecha_(new Date(), 'yyyy-MM-dd HH:mm:ss'),
+    };
+    agregarFilas_('Movimientos', [mov]);
+    if (leido.regla_id) contarUsosReglas_([{ regla_id: leido.regla_id }], reglas);
+    return { mov: mov };
+  });
+}
+
+function manejarEscrito_(texto, updateId) {
+  const r = registrarEscrito_(texto, updateId);
+  if (r.error) return enviarMensaje_(r.error);
+  const ctx = contextoBot_();
+  if (r.mov.estado === 'por_revisar') {
+    const frecuentes = categoriasFrecuentes_(leerTabla_('Movimientos'), ctx.categorias)[r.mov.tipo] || [];
+    const m = mensajePorRevisar_(r.mov, frecuentes, ctx);
+    return enviarMensaje_(m.texto, m.teclado);
+  }
+  return enviarMensaje_(textoRegistrado_(r.mov, ctx), tecladoRegistrado_(r.mov));
+}
+
+// /deshacer: el movimiento del bot más reciente de las últimas 24 horas.
+function deshacerUltimo_() {
+  const borrado = conBloqueo_(() => {
+    const limite = formatearFecha_(new Date(Date.now() - 86400000), 'yyyy-MM-dd HH:mm:ss');
+    const mov = leerTabla_('Movimientos').filter(m => m.origen === 'telegram' && m.creado_en >= limite)
+      .sort((a, b) => b.creado_en.localeCompare(a.creado_en))[0];
+    if (!mov) return null;
+    eliminarFila_('Movimientos', mov.id);
+    borrarDivisiones_(mov.id);
+    return mov;
+  });
+  if (!borrado) return enviarMensaje_('No hay movimientos registrados por el bot en las últimas 24 horas.');
+  return enviarMensaje_('↩ Borré ' + formatoMonto_(borrado.monto, borrado.moneda) + ' · ' + escaparHtml_(borrado.comercio));
+}

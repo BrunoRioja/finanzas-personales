@@ -15,6 +15,24 @@ src/core/repo.js   ← única capa que toca SpreadsheetApp (y migra el esquema)
 Google Sheet    Movimientos · Divisiones · Cuentas · Categorias · Reglas · Pendientes · Config · Log
 ```
 
+## Bot de Telegram (receptor + biblioteca)
+
+Telegram entrega los mensajes por POST a una URL pública sin sesión de Google, y la app es "solo yo". Por eso hay un segundo proyecto mínimo, el receptor:
+
+```
+Telegram ──POST /exec?secret=…──► Receptor (web app anónima, ejecuta como el dueño)
+                                     │ Finanzas.recibirTelegram(secreto, cuerpo)
+                                     ▼
+                                  App como biblioteca (developmentMode)
+                                     │ mismas propiedades del script, mismo bloqueo, misma hoja (SHEET_ID)
+                                     ▼
+                                  Google Sheet · API de Telegram
+```
+
+- `src/telegram/webhook.js` valida el secreto, descarta updates repetidos (CacheService, 6 h) e ignora otros chats.
+- Lo que arma textos y teclados (`mensajes.js`) y el lector de gastos escritos (`escrito.js`) son funciones puras.
+- Nada que se ejecute desde el receptor crea triggers: el del resumen diario se crea al conectar o guardar en Ajustes.
+
 ## Reglas del código
 
 - Apps Script carga todos los archivos en un mismo ámbito global. Las funciones que el navegador puede llamar **no** terminan en `_`; las internas **sí** (Apps Script las oculta al navegador).

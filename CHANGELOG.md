@@ -2,6 +2,20 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/); versiones con [SemVer](https://semver.org/lang/es/).
 
+## [0.3.0] — 2026-10-13
+
+### Agregado
+- Bot de Telegram (modo B): avisa las compras nuevas por revisar con las 3 categorías más probables, "Otra…" y "¿Recordar?"; agrupa los avisos cuando llegan más de 5.
+- Gastos escritos en el chat (`taxi 12 yape`, `almuerzo 25.50 efectivo comida`, `+ sueldo 3500`) con [Deshacer] y [Cambiar categoría].
+- Comandos `/hoy`, `/mes`, `/deshacer` y `/ayuda`.
+- Resumen diario a la hora elegida (por defecto 21:00), solo los días con movimientos.
+- Aviso por el bot si falla la lectura automática de correos (máximo uno por hora).
+- Sección Telegram en Ajustes: conectar con el token, vincular el chat con un código, hora del resumen, cuenta predeterminada, mensaje de prueba y desconectar.
+- Receptor del webhook (`npm run deploy:receptor`).
+
+### Cambiado
+- La app pide un permiso nuevo para conectarse a Telegram (`script.external_request`): ejecuta una vez `autorizarPermisos` en el editor de la app y vuelve a desplegar.
+
 ## [0.2.0] — 2026-10-13
 
 ### Agregado

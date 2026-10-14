@@ -106,6 +106,13 @@
     importarCorreosDesde: { leidos: 50, creados: 45, porRevisar: 6, pendientes: 1, ignorados: 2, restantes: 62, etiquetados: 46 },
     listarReglas: [{ id: 'r1', patron: 'TOTTUS', categoria_id: 'c1', cuenta_id: '', creada_por: 'usuario', usos: 5 }],
     eliminarRegla: { ok: true },
+    // window.ESTADO_TELEGRAM permite ver los tres estados de la sección desde ver.js.
+    estadoTelegram: () => window.ESTADO_TELEGRAM || { configurado: true, vinculado: true, bot: 'prueba_bot', url_receptor: 'https://script.google.com/macros/s/R/exec', codigo: '', enlace: '', hora_resumen: 21, cuenta_bot: '' },
+    configurarTelegram: { configurado: true, vinculado: false, bot: 'prueba_bot', url_receptor: 'https://script.google.com/macros/s/R/exec', codigo: 'A1B2C3', enlace: 'https://t.me/prueba_bot?start=A1B2C3', hora_resumen: 21, cuenta_bot: '' },
+    nuevoCodigoTelegram: { configurado: true, vinculado: false, bot: 'prueba_bot', codigo: 'D4E5F6', enlace: 'https://t.me/prueba_bot?start=D4E5F6', hora_resumen: 21, cuenta_bot: '' },
+    guardarTelegram: { configurado: true, vinculado: true, bot: 'prueba_bot', codigo: '', enlace: '', hora_resumen: 20, cuenta_bot: '' },
+    probarTelegram: { ok: true },
+    desvincularTelegram: { configurado: false, vinculado: false, bot: '', codigo: '', enlace: '', hora_resumen: 21, cuenta_bot: '' },
   };
   window.__llamadas = [];
   function corredor(ok, falla) {
