@@ -4,9 +4,11 @@
 async function abrirDividir(mov) {
   const previas = mov.dividido ? await api('obtenerDivisiones', mov.id) : [];
   const cats = estado.catalogos.categorias.filter(c => c.tipo === mov.tipo && (c.activa || previas.some(p => p.categoria_id === c.id)));
+  const ambs = mov.tipo === 'gasto'
+    ? (estado.catalogos.ambitos || []).filter(a => a.activo || previas.some(p => ambito(p.ambito_id).id === a.id)) : [];
   const partes = previas.length
-    ? previas.map(p => ({ categoria_id: p.categoria_id, monto: String(p.monto) }))
-    : [{ categoria_id: mov.categoria_id || '', monto: '' }, { categoria_id: '', monto: '' }];
+    ? previas.map(p => ({ categoria_id: p.categoria_id, monto: String(p.monto), ambito_id: p.ambito_id || '' }))
+    : [{ categoria_id: mov.categoria_id || '', monto: '', ambito_id: mov.ambito_id || '' }, { categoria_id: '', monto: '', ambito_id: mov.ambito_id || '' }];
   const caja = abrirModal('<h2 class="titulo-modal">✂️ Dividir · ' + esc(mov.comercio || 'movimiento') + ' · <span class="num">' + dinero(mov.monto, mov.moneda) + '</span></h2><div id="dv"></div>');
   const redondear = n => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
   const restante = () => redondear(mov.monto - partes.slice(0, -1).reduce((s, p) => s + (Number(p.monto) || 0), 0));
@@ -14,7 +16,9 @@ async function abrirDividir(mov) {
   function leer() {
     caja.querySelectorAll('[data-fila]').forEach(f => {
       const i = Number(f.dataset.fila);
-      partes[i].categoria_id = f.querySelector('select').value;
+      partes[i].categoria_id = $('#dv-cat-' + i, caja).value;
+      const amb = $('#dv-amb-' + i, caja);
+      if (amb) partes[i].ambito_id = amb.value;
       if (i < partes.length - 1) partes[i].monto = f.querySelector('input').value;
     });
   }
@@ -23,8 +27,11 @@ async function abrirDividir(mov) {
     const resto = restante();
     const filas = partes.map((p, i) => {
       const ultima = i === partes.length - 1;
-      return '<div class="fila-division" data-fila="' + i + '">' +
+      const selectorAmbito = ambs.length
+        ? seleccion('dv-amb-' + i, ambs.map(a => a.id), ambito(p.ambito_id).id, ambs.map(a => (a.emoji ? a.emoji + ' ' : '') + a.nombre)) : '';
+      return '<div class="fila-division" data-fila="' + i + '"><div class="pila">' +
         seleccion('dv-cat-' + i, [''].concat(cats.map(c => c.id)), p.categoria_id, ['Categoría…'].concat(cats.map(c => c.emoji + ' ' + c.nombre))) +
+        selectorAmbito + '</div>' +
         '<input class="entrada num" inputmode="decimal" placeholder="0.00" aria-label="Monto" value="' + esc(ultima ? resto.toFixed(2) : p.monto) + '"' + (ultima ? ' readonly' : '') + '>' +
         (partes.length > 2 ? '<button type="button" class="boton" data-quitar="' + i + '" aria-label="Quitar parte">✕</button>' : '<span></span>') + '</div>';
     }).join('');
@@ -46,11 +53,11 @@ async function abrirDividir(mov) {
     });
     caja.querySelectorAll('[data-fila] select').forEach(s => { s.onchange = () => { leer(); pintar(); }; });
     caja.querySelectorAll('[data-quitar]').forEach(b => { b.onclick = () => { leer(); partes.splice(Number(b.dataset.quitar), 1); pintar(); }; });
-    $('#dv-agregar', caja).onclick = () => { leer(); partes.splice(partes.length - 1, 0, { categoria_id: '', monto: '' }); pintar(); };
+    $('#dv-agregar', caja).onclick = () => { leer(); partes.splice(partes.length - 1, 0, { categoria_id: '', monto: '', ambito_id: mov.ambito_id || '' }); pintar(); };
     $('#dv-cancelar', caja).onclick = cerrarModal;
     $('#dv-guardar', caja).onclick = async e => {
       leer();
-      const enviar = partes.map((p, i) => ({ categoria_id: p.categoria_id, monto: i === partes.length - 1 ? restante() : p.monto }));
+      const enviar = partes.map((p, i) => ({ categoria_id: p.categoria_id, ambito_id: p.ambito_id || '', monto: i === partes.length - 1 ? restante() : p.monto }));
       e.target.disabled = true;
       try {
         await api('dividirMovimiento', { id: mov.id, cuenta_id: mov.cuenta_id || '', partes: enviar });

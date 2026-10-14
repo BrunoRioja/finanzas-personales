@@ -6,6 +6,12 @@
     ['c5', 'Bodega', '🏪', '#ff6b6b', 'gasto'], ['c7', 'Aseo personal', '🧴', '#f72585', 'gasto'],
     ['c6', 'Sueldo', '💼', '#3ddc97', 'ingreso'],
   ].map(c => ({ id: c[0], nombre: c[1], emoji: c[2], color: c[3], tipo: c[4], padre_id: '', activa: true }));
+  const AMBITOS = [
+    { id: 'personal', nombre: 'Personal', emoji: '🙋', orden: 1, activo: true },
+    { id: 'm1', nombre: 'Diversión', emoji: '🎉', orden: 2, activo: true },
+    { id: 'm2', nombre: 'Familia', emoji: '👨‍👩‍👧', orden: 3, activo: true },
+    { id: 'm3', nombre: 'Trabajo', emoji: '💼', orden: 4, activo: true },
+  ];
   const CUENTAS = [
     { id: 'a1', nombre: 'Débito BCP', banco: 'BCP', tipo: 'debito', moneda: 'PEN', saldo_inicial: 2000, numeros: '4444, 1111', activa: true, yape: true },
     { id: 'a2', nombre: 'VISA BCP', banco: 'BCP', tipo: 'credito', moneda: 'PEN', saldo_inicial: -300, numeros: '2222', activa: true, yape: false },
@@ -27,7 +33,7 @@
   };
   const mov = (id, fecha, tipo, monto, cuenta_id, categoria_id, comercio, extra) => Object.assign({
     id, fecha, tipo, monto, moneda: 'PEN', tc: 1, monto_pen: monto, cuenta_id, cuenta_destino_id: '', categoria_id, comercio,
-    descripcion: '', origen: 'manual', estado: 'confirmado', ref_externa: '', dividido: false, creado_en: fecha + ' 12:00:00',
+    descripcion: '', ambito_id: '', origen: 'manual', estado: 'confirmado', ref_externa: '', dividido: false, creado_en: fecha + ' 12:00:00',
   }, extra || {});
   const MOVS = [
     mov('m1', '2026-10-12', 'gasto', 89.3, 'a1', 'c1', 'Tottus', { origen: 'gmail', dividido: true }),
@@ -67,7 +73,7 @@
       categorias: CATEGORIAS.map(c => ({ nombre: c.nombre, emoji: c.emoji, tipo: c.tipo })),
     },
     obtenerCatalogos: {
-      cuentas: CUENTAS, categorias: CATEGORIAS, saldos: SALDOS,
+      cuentas: CUENTAS, categorias: CATEGORIAS, ambitos: AMBITOS, saldos: SALDOS,
       config: { nombre: 'Ana', ultimo_tc: 3.75, moneda_principal: 'PEN' },
       opciones: { bancos: ['BCP', 'Interbank', 'Otro'], tiposCuenta: ['debito', 'credito', 'ahorro', 'billetera', 'efectivo'], monedas: ['PEN', 'USD'] },
       modoDemo: false, urlHoja: 'https://docs.google.com/spreadsheets/d/demo',
@@ -130,10 +136,11 @@
     },
     categorizarMovimiento: { confirmados: 2, regla: { id: 'r1', patron: 'BRAYAN G. MUNOZ', categoria_id: 'c3' } },
     obtenerDivisiones: [
-      { id: 'd1', movimiento_id: 'm1', categoria_id: 'c1', monto: 60, nota: '' },
+      { id: 'd1', movimiento_id: 'm1', categoria_id: 'c1', monto: 60, nota: '', ambito_id: 'm2' },
       { id: 'd2', movimiento_id: 'm1', categoria_id: 'c7', monto: 29.3, nota: '' },
     ],
     dividirMovimiento: { ok: true },
+    guardarAmbito: { id: 'm4' },
     quitarDivision: { ok: true },
     descartarPendiente: { ok: true },
     estadoLectura: ESTADO_LECTURA,

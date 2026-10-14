@@ -87,7 +87,7 @@ function abrirFormMovimiento(mov, opciones) {
   opciones = opciones || {};
   const f = mov ? Object.assign({}, mov) : {
     tipo: 'gasto', fecha: hoyIso(), monto: '', moneda: '', cuenta_id: cuentaPorDefecto(),
-    cuenta_destino_id: '', categoria_id: '', comercio: '', descripcion: '',
+    cuenta_destino_id: '', categoria_id: '', ambito_id: '', comercio: '', descripcion: '',
   };
   if (!mov) Object.assign(f, opciones.inicial || {});
   const caja = abrirModal('<h2 class="titulo-modal">' + (mov ? 'Editar movimiento' : 'Nuevo movimiento') + '</h2><div id="form-mov"></div>');
@@ -119,6 +119,7 @@ function abrirFormMovimiento(mov, opciones) {
       const cats = cat.categorias.filter(c => c.tipo === f.tipo && (c.activa || c.id === f.categoria_id));
       html += campo('Categoría', '<div class="chips">' + cats.map(c =>
         '<button type="button" class="chip' + (c.id === f.categoria_id ? ' activo' : '') + '" data-cat="' + esc(c.id) + '">' + esc(c.emoji + ' ' + c.nombre) + '</button>').join('') + '</div>');
+      if (f.tipo === 'gasto') html += campo('Ámbito', chipsAmbito(f.ambito_id));
       html += campo('Cuenta', seleccion('mv-cuenta_id', idsCuentas, f.cuenta_id, nombresCuentas));
     }
     html += '<div class="dos-col">' + campo('Fecha', '<input class="entrada" type="date" id="mv-fecha" value="' + esc(f.fecha) + '">') +
@@ -129,7 +130,7 @@ function abrirFormMovimiento(mov, opciones) {
     $('#form-mov', caja).innerHTML = html;
 
     caja.querySelectorAll('[data-tipo]').forEach(b => {
-      b.onclick = () => { leerForm(); f.tipo = b.dataset.tipo; f.categoria_id = ''; pintar(); };
+      b.onclick = () => { leerForm(); f.tipo = b.dataset.tipo; f.categoria_id = ''; f.ambito_id = ''; pintar(); };
     });
     caja.querySelectorAll('[data-cat]').forEach(b => {
       b.onclick = () => {
@@ -137,6 +138,7 @@ function abrirFormMovimiento(mov, opciones) {
         caja.querySelectorAll('[data-cat]').forEach(x => x.classList.toggle('activo', x === b));
       };
     });
+    enlazarChipsAmbito(caja, id => { f.ambito_id = id; });
     // Al cambiar de cuenta, la moneda pasa a ser la de esa cuenta (editable después).
     $('#mv-cuenta_id', caja).onchange = () => { leerForm(); f.moneda = cuenta(f.cuenta_id).moneda || 'PEN'; pintar(); };
     $('#mv-cancelar', caja).onclick = cerrarModal;
@@ -155,6 +157,7 @@ function abrirFormMovimiento(mov, opciones) {
         moneda: f.moneda || cuenta(f.cuenta_id).moneda || 'PEN', cuenta_id: f.cuenta_id,
         cuenta_destino_id: f.tipo === 'transferencia' ? f.cuenta_destino_id : '',
         categoria_id: f.tipo === 'transferencia' ? '' : f.categoria_id,
+        ambito_id: f.tipo === 'gasto' ? f.ambito_id : '',
         comercio: f.comercio, descripcion: f.descripcion,
       });
       guardarLocal('ultimaCuenta', f.cuenta_id);

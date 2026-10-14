@@ -36,6 +36,7 @@ function tarjetaRevisar(m, frecuentes) {
   const top = (frecuentes[m.tipo] || []).map(id => deTipo.find(c => c.id === id)).filter(Boolean);
   html += '<div class="chips">' + top.map(chipCategoria).join('') + '<button type="button" class="chip" data-otra>Otra…</button></div>' +
     '<div class="chips" data-todas hidden style="margin-top:6px">' + deTipo.filter(c => top.indexOf(c) < 0).map(chipCategoria).join('') + '</div>';
+  if (m.tipo === 'gasto') html += '<div class="etiqueta" style="margin-top:10px">Ámbito</div>' + chipsAmbito(m.ambito_id);
   if (m.comercio) {
     html += '<label class="check" style="margin-top:10px"><input type="checkbox" data-recordar checked> Recordar la categoría para:</label>' +
       '<input class="entrada" data-patron value="' + esc(mayusculasSinTildes(m.comercio)) + '" aria-label="Texto del comercio a recordar">';
@@ -48,6 +49,8 @@ function enlazarTarjetaRevisar(t, m) {
   const otra = t.querySelector('[data-otra]');
   if (otra) otra.onclick = () => { t.querySelector('[data-todas]').hidden = false; otra.hidden = true; };
   const valor = id => { const el = t.querySelector('[id="' + id + '"]'); return el ? el.value : ''; };
+  let ambitoElegido = ambito(m.ambito_id).id;
+  enlazarChipsAmbito(t, id => { ambitoElegido = id; });
   const confirmar = async (boton, categoriaId) => {
     const recordar = t.querySelector('[data-recordar]');
     const patron = t.querySelector('[data-patron]');
@@ -56,7 +59,7 @@ function enlazarTarjetaRevisar(t, m) {
     boton.textContent = 'Guardando…';
     try {
       const r = await api('categorizarMovimiento', {
-        id: m.id, categoria_id: categoriaId || '', cuenta_id: valor('rv-cta-' + m.id), cuenta_destino_id: valor('rv-dst-' + m.id),
+        id: m.id, categoria_id: categoriaId || '', ambito_id: ambitoElegido, cuenta_id: valor('rv-cta-' + m.id), cuenta_destino_id: valor('rv-dst-' + m.id),
         recordar: !!(recordar && recordar.checked), patron: patron ? patron.value : '',
       });
       aviso(r.confirmados > 1 ? r.confirmados + ' movimientos confirmados' : 'Movimiento confirmado');
