@@ -128,3 +128,14 @@ test('textoMes_', () => {
   assert.strictEqual(f('textoMes_', '2026-10', { ingresos: 0, gastos: 0, ahorro: 0, tasaAhorro: null }, []),
     '📅 <b>Mes 2026-10</b>\n💰 Ingresos: S/ 0.00\n🛒 Gastos: S/ 0.00\n🐷 Ahorro: S/ 0.00');
 });
+
+test('textoMes_ agrega las categorías en alerta o pasadas del presupuesto', () => {
+  const resumen = { ingresos: 0, gastos: 0, ahorro: 0, tasaAhorro: null };
+  const base = f('textoMes_', '2026-10', resumen, []);
+  assert.strictEqual(f('textoMes_', '2026-10', resumen, [], { filas: [
+    { nombre: 'Comida fuera', emoji: '🍽️', porcentaje: 81, queda: 75, estado: 'alerta' },
+    { nombre: 'Súper & más', emoji: '🛒', porcentaje: 104, queda: -24, estado: 'pasado' },
+    { nombre: 'Bodega', emoji: '🏪', porcentaje: 20, queda: 40, estado: 'ok' },
+  ] }), base + '\n\n<b>Presupuestos</b>\n• 🍽️ Comida fuera 81 % · quedan S/ 75.00\n• 🛒 Súper &amp; más 104 % · pasado por S/ 24.00');
+  assert.strictEqual(f('textoMes_', '2026-10', resumen, [], { filas: [{ nombre: 'Bodega', emoji: '', porcentaje: 20, queda: 40, estado: 'ok' }] }), base);
+});
