@@ -1,6 +1,14 @@
 <script>
 'use strict';
 // Pestaña Presupuestos: un monto por categoría de gasto, que rige desde el mes actual.
+
+// Igual que leerMontoTexto_ del servidor: "1,200" es mil doscientos y "400,50" es decimal.
+function montoEscrito(texto) {
+  const t = String(texto || '').trim().replace(/^s\/\.?\s*/i, '');
+  if (/^\d{1,3}(,\d{3})+(\.\d+)?$/.test(t)) return Number(t.replace(/,/g, ''));
+  if (/^\d+([.,]\d+)?$/.test(t)) return Number(t.replace(',', '.'));
+  return 0;
+}
 VISTAS.presupuestos = async function (cont) {
   const p = await api('obtenerPresupuestos');
   const ref = id => p.referencia[id] || { mesPasado: 0, promedio3: 0 };
@@ -20,7 +28,7 @@ VISTAS.presupuestos = async function (cont) {
     '</section>';
   const entradas = Array.from(cont.querySelectorAll('[data-presupuesto]'));
   const total = () => {
-    $('#p-total').textContent = dinero(entradas.reduce((s, i) => s + (Number(i.value.trim().replace(',', '.')) || 0), 0));
+    $('#p-total').textContent = dinero(entradas.reduce((s, i) => s + (montoEscrito(i.value) || 0), 0));
   };
   entradas.forEach(i => { i.oninput = total; });
   total();

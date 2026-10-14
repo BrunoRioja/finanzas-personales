@@ -28,9 +28,8 @@ function guardarPresupuestosSinAvisar_(montos, mes) {
   Object.keys(montos).forEach(id => {
     const categoria = buscarActiva_(categorias, id, 'La categoría');
     if (categoria.tipo !== 'gasto') throw new Error('Solo las categorías de gasto llevan presupuesto: "' + categoria.nombre + '".');
-    const texto = montos[id] === null || montos[id] === undefined ? '' : String(montos[id]).trim().replace(',', '.');
-    const monto = texto === '' ? 0 : redondear2_(texto);
-    if (!isFinite(monto) || monto < 0) throw new Error('El presupuesto de "' + categoria.nombre + '" debe ser un número positivo.');
+    const monto = leerMontoTexto_(montos[id]);
+    if (monto === null) throw new Error('El presupuesto de "' + categoria.nombre + '" debe ser un número positivo.');
     if (monto !== (vigentes[id] || 0)) cambios.push({ categoria_id: id, monto: monto });
   });
   cambios.forEach(c => {

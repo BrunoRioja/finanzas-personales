@@ -62,3 +62,12 @@ test('obtenerDashboard incluye el presupuesto del mes elegido', () => {
   assert.deepStrictEqual(p.filas.map(x => [x.categoria_id, x.porcentaje, x.estado]), [[e.sup, 85, 'alerta']]);
   assert.deepStrictEqual(e.llamar('obtenerDashboard', '2026-09').presupuesto.filas, []);
 });
+
+test('los montos con coma de miles se leen como en la app (1,200 = mil doscientos)', () => {
+  const e = entorno();
+  const r = e.llamar('guardarPresupuestos', { montos: { [e.sup]: '1,200', [e.com]: 'S/ 1,250.50', [e.bod]: '12,5' } });
+  assert.deepStrictEqual(r.montos, { [e.sup]: 1200, [e.com]: 1250.5, [e.bod]: 12.5 });
+  assert.throws(() => e.llamar('guardarPresupuestos', { montos: { [e.sup]: '1.200,50' } }), /número positivo/);
+  assert.deepStrictEqual(['1,200', '400,50', ' 90 ', '', 'S/. 1,000', 'abc'].map(t => e.llamar('leerMontoTexto_', t)),
+    [1200, 400.5, 90, 0, 1000, null]);
+});

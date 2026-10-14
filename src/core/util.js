@@ -54,3 +54,13 @@ function validarMes_(mes) {
 function nuevoId_() {
   return Utilities.getUuid();
 }
+
+// Monto escrito por el usuario: "1,200" y "1,250.50" llevan coma de miles (así los muestra
+// la app); "400,50" lleva coma decimal. Vacío = 0; lo que no es un monto positivo = null.
+function leerMontoTexto_(texto) {
+  const t = String(texto == null ? '' : texto).trim().replace(/^s\/\.?\s*/i, '');
+  if (t === '') return 0;
+  if (/^\d{1,3}(,\d{3})+(\.\d+)?$/.test(t)) return redondear2_(t.replace(/,/g, ''));
+  if (/^\d+([.,]\d+)?$/.test(t)) return redondear2_(t.replace(',', '.'));
+  return null;
+}
