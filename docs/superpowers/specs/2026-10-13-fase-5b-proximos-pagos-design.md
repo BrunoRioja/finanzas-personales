@@ -93,8 +93,10 @@ Al guardar (`guardarLeidos_`, dentro del bloqueo):
 
 ## 5. Cálculo (funciones puras en `src/core/pagos.js`)
 
-**`estadoTarjeta_(ec, movimientos)`**
-- **Qué cuenta como pago:** las transferencias con `cuenta_destino_id = ec.cuenta_id` y `fecha ≥ ec.emitido`, sumadas por `moneda`, sin importar si están confirmadas o por revisar (el pago ya ocurrió).
+**`estadoTarjeta_(ec, estados, movimientos)`**
+- **Qué cuenta como pago:** las transferencias con `cuenta_destino_id = ec.cuenta_id`, sumadas por `moneda`, sin importar si están confirmadas o por revisar (el pago ya ocurrió).
+  - Cuentan desde el día siguiente al `fecha_limite` del estado de cuenta anterior de la misma tarjeta. Sin anterior, desde 10 días antes de `emitido`.
+  - No se cuenta desde `emitido` porque es común pagar desde la app del banco antes de que llegue el correo del estado de cuenta.
 - **Devuelve:** `{ pen: { total, minimo, pagado, falta, estado }, usd: {…} }`. Una moneda con total 0 vale `null`.
 - **Estado de cada moneda:**
   - `pagado`: lo pagado ≥ total.
@@ -105,7 +107,7 @@ Al guardar (`guardarLeidos_`, dentro del bloqueo):
 - Devuelve la próxima fecha ≥ hoy: este mes si el día aún no pasó; si no, el mes siguiente.
 - Ajusta al último día cuando el mes es más corto.
 
-**`proximosPagos_(recurrentes, estados, cuentas, categorias, movimientos, hoyIso, tc)`**
+**`proximosPagos_({ recurrentes, estados, cuentas, categorias, movimientos, tcUsd }, hoyIso)`**
 - **Recurrentes:** los activos cuya próxima fecha cae en `[hoy, hoy + 30 días]`.
   - Forma: `{ tipo: 'recurrente', id, nombre, emoji, fecha, dias, monto, moneda, cuenta }`.
 - **Tarjeta:** el último estado de cuenta por tarjeta (el de mayor `emitido`), si cumple una de estas condiciones:
@@ -172,7 +174,7 @@ Al guardar (`guardarLeidos_`, dentro del bloqueo):
 - **Cuándo corre:** con un trigger diario a las 8:00.
 - **Instalación del trigger:**
   - `configurarRecordatorioPagos_()` lo instala al vincular el bot, junto al resumen.
-  - Si el bot ya estaba vinculado, `asegurarEsquema_` lo instala tras migrar de v3 a v4 (solo desde la app principal).
+  - Al abrir la app (`estadoInstalacion`, que solo corre en la app principal), si el bot está conectado y falta el trigger, se instala. Cubre la actualización desde v0.5 y un trigger borrado a mano.
   - Al desvincular el bot, se borra.
 - **Qué hace:**
   - No hace nada en modo demo ni si el bot no está vinculado.
