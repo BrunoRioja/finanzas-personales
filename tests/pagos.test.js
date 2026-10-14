@@ -49,9 +49,10 @@ test('estadoTarjeta_: cada moneda con lo suyo; cuentan los pagos desde el día s
   assert.strictEqual(t2.usd.falta, 40);
 });
 
-test('estadoTarjeta_: sin estado anterior cuenta desde 10 días antes del correo; una moneda en 0 es null', () => {
+test('estadoTarjeta_: sin estado anterior cuenta desde 5 días antes del correo; una moneda en 0 es null', () => {
   const solo = Object.assign({}, EC, { total_usd: 0, minimo_usd: 0 });
-  const t = f('estadoTarjeta_', solo, [solo], [pago('2026-09-19', 50), pago('2026-09-20', 70)]);
+  // 22/09 es el vencimiento del estado anterior (8 días antes del correo del 30/09): no paga el nuevo.
+  const t = f('estadoTarjeta_', solo, [solo], [pago('2026-09-22', 600), pago('2026-09-24', 50), pago('2026-09-25', 70)]);
   assert.strictEqual(t.pen.pagado, 70);
   assert.strictEqual(t.pen.estado, 'pendiente');
   assert.strictEqual(t.usd, null);

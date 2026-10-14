@@ -37,6 +37,7 @@ function monedasTarjeta_(p) {
 
 function cuandoPago_(p) {
   if (p.vencido) return '⚠️ venció el ' + fechaCorta_(p.fecha);
+  if (p.dias < 0) return 'venció el ' + fechaCorta_(p.fecha);
   if (p.dias === 0) return 'hoy';
   if (p.dias === 1) return 'mañana';
   return diaSemana_(p.fecha) + ' ' + fechaCorta_(p.fecha);
@@ -99,6 +100,7 @@ function recordarPagos() {
   const props = PropertiesService.getScriptProperties();
   if (props.getProperty('MODO_DEMO') === 'si' || !telegramVinculado_()) return;
   try {
+    asegurarRecordatorioPagos_();
     asegurarEsquema_();
     const hoy = hoyIso_();
     const registro = leerPagosRecordados_();
@@ -128,12 +130,15 @@ function borrarTriggersRecordatorio_() {
     .forEach(t => ScriptApp.deleteTrigger(t));
 }
 
-// Al abrir la app: instala el recordatorio si el bot está conectado y falta el trigger
-// (actualización desde v0.5 o trigger borrado a mano). Nunca lanza.
+// Al abrir la app y en cada recordatorio: deja exactamente un trigger si el bot está
+// conectado (falta tras actualizar desde v0.5; sobra si dos aperturas a la vez crearon dos).
+// Nunca lanza.
 function asegurarRecordatorioPagos_() {
   try {
     if (!PropertiesService.getScriptProperties().getProperty('TELEGRAM_TOKEN')) return;
-    if (ScriptApp.getProjectTriggers().some(t => t.getHandlerFunction() === 'recordarPagos')) return;
+    const propios = ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'recordarPagos');
+    if (propios.length > 1) propios.slice(1).forEach(t => ScriptApp.deleteTrigger(t));
+    if (propios.length) return;
     configurarRecordatorioPagos_();
   } catch (e) {
     registrarAvisoTelegram_(e);

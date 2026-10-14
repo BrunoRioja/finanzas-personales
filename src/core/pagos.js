@@ -3,9 +3,10 @@
 
 const DIAS_PROXIMOS_PAGOS = 30;
 const DIAS_AVISO_PREVIO = 3;
-// Sin estado de cuenta anterior, los pagos cuentan desde estos días antes del correo:
-// es común pagar desde la app del banco antes de que llegue.
-const DIAS_PAGO_ANTICIPADO = 10;
+// Sin estado de cuenta anterior, los pagos cuentan desde estos días antes del correo: es
+// común pagar desde la app del banco antes de que llegue, pero el vencimiento anterior suele
+// caer una semana antes del correo y ese pago no es de este estado de cuenta.
+const DIAS_PAGO_ANTICIPADO = 5;
 const DIAS_SEMANA = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
 
 function fechaDeIso_(fechaIso) {

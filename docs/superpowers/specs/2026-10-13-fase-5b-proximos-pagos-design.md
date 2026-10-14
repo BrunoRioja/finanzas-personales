@@ -95,7 +95,7 @@ Al guardar (`guardarLeidos_`, dentro del bloqueo):
 
 **`estadoTarjeta_(ec, estados, movimientos)`**
 - **Qué cuenta como pago:** las transferencias con `cuenta_destino_id = ec.cuenta_id`, sumadas por `moneda`, sin importar si están confirmadas o por revisar (el pago ya ocurrió).
-  - Cuentan desde el día siguiente al `fecha_limite` del estado de cuenta anterior de la misma tarjeta. Sin anterior, desde 10 días antes de `emitido`.
+  - Cuentan desde el día siguiente al `fecha_limite` del estado de cuenta anterior de la misma tarjeta. Sin anterior, desde 5 días antes de `emitido` (el vencimiento anterior suele caer una semana antes del correo).
   - No se cuenta desde `emitido` porque es común pagar desde la app del banco antes de que llegue el correo del estado de cuenta.
 - **Devuelve:** `{ pen: { total, minimo, pagado, falta, estado }, usd: {…} }`. Una moneda con total 0 vale `null`.
 - **Estado de cada moneda:**
@@ -214,7 +214,7 @@ Un estado de cuenta que llega con menos de 3 días de margen no recibe el aviso 
   - `fechaRecurrente_` con el día 31 en un mes de 30 días, febrero, un día que ya pasó y el día de hoy.
   - Los estados `pagado`, `minimo`, `pendiente` y `vencido`.
   - Un pago en $ que solo cuenta para la parte en $.
-  - Un pago anterior a `emitido`, que no cuenta.
+  - Sin estado anterior, un pago de más de 5 días antes de `emitido` no cuenta; con anterior, cuentan desde el día siguiente a su vencimiento.
   - La tarjeta pagada que desaparece después de la fecha límite.
   - El estado de cuenta anterior que se reemplaza por el nuevo.
   - La ventana de 30 días, el orden y `porPagar` con dólares.

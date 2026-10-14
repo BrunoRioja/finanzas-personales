@@ -61,7 +61,7 @@ const ESTADO_PAGO = { pagado: ['✓', 'pos'], minimo: ['mínimo cubierto', 'aler
 function fechaCorta(iso) { return iso.slice(8, 10) + '/' + iso.slice(5, 7); }
 
 function cuandoPago(p) {
-  if (p.vencido) return 'venció el ' + fechaCorta(p.fecha);
+  if (p.vencido || p.dias < 0) return 'venció el ' + fechaCorta(p.fecha);
   if (p.dias === 0) return 'hoy';
   if (p.dias === 1) return 'mañana';
   const f = p.fecha.split('-').map(Number);

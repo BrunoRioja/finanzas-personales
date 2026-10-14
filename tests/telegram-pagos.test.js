@@ -146,3 +146,26 @@ test('/ayuda menciona /pagos', () => {
   e.escribir('/ayuda');
   assert.match(e.ultimoEnviado().text, /\/pagos — próximos pagos/);
 });
+
+test('con el mínimo pagado y la fecha ya pasada, /pagos dice que venció (no la muestra como próxima)', () => {
+  const e = entornoPagos();
+  e.estado();
+  e.pagar(120, 'PEN');
+  e.pagar(10, 'USD');
+  e.fijarAhora('2026-10-18T10:00:00');
+  e.escribir('/pagos');
+  assert.ok(e.ultimoEnviado().text.split('\n').includes('• 💳 VISA BCP · venció el 16/10 · S/ 800.00 mínimo cubierto · US$ 50.00 mínimo cubierto'), e.ultimoEnviado().text);
+});
+
+test('si quedaron dos triggers del recordatorio, abrir la app o el propio recordatorio deja uno solo', () => {
+  const e = entornoPagos();
+  const recordatorios = () => e.triggers.filter(t => t.funcion === 'recordarPagos');
+  e.interno('configurarRecordatorioPagos_');
+  e.triggers.push(Object.assign({}, recordatorios()[0]));
+  assert.strictEqual(recordatorios().length, 2);
+  e.llamar('estadoInstalacion');
+  assert.strictEqual(recordatorios().length, 1);
+  e.triggers.push(Object.assign({}, recordatorios()[0]));
+  e.recordar();
+  assert.strictEqual(recordatorios().length, 1);
+});
