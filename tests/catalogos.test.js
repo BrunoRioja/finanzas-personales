@@ -46,7 +46,7 @@ test('completarAsistente crea hojas, cuentas, categorías por defecto y config',
   assert.ok(cat.opciones.bancos.indexOf('BCP') >= 0);
   assert.strictEqual(cat.urlHoja, 'https://docs.google.com/spreadsheets/d/libro-principal');
   const config = e.llamar('leerConfig_');
-  assert.strictEqual(config.version_esquema, '3');
+  assert.strictEqual(config.version_esquema, '4');
   assert.strictEqual(config.modo_bot, 'B');
   assert.strictEqual(config.hora_resumen, '21:00');
 });

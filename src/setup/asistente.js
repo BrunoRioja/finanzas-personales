@@ -25,6 +25,7 @@ function estadoActual_() {
 // Llamada al abrir la app: si la hoja es de una versión anterior, la migra.
 function estadoInstalacion() {
   asegurarEsquema_();
+  asegurarRecordatorioPagos_();
   return estadoActual_();
 }
 

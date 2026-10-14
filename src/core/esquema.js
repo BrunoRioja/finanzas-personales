@@ -1,6 +1,6 @@
 // Hojas y columnas de la base de datos. La fila 1 de cada hoja son estos encabezados.
 // La primera columna de cada hoja es su clave. Tipos: texto | numero | fecha (yyyy-MM-dd) | booleano.
-const VERSION_ESQUEMA = 3;
+const VERSION_ESQUEMA = 4;
 
 const ESQUEMA = {
   Movimientos: [
@@ -29,6 +29,14 @@ const ESQUEMA = {
     ['resumen', 'texto'], ['estado', 'texto'],
   ],
   Presupuestos: [['id', 'texto'], ['categoria_id', 'texto'], ['monto', 'numero'], ['desde', 'texto']],
+  Recurrentes: [
+    ['id', 'texto'], ['nombre', 'texto'], ['monto', 'numero'], ['moneda', 'texto'], ['cuenta_id', 'texto'],
+    ['categoria_id', 'texto'], ['dia_mes', 'numero'], ['activo', 'booleano'],
+  ],
+  EstadosCuenta: [
+    ['id', 'texto'], ['cuenta_id', 'texto'], ['emitido', 'fecha'], ['total_pen', 'numero'], ['total_usd', 'numero'],
+    ['minimo_pen', 'numero'], ['minimo_usd', 'numero'], ['fecha_limite', 'fecha'], ['ref_externa', 'texto'],
+  ],
   Config: [['clave', 'texto'], ['valor', 'texto']],
   Log: [['fecha', 'texto'], ['nivel', 'texto'], ['origen', 'texto'], ['mensaje', 'texto'], ['detalle', 'texto']],
 };

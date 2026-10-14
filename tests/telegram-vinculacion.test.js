@@ -42,6 +42,7 @@ test('conectar guarda los secretos, registra el webhook con el secreto, crea el 
   });
   const t = e.triggers.filter(x => x.funcion === 'enviarResumenDiario');
   assert.deepStrictEqual(t.map(x => x.hora), [21]);
+  assert.deepStrictEqual(e.triggers.filter(x => x.funcion === 'recordarPagos').map(x => x.hora), [8]);
 });
 
 test('flujo completo: el código enviado al bot vincula el chat; vence a los 15 minutos', () => {

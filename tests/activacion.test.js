@@ -50,3 +50,18 @@ test('horario de lectura: se configura y se valida', () => {
   assert.throws(() => e.interno('configurarLectura', { frecuencia: '5', horario_inicio: 22, horario_fin: 8 }), /horario/);
   assert.throws(() => e.interno('configurarLectura', { frecuencia: '5', horario_inicio: 7, horario_fin: 25 }), /horario/);
 });
+
+test('Guardar también guarda "Importar correos desde": la siguiente revisión lee desde esa fecha', () => {
+  const e = entornoInstalado();
+  e.llamar('configurarLectura', { frecuencia: '5' });
+  e.interno('guardarConfig_', { cursor_lectura: 12345 });
+  const est = e.llamar('configurarLectura', { frecuencia: '5', importar_desde: '2026-09-30' });
+  assert.strictEqual(est.importar_desde, '2026-09-30');
+  assert.strictEqual(Number(e.llamar('leerConfig_').cursor_lectura), 0);
+  e.interno('guardarConfig_', { cursor_lectura: 999 });
+  e.llamar('configurarLectura', { frecuencia: '5', importar_desde: '2026-09-30' });
+  assert.strictEqual(Number(e.llamar('leerConfig_').cursor_lectura), 999, 'la misma fecha no reinicia la lectura');
+  assert.throws(() => e.interno('configurarLectura', { frecuencia: '5', importar_desde: '2026-13-01' }), /Fecha inválida/);
+  assert.throws(() => e.interno('configurarLectura', { frecuencia: '5', importar_desde: '2026-12-01' }), /futuro/);
+  assert.strictEqual(e.llamar('configurarLectura', { frecuencia: '5' }).importar_desde, '2026-09-30', 'sin fecha no la cambia');
+});

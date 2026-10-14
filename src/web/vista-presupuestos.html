@@ -10,7 +10,7 @@ function montoEscrito(texto) {
   return 0;
 }
 VISTAS.presupuestos = async function (cont) {
-  const p = await api('obtenerPresupuestos');
+  const [p, rec] = await Promise.all([api('obtenerPresupuestos'), api('obtenerRecurrentes')]);
   const ref = id => p.referencia[id] || { mesPasado: 0, promedio3: 0 };
   const filas = p.categorias.map(c =>
     '<div class="fila-presupuesto"><span class="nombre">' + esc(c.emoji + ' ' + c.nombre) + '</span>' +
@@ -25,7 +25,7 @@ VISTAS.presupuestos = async function (cont) {
       filas +
       '<div class="acciones"><button type="button" class="boton" id="p-copiar">Usar lo del mes pasado</button>' +
       '<button type="button" class="boton primario" id="p-guardar">Guardar</button></div>' +
-    '</section>';
+    '</section>' + seccionPagosFijos(rec);
   const entradas = Array.from(cont.querySelectorAll('[data-presupuesto]'));
   const total = () => {
     $('#p-total').textContent = dinero(entradas.reduce((s, i) => s + (montoEscrito(i.value) || 0), 0));
@@ -52,5 +52,95 @@ VISTAS.presupuestos = async function (cont) {
       e.target.disabled = false;
     }
   };
+  enlazarPagosFijos(cont, rec);
 };
+// Pagos fijos: solo se recuerdan (Telegram e Inicio); no crean movimientos.
+function seccionPagosFijos(rec) {
+  const filas = rec.recurrentes.map(r =>
+    '<div class="fila-fijo' + (r.activo ? '' : ' atenuada') + '">' +
+    '<button type="button" class="abrir-fijo" data-fijo="' + esc(r.id) + '"><span>' + esc(categoria(r.categoria_id).emoji + ' ' + r.nombre) + '</span>' +
+    '<span class="tenue detalle">Día ' + r.dia_mes + ' · ' + esc(cuenta(r.cuenta_id).nombre) + '</span></button>' +
+    '<span class="der num">' + dinero(r.monto, r.moneda) + '</span>' +
+    '<label class="check"><input type="checkbox" data-activo="' + esc(r.id) + '"' + (r.activo ? ' checked' : '') +
+    ' aria-label="' + esc(r.nombre) + ' activo"></label></div>').join('');
+  return '<section class="tarjeta seccion">' +
+    '<div class="cabecera-seccion"><div class="etiqueta">Pagos fijos al mes</div><div class="kpi num">' + dinero(rec.totalMensual) + '</div></div>' +
+    '<p class="tenue" style="margin:0 0 12px;font-size:13px">Te los recuerdo por Telegram 3 días antes y el mismo día. ' +
+      'No se registran solos: el gasto entra por el correo del banco o lo anotas tú.</p>' +
+    (filas || '<div class="vacio">Aún no tienes pagos fijos.</div>') +
+    '<div class="acciones"><button type="button" class="boton" id="pf-agregar">+ Agregar pago fijo</button></div></section>';
+}
+
+function enlazarPagosFijos(cont, rec) {
+  $('#pf-agregar', cont).onclick = () => abrirFormFijo(null, rec);
+  cont.querySelectorAll('[data-fijo]').forEach(b => {
+    b.onclick = () => abrirFormFijo(rec.recurrentes.find(r => r.id === b.dataset.fijo), rec);
+  });
+  cont.querySelectorAll('[data-activo]').forEach(i => {
+    i.onchange = async () => {
+      const r = rec.recurrentes.find(x => x.id === i.dataset.activo);
+      i.disabled = true;
+      try {
+        await api('guardarRecurrente', Object.assign({}, r, { activo: i.checked }));
+        aviso(i.checked ? 'Pago fijo activado' : 'Pago fijo pausado');
+        mostrar('presupuestos');
+      } catch (err) {
+        aviso(err.message, true);
+        i.checked = !i.checked;
+        i.disabled = false;
+      }
+    };
+  });
+}
+
+function abrirFormFijo(r, rec) {
+  const v = r || { nombre: '', monto: '', moneda: 'PEN', dia_mes: '', cuenta_id: rec.cuentas.length ? rec.cuentas[0].id : '', categoria_id: '', activo: true };
+  // Al editar, la cuenta y la categoría actuales aparecen aunque estén desactivadas.
+  const cuentas = rec.cuentas.concat(r && !rec.cuentas.some(c => c.id === r.cuenta_id) ? [cuenta(r.cuenta_id)] : []);
+  const cats = rec.categorias.concat(r && !rec.categorias.some(c => c.id === r.categoria_id) ? [categoria(r.categoria_id)] : []);
+  const caja = abrirModal('<h2 class="titulo-modal">' + (r ? 'Editar pago fijo' : 'Nuevo pago fijo') + '</h2>' +
+    campo('Nombre', '<input class="entrada" id="pf-nombre" value="' + esc(v.nombre) + '" placeholder="Spotify, gimnasio, alquiler…">') +
+    '<div class="dos-col" style="grid-template-columns:1fr 92px">' +
+      campo('Monto', '<input class="entrada num" id="pf-monto" inputmode="decimal" placeholder="0.00" value="' + esc(v.monto) + '">') +
+      campo('Moneda', seleccion('pf-moneda', ['PEN', 'USD'], v.moneda)) + '</div>' +
+    '<div class="dos-col">' +
+      campo('Día del mes', '<input class="entrada num" id="pf-dia" inputmode="numeric" placeholder="1 a 31" value="' + esc(v.dia_mes) + '">') +
+      campo('Cuenta', seleccion('pf-cuenta', cuentas.map(c => c.id), v.cuenta_id, cuentas.map(c => c.nombre))) + '</div>' +
+    campo('Categoría', seleccion('pf-categoria', [''].concat(cats.map(c => c.id)), v.categoria_id, ['Elige…'].concat(cats.map(c => c.emoji + ' ' + c.nombre)))) +
+    '<div class="acciones">' + (r ? '<button type="button" class="boton peligro" id="pf-eliminar">Eliminar</button>' : '') +
+    '<button type="button" class="boton" id="pf-cancelar">Cancelar</button><button type="button" class="boton primario" id="pf-guardar">Guardar</button></div>');
+  $('#pf-cancelar', caja).onclick = cerrarModal;
+  $('#pf-guardar', caja).onclick = async e => {
+    e.target.disabled = true;
+    try {
+      await api('guardarRecurrente', {
+        id: r ? r.id : '', nombre: $('#pf-nombre', caja).value, monto: $('#pf-monto', caja).value, moneda: $('#pf-moneda', caja).value,
+        dia_mes: $('#pf-dia', caja).value, cuenta_id: $('#pf-cuenta', caja).value, categoria_id: $('#pf-categoria', caja).value, activo: v.activo,
+      });
+      cerrarModal();
+      aviso(r ? 'Pago fijo actualizado' : 'Pago fijo guardado');
+      mostrar('presupuestos');
+    } catch (err) {
+      aviso(err.message, true);
+      e.target.disabled = false;
+    }
+  };
+  const eliminar = $('#pf-eliminar', caja);
+  if (eliminar) {
+    eliminar.onclick = async () => {
+      if (!eliminar.dataset.seguro) { eliminar.dataset.seguro = '1'; eliminar.textContent = '¿Seguro? Toca otra vez'; return; }
+      eliminar.disabled = true;
+      try {
+        await api('eliminarRecurrente', r.id);
+        cerrarModal();
+        aviso('Pago fijo eliminado');
+        mostrar('presupuestos');
+      } catch (err) {
+        aviso(err.message, true);
+        eliminar.disabled = false;
+      }
+    };
+  }
+  if (!r) $('#pf-nombre', caja).focus();
+}
 </script>

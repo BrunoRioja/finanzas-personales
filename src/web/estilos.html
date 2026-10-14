@@ -128,9 +128,20 @@ main { max-width: 1180px; margin: 0 auto; padding: 20px 24px 110px; }
 .pie-ppto { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: 13px; padding: 10px 4px 0; margin-top: 6px; border-top: 1px solid var(--borde); }
 .fila-presupuesto { display: grid; grid-template-columns: minmax(120px, 1fr) 130px; gap: 4px 12px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--borde); }
 .fila-presupuesto .ref { grid-column: 1 / -1; font-size: 12px; }
+.atenuada { opacity: .5; }
+.fila-pago { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 4px 12px; align-items: center; padding: 9px 4px; border-bottom: 1px solid var(--borde); font-size: 14px; }
+.fila-pago .cuando { font-size: 13px; color: var(--texto-2); }
+.fila-pago .cuando.alerta { color: var(--alerta); }
+.fila-pago .cuando.neg { color: var(--negativo); }
+.fila-fijo { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 12px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--borde); }
+.abrir-fijo { all: unset; cursor: pointer; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.abrir-fijo .detalle { font-size: 12px; }
+.abrir-fijo:focus-visible { outline: 2px solid var(--primario); outline-offset: 2px; border-radius: 6px; }
 
 /* Celular */
 @media (max-width: 720px) {
+  .fila-pago.larga { grid-template-columns: minmax(0, 1fr) auto; }
+  .fila-pago.larga .der { grid-column: 1 / -1; text-align: left; }
   .fila-barra.ppto { grid-template-columns: minmax(80px, 1fr) 48px auto 38px; }
   .de-ppto { display: none; }
   .barra-movil .pestana { min-width: 0; }

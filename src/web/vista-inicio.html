@@ -14,6 +14,7 @@ VISTAS.inicio = async function (cont) {
       kpi('Ahorro del mes', dinero(r.ahorro), r.ahorro < 0 ? 'neg' : 'pos') +
       kpi('Tasa de ahorro', r.tasaAhorro == null ? '—' : r.tasaAhorro + '%', '', nota) +
       bloquePresupuesto(d.presupuesto) +
+      bloqueProximosPagos(d.proximosPagos) +
       bloqueCategorias(d.categorias) +
       bloqueTendencia(d.tendencia) +
       bloqueSaldos(d.saldos) +
@@ -24,6 +25,8 @@ VISTAS.inicio = async function (cont) {
   if (franja) franja.onclick = () => mostrar('revisar');
   const irPresupuestos = $('#ir-presupuestos');
   if (irPresupuestos) irPresupuestos.onclick = () => mostrar('presupuestos');
+  const irFijos = $('#ir-pagos-fijos');
+  if (irFijos) irFijos.onclick = () => mostrar('presupuestos');
   cont.querySelectorAll('[data-categoria]').forEach(f => {
     f.onclick = () => { estado.filtro = { categoria_id: f.dataset.categoria }; mostrar('movimientos'); };
   });
@@ -50,6 +53,42 @@ function bloquePresupuesto(p) {
   return '<section class="tarjeta ancho-2">' + titulo + '<div class="filas">' + filas + '</div>' +
     '<div class="pie-ppto"><span>Total: <b class="num">' + dinero(p.total.gastado) + '</b> de ' + dinero(p.total.presupuesto) + '</span>' +
     '<span class="tenue">Sin presupuesto: ' + dinero(p.sinPresupuesto) + '</span></div></section>';
+}
+
+const DIAS_CORTOS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+const ESTADO_PAGO = { pagado: ['✓', 'pos'], minimo: ['mínimo cubierto', 'alerta'], pendiente: ['pendiente', 'tenue'] };
+
+function fechaCorta(iso) { return iso.slice(8, 10) + '/' + iso.slice(5, 7); }
+
+function cuandoPago(p) {
+  if (p.vencido || p.dias < 0) return 'venció el ' + fechaCorta(p.fecha);
+  if (p.dias === 0) return 'hoy';
+  if (p.dias === 1) return 'mañana';
+  const f = p.fecha.split('-').map(Number);
+  return DIAS_CORTOS[new Date(f[0], f[1] - 1, f[2]).getDay()] + ' ' + fechaCorta(p.fecha);
+}
+
+// Solo llega para el mes actual (null en otros meses): mirar pagos futuros desde un mes pasado no tiene sentido.
+function bloqueProximosPagos(r) {
+  if (!r) return '';
+  const titulo = '<div class="etiqueta">Próximos pagos</div>';
+  if (!r.pagos.length) {
+    return '<section class="tarjeta ancho-2">' + titulo + '<div class="vacio">Agrega tus pagos fijos (alquiler, suscripciones, gimnasio) ' +
+      'para verlos aquí antes de que venzan. <button type="button" class="boton" id="ir-pagos-fijos">Agregar pagos fijos</button></div></section>';
+  }
+  const filas = r.pagos.map(p => {
+    const tarjeta = p.tipo === 'tarjeta';
+    const monedas = tarjeta ? [[p.pen, 'PEN'], [p.usd, 'USD']].filter(x => x[0]) : [];
+    const pagada = tarjeta && monedas.every(x => x[0].estado === 'pagado');
+    const clase = p.vencido ? 'neg' : pagada ? '' : p.dias <= 3 ? 'alerta' : '';
+    const monto = tarjeta
+      ? monedas.map(x => dinero(x[0].total, x[1]) + ' <span class="' + ESTADO_PAGO[x[0].estado][1] + '">' + ESTADO_PAGO[x[0].estado][0] + '</span>').join(' · ')
+      : dinero(p.monto, p.moneda);
+    return '<div class="fila-pago' + (tarjeta ? ' larga' : '') + (pagada ? ' atenuada' : '') + '"><span>' + esc(p.emoji + ' ' + p.nombre) + '</span>' +
+      '<span class="cuando ' + clase + '">' + esc(cuandoPago(p)) + '</span><span class="der num">' + monto + '</span></div>';
+  }).join('');
+  return '<section class="tarjeta ancho-2">' + titulo + '<div class="filas">' + filas + '</div>' +
+    '<div class="pie-ppto"><span>Por pagar en 30 días: <b class="num">' + dinero(r.porPagar) + '</b></span></div></section>';
 }
 
 // Dona con circunferencia 100 (r = 15.9155): cada arco mide su porcentaje.

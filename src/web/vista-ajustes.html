@@ -99,7 +99,7 @@ async function guardarLectura(boton) {
   boton.disabled = true;
   try {
     await api('configurarLectura', {
-      frecuencia: $('#l-frec').value, etiquetar: $('#l-etiquetar').checked,
+      frecuencia: $('#l-frec').value, etiquetar: $('#l-etiquetar').checked, importar_desde: $('#l-desde').value,
       horario_inicio: Number($('#l-inicio').value), horario_fin: Number($('#l-fin').value),
     });
     resultadoLectura = { clase: 'ok', texto: '✅ Lectura de correos guardada.' };

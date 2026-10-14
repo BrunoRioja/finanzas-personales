@@ -2,6 +2,17 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/); versiones con [SemVer](https://semver.org/lang/es/).
 
+## [0.6.0] — 2026-10-14
+
+### Agregado
+- Próximos pagos: bloque en el Inicio con los pagos de los próximos 30 días y lo que falta pagar.
+- Pagos fijos (recurrentes) en la pestaña Presupuestos: solo se recuerdan, no crean movimientos.
+- Lectura del correo "Estado de Cuenta de tu Tarjeta VISA" del BCP: total, mínimo y último día de pago en S/ y $, con aviso por Telegram al llegar.
+- Estado de la tarjeta por moneda: pagado, mínimo cubierto, pendiente o vencido.
+- Recordatorio por Telegram a las 8:00, 3 días antes y el mismo día, y comando `/pagos`.
+- Esquema v4: hojas `Recurrentes` y `EstadosCuenta` (migración automática).
+- Pagos fijos y un estado de cuenta en los datos de demo.
+
 ## [0.5.0] — 2026-10-13
 
 ### Agregado
