@@ -2,7 +2,7 @@
 // encabezados, así que sirve para hojas de versiones anteriores del esquema. No copia el
 // Log, los correos no leídos, la configuración de lectura ni los secretos (no están en la hoja).
 
-const TABLAS_IMPORTABLES = ['Cuentas', 'Categorias', 'Movimientos', 'Divisiones', 'Reglas', 'Presupuestos', 'Recurrentes', 'EstadosCuenta'];
+const TABLAS_IMPORTABLES = ['Cuentas', 'Categorias', 'Ambitos', 'Movimientos', 'Divisiones', 'Reglas', 'Presupuestos', 'Recurrentes', 'EstadosCuenta'];
 const CONFIG_IMPORTABLE = ['nombre', 'moneda_principal', 'ultimo_tc', 'hora_resumen', 'horario_inicio', 'horario_fin', 'etiquetar'];
 
 function idDeHoja_(enlace) {
@@ -47,6 +47,7 @@ function importarHojaAnterior(enlace) {
     TABLAS_IMPORTABLES.forEach(t => { datos[t] = leerTablaDe_(anterior, t); });
     crearHojas_(libro);
     TABLAS_IMPORTABLES.forEach(t => agregarFilas_(t, datos[t]));
+    asegurarAmbitos_();
     const cambios = {};
     CONFIG_IMPORTABLE.forEach(k => { if (k in config) cambios[k] = config[k]; });
     guardarConfig_(Object.assign(cambios, { version_esquema: VERSION_ESQUEMA, instalado: 'si' }));

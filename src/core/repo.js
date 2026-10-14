@@ -231,6 +231,7 @@ function migrarSiHaceFalta_() {
   if (!libro.getSheetByName('Config')) return false;
   if (Number(leerConfig_().version_esquema) >= VERSION_ESQUEMA) return false;
   migrarEsquema_(libro);
+  asegurarAmbitos_();
   guardarConfig_({ version_esquema: VERSION_ESQUEMA });
   return true;
 }

@@ -7,6 +7,7 @@ function obtenerCatalogos() {
   return {
     cuentas: cuentas,
     categorias: leerTabla_('Categorias'),
+    ambitos: ordenarAmbitos_(leerTabla_('Ambitos')),
     saldos: saldosPorCuenta_(leerTabla_('Movimientos'), cuentas, tcUsd),
     config: {
       nombre: config.nombre || '',
@@ -52,6 +53,21 @@ function guardarCategoria(datos) {
   });
 }
 
+function guardarAmbito(datos) {
+  return conBloqueo_(() => {
+    const existentes = leerTabla_('Ambitos');
+    const ambito = normalizarAmbito_(datos, existentes, datos.id || '');
+    if (datos.id) {
+      if (!existentes.some(a => a.id === datos.id)) throw new Error('El ámbito ya no existe.');
+      actualizarFila_('Ambitos', datos.id, ambito);
+      return Object.assign({ id: datos.id }, ambito);
+    }
+    const nuevo = Object.assign({ id: nuevoId_() }, ambito);
+    agregarFilas_('Ambitos', [nuevo]);
+    return nuevo;
+  });
+}
+
 function guardarAjustes(datos) {
   conBloqueo_(() => {
     const nombre = String(datos.nombre || '').trim();
@@ -67,6 +83,7 @@ function contextoMovimientos_() {
   return {
     cuentas: leerTabla_('Cuentas'),
     categorias: leerTabla_('Categorias'),
+    ambitos: leerTabla_('Ambitos'),
     tcUsd: Number(leerConfig_().ultimo_tc) || 0,
   };
 }
