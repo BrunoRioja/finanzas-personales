@@ -11,11 +11,12 @@ App de finanzas personales que vive en **tu propia cuenta de Google**. Registra 
 |---|---|
 | ![Dashboard en laptop](docs/img/dashboard-laptop.png) | ![Dashboard en celular](docs/img/dashboard-movil.png) |
 
-## Qué hace hoy (v0.3)
+## Qué hace hoy (v0.5)
 
 - **Lectura automática de correos** del BCP y Yape (consumos con débito y crédito en S/ y $, PLIN, yapeos enviados y recibidos, transferencias entre cuentas, pago de tarjeta, pago de servicios), cada 5 minutos o con la frecuencia que elijas.
 - **Bandeja "Por revisar"**: lo que la app no sabe categorizar se resuelve con un toque y queda como regla para la próxima vez.
 - **Bot de Telegram:** te pregunta solo por las compras que no reconoce (un toque para elegir la categoría y recordarla), registra lo que escribes (`taxi 12 yape`), responde `/hoy`, `/mes` y `/deshacer`, y te manda un resumen a las 21:00 los días con movimientos.
+- **Presupuestos por categoría:** pones un monto a las categorías que quieres controlar (con lo que gastaste el mes pasado como referencia), el Inicio muestra cuánto llevas contra lo planeado y el bot te avisa al llegar al 80 % y al 100 %.
 - **Dividir** una compra entre varias categorías (supermercado + aseo + ropa).
 - **Dashboard:** ingresos, gastos, ahorro y tasa de ahorro del mes; gasto por categoría; tendencia de 6 meses; saldos por cuenta; comercios donde más gastas.
 - **Movimientos:** registro rápido desde el botón **+**, filtros por mes, cuenta, categoría y texto. Gastos en soles y dólares.
@@ -30,8 +31,10 @@ App de finanzas personales que vive en **tu propia cuenta de Google**. Registra 
 | v0.1 | Núcleo, dashboard, registro manual, asistente, demo | ✅ |
 | v0.2 | Lectura automática de correos del banco (BCP, Yape), bandeja y dividir | ✅ |
 | v0.3 | Bot de Telegram: solo pregunta lo que no conoce, resumen diario | ✅ |
-| v0.4 | Gemini: audios, foto de boleta, dividir compras | ⏳ |
-| v0.5 | Presupuestos, próximos pagos, plantilla "Hacer una copia" | ⏳ |
+| v0.4 | Gemini: foto de boleta para dividir compras (a decidir con el uso real) | ⏸️ |
+| v0.5 | Presupuestos por categoría y avisos por Telegram | ✅ |
+| v0.6 | Próximos pagos: estado de cuenta de la tarjeta y pagos recurrentes | ⏳ |
+| v0.7 | Plantilla "Hacer una copia" y pulido del README | ⏳ |
 
 ## Instalación
 

@@ -2,6 +2,19 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/); versiones con [SemVer](https://semver.org/lang/es/).
 
+## [0.5.0] — 2026-10-13
+
+### Agregado
+- Pestaña Presupuestos: un monto mensual por categoría de gasto, con el gasto del mes pasado y el promedio de 3 meses como referencia, y "Usar lo del mes pasado".
+- Bloque "Presupuesto del mes" en el Inicio: gastado vs presupuesto, color de alerta, marca de ritmo, total y gasto sin presupuesto.
+- Avisos por Telegram al cruzar el 80 % y el 100 % de una categoría (una vez por umbral y por mes).
+- `/mes` muestra las categorías en alerta o pasadas.
+- Presupuestos en los datos de demo.
+
+### Cambiado
+- Esquema de la hoja v3 (migración automática): hoja nueva `Presupuestos`.
+- La v0.4 (Gemini) queda en pausa hasta decidirla con el uso real.
+
 ## [0.3.0] — 2026-10-13
 
 ### Agregado
