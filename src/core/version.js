@@ -1,5 +1,5 @@
 // Versión de esta copia de la app. Una prueba exige que sea la de package.json.
-const VERSION_APP = '0.7.2';
+const VERSION_APP = '0.8.0';
 const URL_REPO = 'https://github.com/BrunoRioja/finanzas-personales';
 
 function partesVersion_(v) {

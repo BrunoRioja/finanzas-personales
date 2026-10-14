@@ -24,6 +24,12 @@ function generarDatosDemo_(hoyIso) {
   const categorias = CATEGORIAS_POR_DEFECTO.map((c, i) => ({
     id: 'demo-cat-' + (i + 1), nombre: c[0], emoji: c[1], color: PALETA[i % PALETA.length], tipo: c[2], padre_id: '', activa: true,
   }));
+  const ambitos = [
+    ambitoPersonal_(),
+    { id: 'demo-amb-diversion', nombre: 'Diversión', emoji: '🎉', orden: 2, activo: true },
+    { id: 'demo-amb-familia', nombre: 'Familia', emoji: '👨‍👩‍👧', orden: 3, activo: true },
+    { id: 'demo-amb-trabajo', nombre: 'Trabajo', emoji: '💼', orden: 4, activo: true },
+  ];
   const cat = nombre => categorias.filter(c => c.nombre === nombre)[0].id;
   const movimientos = [];
   const agregar = (fecha, tipo, monto, cuentaId, extra) => {
@@ -32,7 +38,7 @@ function generarDatosDemo_(hoyIso) {
     movimientos.push(Object.assign({
       id: 'demo-mov-' + (movimientos.length + 1), fecha: fecha, tipo: tipo, monto: monto,
       cuenta_id: cuentaId, cuenta_destino_id: '', categoria_id: '', comercio: '', descripcion: '',
-      origen: 'manual', estado: 'confirmado', ref_externa: '', dividido: false, creado_en: fecha + ' 12:00:00',
+      origen: 'manual', estado: 'confirmado', ref_externa: '', dividido: false, ambito_id: '', creado_en: fecha + ' 12:00:00',
     }, extra, { moneda: moneda, tc: tc, monto_pen: redondear2_(monto * tc) }));
   };
   const partes = hoyIso.split('-').map(Number);
@@ -40,16 +46,17 @@ function generarDatosDemo_(hoyIso) {
   for (let d = new Date(partes[0], partes[1] - 3, 1); d <= fin; d.setDate(d.getDate() + 1)) {
     const fecha = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
     const dia = d.getDate();
+    const finDeSemana = d.getDay() === 0 || d.getDay() === 6;
     if (dia === 1) agregar(fecha, 'ingreso', 3500, 'demo-debito', { categoria_id: cat('Sueldo'), comercio: 'Empresa Demo SAC', descripcion: 'Sueldo' });
     if (dia === 5) agregar(fecha, 'gasto', 11.9, 'demo-debito', { categoria_id: cat('Suscripciones'), comercio: 'Spotify' });
     if (dia === 8) agregar(fecha, 'gasto', 120, 'demo-debito', { categoria_id: cat('Salud y gym'), comercio: 'Gimnasio Demo' });
     if (dia === 10) agregar(fecha, 'gasto', entre(70, 110), 'demo-debito', { categoria_id: cat('Vivienda y servicios'), comercio: 'Luz del Sur' });
     if (dia === 16) agregar(fecha, 'gasto', 9.99, 'demo-visa', { categoria_id: cat('Suscripciones'), comercio: 'Netflix', moneda: 'USD' });
     if (dia === 20) agregar(fecha, 'transferencia', 600, 'demo-debito', { cuenta_destino_id: 'demo-visa', descripcion: 'Pago tarjeta VISA' });
-    if (dia % 7 === 3) agregar(fecha, 'gasto', entre(80, 210), 'demo-debito', { categoria_id: cat('Supermercado'), comercio: elegir(['Tottus', 'Plaza Vea', 'Metro']) });
+    if (dia % 7 === 3) agregar(fecha, 'gasto', entre(80, 210), 'demo-debito', { categoria_id: cat('Supermercado'), comercio: elegir(['Tottus', 'Plaza Vea', 'Metro']), ambito_id: dia === 17 ? 'demo-amb-familia' : '' });
     if (rnd() < 0.5) agregar(fecha, 'gasto', entre(3, 15), elegir(['demo-efectivo', 'demo-debito']), { categoria_id: cat('Bodega'), comercio: elegir(['Bodega Don Lucho', 'Minimarket La Esquina']) });
-    if (rnd() < 0.35) agregar(fecha, 'gasto', entre(8, 16), 'demo-debito', { categoria_id: cat('Transporte'), comercio: 'Taxi', descripcion: 'Yape' });
-    if (rnd() < 0.25) agregar(fecha, 'gasto', entre(18, 48), 'demo-visa', { categoria_id: cat('Comida fuera'), comercio: elegir(['Pardos Chicken', 'Sushi Bar', 'Menú El Rincón']) });
+    if (rnd() < 0.35) agregar(fecha, 'gasto', entre(8, 16), 'demo-debito', { categoria_id: cat('Transporte'), comercio: 'Taxi', descripcion: 'Yape', ambito_id: finDeSemana ? 'demo-amb-diversion' : (dia % 3 === 0 ? 'demo-amb-trabajo' : '') });
+    if (rnd() < 0.25) agregar(fecha, 'gasto', entre(18, 48), 'demo-visa', { categoria_id: cat('Comida fuera'), comercio: elegir(['Pardos Chicken', 'Sushi Bar', 'Menú El Rincón']), ambito_id: finDeSemana ? 'demo-amb-diversion' : '' });
     if (rnd() < 0.05) agregar(fecha, 'gasto', entre(60, 160), 'demo-visa', { categoria_id: cat('Ropa'), comercio: elegir(['Saga Falabella', 'Zara']) });
     if (rnd() < 0.06) agregar(fecha, 'gasto', entre(15, 40), 'demo-debito', { categoria_id: cat('Aseo personal'), comercio: 'Inkafarma' });
   }
@@ -77,7 +84,7 @@ function generarDatosDemo_(hoyIso) {
     minimo_pen: 120, minimo_usd: 9.99, fecha_limite: sumarDias_(hoyIso, 12), ref_externa: '',
   }];
   agregar(sumarDias_(hoyIso, -1), 'transferencia', 845.3, 'demo-debito', { cuenta_destino_id: 'demo-visa', descripcion: 'Pago tarjeta VISA' });
-  return { cuentas: cuentas, categorias: categorias, movimientos: movimientos, presupuestos: presupuestos, recurrentes: recurrentes, estadosCuenta: estadosCuenta };
+  return { cuentas: cuentas, categorias: categorias, ambitos: ambitos, movimientos: movimientos, presupuestos: presupuestos, recurrentes: recurrentes, estadosCuenta: estadosCuenta };
 }
 
 function cargarDemo() {
@@ -99,6 +106,7 @@ function cargarDemo() {
       const datos = generarDatosDemo_(hoyIso_());
       agregarFilas_('Cuentas', datos.cuentas);
       agregarFilas_('Categorias', datos.categorias);
+      agregarFilas_('Ambitos', datos.ambitos);
       agregarFilas_('Movimientos', datos.movimientos);
       agregarFilas_('Presupuestos', datos.presupuestos);
       agregarFilas_('Recurrentes', datos.recurrentes);

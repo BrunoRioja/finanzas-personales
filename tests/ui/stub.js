@@ -36,12 +36,12 @@
     descripcion: '', ambito_id: '', origen: 'manual', estado: 'confirmado', ref_externa: '', dividido: false, creado_en: fecha + ' 12:00:00',
   }, extra || {});
   const MOVS = [
-    mov('m1', '2026-10-12', 'gasto', 89.3, 'a1', 'c1', 'Tottus', { origen: 'gmail', dividido: true }),
-    mov('m2', '2026-10-12', 'gasto', 12, 'a1', '', 'BRAYAN G. MUNOZ', { origen: 'gmail', estado: 'por_revisar' }),
-    mov('m3', '2026-10-11', 'gasto', 38.5, 'a2', 'c2', 'Pardos Chicken'),
-    mov('m4', '2026-10-09', 'gasto', 9.99, 'a2', 'c4', 'Netflix', { moneda: 'USD', tc: 3.75, monto_pen: 37.46, origen: 'gmail' }),
-    mov('m5', '2026-10-05', 'transferencia', 600, 'a1', '', '', { cuenta_destino_id: 'a2', descripcion: 'Pago de tarjeta', origen: 'gmail' }),
-    mov('m6', '2026-10-01', 'ingreso', 3500, 'a1', 'c6', 'Empresa Demo SAC'),
+    mov('m1', '2026-10-12', 'gasto', 89.3, 'a1', 'c1', 'Tottus', { origen: 'gmail', dividido: true, ambitos: ['m1', 'personal'] }),
+    mov('m2', '2026-10-12', 'gasto', 12, 'a1', '', 'BRAYAN G. MUNOZ', { origen: 'gmail', estado: 'por_revisar', ambitos: ['personal'] }),
+    mov('m3', '2026-10-11', 'gasto', 38.5, 'a2', 'c2', 'Pardos Chicken', { ambitos: ['m1'] }),
+    mov('m4', '2026-10-09', 'gasto', 9.99, 'a2', 'c4', 'Netflix', { moneda: 'USD', tc: 3.75, monto_pen: 37.46, origen: 'gmail', ambitos: ['personal'] }),
+    mov('m5', '2026-10-05', 'transferencia', 600, 'a1', '', '', { cuenta_destino_id: 'a2', descripcion: 'Pago de tarjeta', origen: 'gmail', ambitos: [] }),
+    mov('m6', '2026-10-01', 'ingreso', 3500, 'a1', 'c6', 'Empresa Demo SAC', { ambitos: [] }),
   ];
   const POR_REVISAR = [
     mov('r1', '2026-10-12', 'gasto', 12, 'a1', '', 'BRAYAN G. MUNOZ', { origen: 'gmail', estado: 'por_revisar' }),
@@ -108,6 +108,14 @@
         { categoria_id: 'c3', nombre: 'Transporte', emoji: '🚕', color: '#7c5cff', monto: 196, porcentaje: 11 },
         { categoria_id: 'c5', nombre: 'Bodega', emoji: '🏪', color: '#ff6b6b', monto: 150, porcentaje: 8 },
         { categoria_id: '_resto', nombre: 'Resto', emoji: '•', color: '#3a3a48', monto: 290.3, porcentaje: 15 },
+      ],
+      ambitos: [
+        { ambito_id: 'personal', nombre: 'Personal', emoji: '🙋', monto: 820.4, porcentaje: 62, categorias: [
+          { categoria_id: 'c1', nombre: 'Supermercado', emoji: '🛒', monto: 540.4 }, { categoria_id: 'c3', nombre: 'Transporte', emoji: '🚕', monto: 280 }] },
+        { ambito_id: 'm1', nombre: 'Diversión', emoji: '🎉', monto: 380, porcentaje: 29, categorias: [
+          { categoria_id: 'c2', nombre: 'Comida fuera', emoji: '🍽️', monto: 300 }, { categoria_id: 'c3', nombre: 'Transporte', emoji: '🚕', monto: 80 }] },
+        { ambito_id: 'm3', nombre: 'Trabajo', emoji: '💼', monto: 120, porcentaje: 9, categorias: [
+          { categoria_id: 'c3', nombre: 'Transporte', emoji: '🚕', monto: 120 }] },
       ],
       tendencia: [
         { mes: '2026-05', ingresos: 3500, gastos: 2500 }, { mes: '2026-06', ingresos: 3300, gastos: 3000 },

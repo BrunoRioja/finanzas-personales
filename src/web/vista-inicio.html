@@ -16,6 +16,7 @@ VISTAS.inicio = async function (cont) {
       bloquePresupuesto(d.presupuesto) +
       bloqueProximosPagos(d.proximosPagos) +
       bloqueCategorias(d.categorias) +
+      bloqueAmbitos(d.ambitos || []) +
       bloqueTendencia(d.tendencia) +
       bloqueSaldos(d.saldos) +
       bloqueComercios(d.comercios) +
@@ -102,6 +103,17 @@ function dona(items) {
   }).join('');
   return '<svg class="dona" viewBox="0 0 42 42" role="img" aria-label="Gasto por categoría">' +
     '<circle cx="21" cy="21" r="15.9155" fill="none" style="stroke:var(--borde)" stroke-width="6"/>' + arcos + '</svg>';
+}
+
+function bloqueAmbitos(items) {
+  if (!items.length) return '';
+  const max = Math.max(...items.map(a => a.monto));
+  const filas = items.map(a => '<details class="ambito-detalle"><summary class="fila-barra clic"><span>' + esc(a.emoji) + ' ' + esc(a.nombre) + '</span>' +
+    '<span class="mini"><i style="width:' + (a.monto / max * 100) + '%;background:var(--primario)"></i></span>' +
+    '<span class="der num">' + dinero(a.monto) + '</span><span class="der tenue num">' + a.porcentaje + '%</span></summary>' +
+    a.categorias.map(c => '<div class="fila-simple sub"><span>' + esc(c.emoji + ' ' + c.nombre) + '</span><span class="num">' + dinero(c.monto) + '</span></div>').join('') +
+    '</details>').join('');
+  return '<section class="tarjeta ancho-2"><div class="etiqueta">Gasto por ámbito</div>' + filas + '</section>';
 }
 
 function bloqueCategorias(items) {

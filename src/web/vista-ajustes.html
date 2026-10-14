@@ -16,6 +16,12 @@ VISTAS.ajustes = async function (cont) {
       '<div class="cabecera-seccion" style="margin-top:16px"><div class="etiqueta">Categorías de ingreso</div><button type="button" class="boton" data-nueva="ingreso">+ Nueva</button></div>' +
       '<div class="chips">' + chips('ingreso') + '</div>' +
     '</section>' +
+    '<section class="tarjeta seccion">' +
+      '<div class="cabecera-seccion"><div class="etiqueta">Ámbitos (para qué fue el gasto)</div><button type="button" class="boton" id="a-nuevo-ambito">+ Nuevo</button></div>' +
+      '<div class="chips">' + (cat.ambitos || []).map(a => '<button type="button" class="chip' + (a.activo ? '' : ' apagado') + '" data-amb="' + esc(a.id) + '">' +
+        esc((a.emoji ? a.emoji + ' ' : '') + a.nombre) + '</button>').join('') + '</div>' +
+      '<p class="tenue" style="margin:8px 0 0;font-size:12px">Si no eliges uno, el gasto queda en ' + esc(ambito('personal').nombre) + '.</p>' +
+    '</section>' +
     seccionLectura(lectura) + seccionTelegram(telegram, cat.cuentas) + seccionReglas(reglas) +
     '<section class="tarjeta seccion"><div class="etiqueta">Datos</div>' +
       '<p class="tenue" style="margin:0">Todo vive en tu propia Google Sheet, en tu cuenta de Google.</p>' +
@@ -36,6 +42,8 @@ VISTAS.ajustes = async function (cont) {
   cont.querySelectorAll('[data-cat]').forEach(b => {
     b.onclick = () => { const c = cat.categorias.find(x => x.id === b.dataset.cat); abrirFormCategoria(c, c.tipo); };
   });
+  cont.querySelectorAll('[data-amb]').forEach(b => { b.onclick = () => abrirFormAmbito(cat.ambitos.find(a => a.id === b.dataset.amb)); });
+  $('#a-nuevo-ambito').onclick = () => abrirFormAmbito(null);
   cont.querySelectorAll('[data-nueva]').forEach(b => { b.onclick = () => abrirFormCategoria(null, b.dataset.nueva); });
   enlazarLectura();
   enlazarTelegram();
@@ -212,6 +220,31 @@ function enlazarReglas() {
       }
     };
   });
+}
+
+function abrirFormAmbito(a) {
+  const v = a || { nombre: '', emoji: '', activo: true };
+  const caja = abrirModal('<h2 class="titulo-modal">' + (a ? 'Editar ámbito' : 'Nuevo ámbito') + '</h2>' +
+    '<div class="dos-col" style="grid-template-columns:1fr 80px">' +
+      campo('Nombre', '<input class="entrada" id="b-nombre" value="' + esc(v.nombre) + '">') +
+      campo('Emoji', '<input class="entrada" id="b-emoji" maxlength="8" value="' + esc(v.emoji) + '">') +
+    '</div>' +
+    (a && a.id !== 'personal' ? '<label class="check"><input type="checkbox" id="b-activo"' + (v.activo ? ' checked' : '') + '> Ámbito activo (desactivarlo lo oculta al registrar, pero conserva el historial)</label>' : '') +
+    '<div class="acciones"><button type="button" class="boton" id="b-cancelar">Cancelar</button><button type="button" class="boton primario" id="b-guardar">Guardar</button></div>');
+  $('#b-cancelar', caja).onclick = cerrarModal;
+  $('#b-guardar', caja).onclick = async e => {
+    const activo = $('#b-activo', caja);
+    e.target.disabled = true;
+    try {
+      await api('guardarAmbito', { id: a ? a.id : '', nombre: $('#b-nombre', caja).value, emoji: $('#b-emoji', caja).value, activo: activo ? activo.checked : true });
+      cerrarModal();
+      aviso('Ámbito guardado');
+      mostrar('ajustes');
+    } catch (err) {
+      aviso(err.message, true);
+      e.target.disabled = false;
+    }
+  };
 }
 
 function abrirFormCategoria(c, tipo) {
