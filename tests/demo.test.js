@@ -30,6 +30,7 @@ test('cargarDemo crea una hoja aparte, activa el modo demo y no toca la hoja rea
   assert.deepStrictEqual(Object.keys(e.hojas), []);
   const d = e.llamar('obtenerDashboard', '2026-10');
   assert.ok(d.resumen.gastos > 0);
+  assert.strictEqual(d.proximosPagos.pagos.length, 5);
   const total = e.libros[idDemo]._hojas.Movimientos.length;
   e.llamar('cargarDemo');
   assert.strictEqual(e.propiedades.DEMO_SHEET_ID, idDemo);
@@ -61,4 +62,16 @@ test('el demo trae 6 presupuestos con alguna categoría en alerta y otra pasada'
   assert.ok(estados.indexOf('alerta') >= 0 && estados.indexOf('pasado') >= 0, estados.join(', '));
   e.llamar('cargarDemo');
   assert.strictEqual(e.libros[e.propiedades.DEMO_SHEET_ID]._hojas.Presupuestos.length, 7);
+});
+
+test('la demo trae 4 pagos fijos válidos y un estado de cuenta con soles pagados y dólares pendientes', () => {
+  const e = crearEntorno();
+  const a = e.llamar('generarDatosDemo_', '2026-10-13');
+  assert.strictEqual(a.recurrentes.length, 4);
+  assert.ok(a.recurrentes.some(r => r.moneda === 'USD'));
+  a.recurrentes.forEach(r => e.llamar('normalizarRecurrente_', r, a.cuentas, a.categorias));
+  assert.strictEqual(a.estadosCuenta.length, 1);
+  const t = e.llamar('estadoTarjeta_', a.estadosCuenta[0], a.estadosCuenta, a.movimientos);
+  assert.strictEqual(t.pen.estado, 'pagado');
+  assert.strictEqual(t.usd.estado, 'pendiente');
 });

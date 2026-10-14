@@ -63,7 +63,21 @@ function generarDatosDemo_(hoyIso) {
       id: 'demo-ppto-' + (i + 1), categoria_id: cat(p[0]),
       monto: Math.max(50, Math.ceil(gastoDelMes(p[0]) * p[1] / 10) * 10), desde: sumarMeses_(mes, -2),
     }));
-  return { cuentas: cuentas, categorias: categorias, movimientos: movimientos, presupuestos: presupuestos };
+  // Pagos fijos ficticios y un estado de cuenta con la parte en soles ya pagada.
+  const recurrentes = [
+    ['Spotify', 11.9, 'PEN', 'demo-debito', 'Suscripciones', 5],
+    ['Gimnasio', 120, 'PEN', 'demo-debito', 'Salud y gym', 8],
+    ['Plan de celular', 49.9, 'PEN', 'demo-debito', 'Vivienda y servicios', 22],
+    ['Netflix', 9.99, 'USD', 'demo-visa', 'Suscripciones', 16],
+  ].map((r, i) => ({
+    id: 'demo-rec-' + (i + 1), nombre: r[0], monto: r[1], moneda: r[2], cuenta_id: r[3], categoria_id: cat(r[4]), dia_mes: r[5], activo: true,
+  }));
+  const estadosCuenta = [{
+    id: 'demo-ec-1', cuenta_id: 'demo-visa', emitido: sumarDias_(hoyIso, -6), total_pen: 845.3, total_usd: 9.99,
+    minimo_pen: 120, minimo_usd: 9.99, fecha_limite: sumarDias_(hoyIso, 12), ref_externa: '',
+  }];
+  agregar(sumarDias_(hoyIso, -1), 'transferencia', 845.3, 'demo-debito', { cuenta_destino_id: 'demo-visa', descripcion: 'Pago tarjeta VISA' });
+  return { cuentas: cuentas, categorias: categorias, movimientos: movimientos, presupuestos: presupuestos, recurrentes: recurrentes, estadosCuenta: estadosCuenta };
 }
 
 function cargarDemo() {
@@ -87,6 +101,8 @@ function cargarDemo() {
       agregarFilas_('Categorias', datos.categorias);
       agregarFilas_('Movimientos', datos.movimientos);
       agregarFilas_('Presupuestos', datos.presupuestos);
+      agregarFilas_('Recurrentes', datos.recurrentes);
+      agregarFilas_('EstadosCuenta', datos.estadosCuenta);
       guardarConfig_({
         nombre: 'Demo', moneda_principal: 'PEN', ultimo_tc: 3.75, modo_bot: 'B', hora_resumen: '21:00',
         version_esquema: VERSION_ESQUEMA, instalado: 'si',
