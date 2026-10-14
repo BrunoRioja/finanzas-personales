@@ -2,7 +2,7 @@ const js = require('@eslint/js');
 const globals = require('globals');
 
 module.exports = [
-  { ignores: ['node_modules/', '.superpowers/'] },
+  { ignores: ['node_modules/', '.superpowers/', 'plantilla/'] },
   js.configs.recommended,
   {
     files: ['src/**/*.js', 'receptor/**/*.js'],

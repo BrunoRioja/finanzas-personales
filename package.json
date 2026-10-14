@@ -11,6 +11,8 @@
     "push": "clasp push --force",
     "deploy": "node scripts/desplegar.js",
     "deploy:receptor": "node scripts/desplegar-receptor.js",
+    "setup:plantilla": "node scripts/desplegar-plantilla.js",
+    "deploy:plantilla": "node scripts/desplegar-plantilla.js",
     "ui": "node tests/ui/ver.js"
   },
   "engines": {
