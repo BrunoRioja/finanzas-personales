@@ -21,7 +21,7 @@ test('estadoInstalacion migra una hoja v1 a v2 sin perder datos', () => {
   assert.strictEqual(cuenta.yape, false);
   assert.strictEqual(cuenta.saldo_inicial, 100);
   assert.ok(e.hojas.Pendientes, 'crea la hoja Pendientes');
-  assert.strictEqual(e.llamar('leerConfig_').version_esquema, '2');
+  assert.strictEqual(e.llamar('leerConfig_').version_esquema, '3');
   assert.strictEqual(e.principal._formatos['Cuentas!9'], undefined, 'yape es booleano: sin formato texto');
 });
 
@@ -63,4 +63,15 @@ test('completarAsistente valida números repetidos y una sola cuenta de Yape', (
   assert.throws(() => e.interno('completarAsistente', Object.assign({}, ASISTENTE, { cuentas: [dos, Object.assign({}, dos, { nombre: 'B' })] })), /1111 ya está/);
   assert.throws(() => e.interno('completarAsistente', Object.assign({}, ASISTENTE, { cuentas: [Object.assign({}, dos, { yape: true }), { nombre: 'B', tipo: 'ahorro', yape: true }] })), /Solo una cuenta puede ser la de Yape/);
   assert.deepStrictEqual(Object.keys(e.hojas), []);
+});
+
+test('una hoja v2 pasa a v3 con la hoja Presupuestos, sin tocar los datos', () => {
+  const e = entornoInstalado();
+  delete e.hojas.Presupuestos;
+  e.interno('guardarConfig_', { version_esquema: 2 });
+  const movimientos = JSON.stringify(e.hojas.Movimientos);
+  e.llamar('estadoInstalacion');
+  assert.deepStrictEqual(e.hojas.Presupuestos[0], ['id', 'categoria_id', 'monto', 'desde']);
+  assert.strictEqual(e.llamar('leerConfig_').version_esquema, '3');
+  assert.strictEqual(JSON.stringify(e.hojas.Movimientos), movimientos);
 });

@@ -129,14 +129,18 @@ function eliminarMovimiento(id) {
 function obtenerDashboard(mes) {
   validarMes_(mes);
   const movs = leerTabla_('Movimientos');
+  const divisiones = leerTabla_('Divisiones');
+  const categorias = leerTabla_('Categorias');
   const dashboard = construirDashboard_({
     movs: movs,
-    divisiones: leerTabla_('Divisiones'),
-    categorias: leerTabla_('Categorias'),
+    divisiones: divisiones,
+    categorias: categorias,
     cuentas: leerTabla_('Cuentas'),
     tcUsd: Number(leerConfig_().ultimo_tc) || 0,
   }, mes);
   dashboard.porRevisar = movs.filter(m => m.estado === 'por_revisar').length +
     leerTabla_('Pendientes').filter(p => p.estado === 'pendiente').length;
+  dashboard.presupuesto = presupuestoVsReal_(lineasCategoria_(movs, divisiones),
+    presupuestosVigentes_(leerTabla_('Presupuestos'), mes), categorias, mes, hoyIso_());
   return dashboard;
 }
