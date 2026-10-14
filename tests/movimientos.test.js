@@ -84,7 +84,7 @@ test('guardarMovimiento crea con id y creado_en y listarMovimientos lo devuelve'
   assert.ok(m.id);
   assert.strictEqual(m.creado_en, '2026-10-13 10:00:00');
   assert.strictEqual(e.stats.locks, locks + 1);
-  assert.deepStrictEqual(e.llamar('listarMovimientos', { mes: '2026-10' }), [m]);
+  assert.deepStrictEqual(e.llamar('listarMovimientos', { mes: '2026-10' }), [Object.assign({ ambito_id: '' }, m)]);
   assert.deepStrictEqual(e.llamar('listarMovimientos', { mes: '2026-09' }), []);
 });
 

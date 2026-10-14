@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 const { crearEntorno, crearLibro } = require('./harness');
 
-const HOJAS = ['Categorias', 'Config', 'Cuentas', 'Divisiones', 'EstadosCuenta', 'Log', 'Movimientos', 'Pendientes', 'Presupuestos', 'Recurrentes', 'Reglas'];
+const HOJAS = ['Ambitos', 'Categorias', 'Config', 'Cuentas', 'Divisiones', 'EstadosCuenta', 'Log', 'Movimientos', 'Pendientes', 'Presupuestos', 'Recurrentes', 'Reglas'];
 
 test('crearHojas_ crea todas las hojas con encabezados y es idempotente', () => {
   const e = crearEntorno();
@@ -41,7 +41,7 @@ test('leerTabla_ convierte fechas Date a yyyy-MM-dd, respeta columnas reordenada
       Movimientos: [['id', 'fecha', 'dividido'], ['m1', new Date(2026, 9, 6), 'TRUE']],
     },
   });
-  assert.deepStrictEqual(e.llamar('leerTabla_', 'Divisiones'), [{ id: 'd1', movimiento_id: 'm1', categoria_id: 'c1', monto: 5, nota: '' }]);
+  assert.deepStrictEqual(e.llamar('leerTabla_', 'Divisiones'), [{ id: 'd1', movimiento_id: 'm1', categoria_id: 'c1', monto: 5, nota: '', ambito_id: '' }]);
   const mov = e.llamar('leerTabla_', 'Movimientos')[0];
   assert.strictEqual(mov.fecha, '2026-10-06');
   assert.strictEqual(mov.dividido, true);
