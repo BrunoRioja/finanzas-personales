@@ -7,8 +7,15 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/); v
 ### Agregado
 - Ámbitos de gasto (Personal, Diversión, Familia, Trabajo): un segundo dato del gasto, aparte de la categoría, para separar por ejemplo un taxi a una fiesta de uno al trabajo. Si no eliges ninguno, el gasto queda en Personal.
 - Se eligen en Por revisar, al registrar o editar, en cada parte de un gasto dividido y en el bot (botones tras categorizar, o escribiendo `taxi 15 diversión`).
-- Inicio: bloque "Gasto por ámbito" con el detalle por categoría. Movimientos: filtro por ámbito y etiqueta en la lista.
+- Inicio: gasto por ámbito con el detalle por categoría. Movimientos: filtro por ámbito y etiqueta en la lista.
 - Ajustes → Ámbitos: renombrar, agregar o desactivar (Personal es fijo).
+
+### Cambiado
+- Inicio rediseñado. Arriba, el gasto del mes con el gasto por día, la proyección a fin de mes (contra lo que cerró el mes anterior) y la barra de días transcurridos; en meses cerrados, la variación contra el mes anterior. Ingresos, ahorro y tasa van como dato secundario.
+- Saldos con el total neto, al lado del resumen. Presupuesto y próximos pagos, lado a lado.
+- Categorías, ámbitos y comercios en una sola tarjeta "¿En qué se fue?" con pestañas (recuerda la última elegida). Desde un ámbito se puede ir a sus movimientos.
+- La tendencia resalta el mes elegido y marca el gasto promedio de los meses anteriores.
+- En el celular, los bloques van de lo más urgente (resumen, pagos, presupuesto) a lo histórico; sin huecos en pantallas anchas ni medianas.
 
 ## [0.7.2] — 2026-10-14
 

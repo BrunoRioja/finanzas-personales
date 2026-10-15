@@ -34,9 +34,25 @@ main { max-width: 1180px; margin: 0 auto; padding: 20px 24px 110px; }
 .mes span { min-width: 130px; text-align: center; font-weight: 600; }
 
 /* Tarjetas y dashboard */
-.grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+/* Inicio: cada bloque va a su área; en celular se apilan en el orden del HTML (lo urgente primero). */
+.tablero { display: grid; gap: 12px; grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-areas: "resumen resumen resumen resumen saldos saldos" "ppto ppto ppto pagos pagos pagos" "gasto gasto gasto gasto tendencia tendencia"; }
+.tablero.sin-pagos { grid-template-areas: "resumen resumen resumen resumen saldos saldos" "gasto gasto gasto gasto tendencia tendencia" "ppto ppto ppto ppto ppto ppto"; }
+.area-resumen { grid-area: resumen; } .area-saldos { grid-area: saldos; } .area-ppto { grid-area: ppto; }
+.area-pagos { grid-area: pagos; } .area-gasto { grid-area: gasto; } .area-tendencia { grid-area: tendencia; }
 .tarjeta { background: var(--superficie); border: 1px solid var(--borde); border-radius: var(--radio); padding: 16px; min-width: 0; }
-.ancho-2 { grid-column: span 2; }
+.area-resumen { background: linear-gradient(135deg, rgba(124, 92, 255, .16), var(--superficie) 60%); }
+.cifra { font-size: 40px; font-weight: 700; letter-spacing: -1px; line-height: 1.1; }
+.ritmo { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 13px; margin: 6px 0 12px; }
+.barra-mes { height: 4px; border-radius: 99px; background: var(--borde); overflow: hidden; margin-bottom: 4px; }
+.barra-mes i { display: block; height: 100%; background: var(--primario); }
+.resumen-pie { display: grid; grid-template-columns: repeat(2, minmax(0, max-content)); gap: 8px 40px; border-top: 1px solid var(--borde); padding-top: 12px; margin-top: 12px; }
+.resumen-pie b { font-size: 17px; }
+.resumen-pie .etiqueta { margin: 2px 0 0; }
+.segmento.mini-seg { margin: 0; padding: 3px; gap: 2px; }
+.segmento.mini-seg button { flex: none; padding: 5px 10px; font-size: 12px; }
+.enlace { background: none; border: 0; color: var(--primario); cursor: pointer; font-size: 12px; padding: 4px 4px 8px 28px; }
+.nota { font-size: 12px; margin: 8px 0 0; }
 .etiqueta { font-size: 12px; color: var(--texto-2); margin-bottom: 6px; }
 .kpi { font-size: 24px; font-weight: 700; letter-spacing: -.4px; }
 .dona-fila { display: flex; gap: 16px; align-items: center; }
@@ -87,7 +103,7 @@ main { max-width: 1180px; margin: 0 auto; padding: 20px 24px 110px; }
 .dos-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .check { display: flex; gap: 8px; align-items: center; font-size: 14px; margin: 4px 0 8px; }
 .seccion { margin-bottom: 12px; }
-.cabecera-seccion { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.cabecera-seccion { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
 .titulo-modal { margin: 0 0 14px; font-size: 19px; }
 .asistente { max-width: 560px; margin: 20px auto; }
 .pasos { display: flex; gap: 6px; margin-bottom: 16px; }
@@ -144,8 +160,18 @@ main { max-width: 1180px; margin: 0 auto; padding: 20px 24px 110px; }
 .abrir-fijo .detalle { font-size: 12px; }
 .abrir-fijo:focus-visible { outline: 2px solid var(--primario); outline-offset: 2px; border-radius: 6px; }
 
+/* Pantallas medianas: dos columnas, sin bloques angostos. */
+@media (max-width: 1000px) {
+  .tablero { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-areas: "resumen resumen" "pagos pagos" "ppto ppto" "gasto gasto" "saldos tendencia"; }
+  .tablero.sin-pagos { grid-template-areas: "resumen resumen" "ppto ppto" "gasto gasto" "saldos tendencia"; }
+}
+
 /* Celular */
 @media (max-width: 720px) {
+  .tablero, .tablero.sin-pagos { display: flex; flex-direction: column; }
+  .cifra { font-size: 34px; }
+  .ritmo { flex-direction: column; }
+  .resumen-pie { grid-template-columns: 1fr 1fr; gap: 8px 16px; }
   .fila-pago.larga { grid-template-columns: minmax(0, 1fr) auto; }
   .fila-pago.larga .der { grid-column: 1 / -1; text-align: left; }
   .fila-barra.ppto { grid-template-columns: minmax(80px, 1fr) 48px auto 38px; }
@@ -154,7 +180,6 @@ main { max-width: 1180px; margin: 0 auto; padding: 20px 24px 110px; }
   .barra nav { display: none; }
   .barra { padding: 12px 16px; }
   main { padding: 14px 16px 130px; }
-  .grid { grid-template-columns: 1fr 1fr; }
   .dona-fila { flex-direction: column; align-items: stretch; }
   .dona { align-self: center; }
   .fila-barra { grid-template-columns: minmax(80px, 1fr) 56px 78px 34px; gap: 8px; }
