@@ -1,4 +1,4 @@
-// Lee un gasto escrito en el chat: "[+]descripción monto [cuenta] [categoría]". Función pura.
+// Lee un gasto escrito en el chat: "[+]descripción monto [cuenta] [categoría] [ámbito]". Función pura.
 
 const PATRON_MONTO_ESCRITO = /^(?:s\/\.?)?(\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?|\d+(?:[.,]\d{1,2})?)$/i;
 const TEXTO_NO_ENTENDI = 'No entendí. Ejemplos: <code>taxi 12 yape</code>, <code>almuerzo 25.50 efectivo comida</code>, ' +
@@ -21,7 +21,7 @@ function unicoPorPrefijo_(palabra, candidatos) {
   return claves.length === 1 ? vistos[claves[0]] : null;
 }
 
-// ctx = { cuentas, categorias, reglas, cuentaBot }
+// ctx = { cuentas, categorias, reglas, ambitos?, cuentaBot }
 function leerEscrito_(texto, ctx) {
   let t = String(texto || '').trim();
   const tipo = t[0] === '+' ? 'ingreso' : 'gasto';
@@ -41,6 +41,10 @@ function leerEscrito_(texto, ctx) {
   if (yape) candidatos.push({ clase: 'cuenta', id: yape.id, nombre: 'YAPE' });
   if (efectivo) candidatos.push({ clase: 'cuenta', id: efectivo.id, nombre: 'EFECTIVO' });
   categorias.forEach(c => candidatos.push({ clase: 'categoria', id: c.id, nombre: normalizarTexto_(c.nombre) }));
+  if (tipo === 'gasto') {
+    (ctx.ambitos || []).filter(a => a.activo)
+      .forEach(a => candidatos.push({ clase: 'ambito', id: a.id, nombre: normalizarTexto_(a.nombre) }));
+  }
 
   // Primero nombres completos (el más largo gana), luego inicios de palabra únicos.
   const palabras = tokens.slice(i + 1).map(p => ({ texto: p, norm: normalizarTexto_(p), usada: false }));
@@ -92,5 +96,7 @@ function leerEscrito_(texto, ctx) {
       if (palabra) categoriaId = unicoPorPrefijo_(palabra, deCategoria).id;
     }
   }
-  return { ok: true, tipo: tipo, monto: monto, descripcion: descripcion, cuenta_id: cuentaId, categoria_id: categoriaId, regla_id: reglaId };
+  return { ok: true, tipo: tipo, monto: monto, descripcion: descripcion, cuenta_id: cuentaId, categoria_id: categoriaId, regla_id: reglaId,
+    ambito_id: elegido.ambito && elegido.ambito !== AMBITO_PERSONAL ? elegido.ambito : '',
+  };
 }

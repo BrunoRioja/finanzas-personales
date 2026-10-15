@@ -11,9 +11,9 @@ function lineasCategoria_(movs, divisiones) {
     if (m.tipo === 'transferencia') return;
     const partes = m.dividido ? porMovimiento[m.id] : null;
     if (partes && partes.length) {
-      partes.forEach(d => lineas.push({ fecha: m.fecha, tipo: m.tipo, categoria_id: d.categoria_id, monto_pen: redondear2_(d.monto * m.tc) }));
+      partes.forEach(d => lineas.push({ fecha: m.fecha, tipo: m.tipo, categoria_id: d.categoria_id, ambito_id: d.ambito_id || '', monto_pen: redondear2_(d.monto * m.tc) }));
     } else {
-      lineas.push({ fecha: m.fecha, tipo: m.tipo, categoria_id: m.categoria_id, monto_pen: m.monto_pen });
+      lineas.push({ fecha: m.fecha, tipo: m.tipo, categoria_id: m.categoria_id, ambito_id: m.ambito_id || '', monto_pen: m.monto_pen });
     }
   });
   return lineas;
@@ -48,6 +48,32 @@ function gastoPorCategoria_(lineas, categorias, mes) {
       monto: redondear2_(totales[id]), porcentaje: Math.round(totales[id] / total * 100),
     };
   }).sort((a, b) => b.monto - a.monto);
+}
+
+// Gasto del mes por ámbito, con el detalle por categoría. Mismas reglas que gastoPorCategoria_.
+function gastoPorAmbito_(lineas, ambitos, categorias, mes) {
+  const grupos = {};
+  lineas.forEach(l => {
+    if (l.tipo !== 'gasto' || mesDe_(l.fecha) !== mes) return;
+    const id = ambitoEfectivo_(l.ambito_id, ambitos);
+    const g = grupos[id] || (grupos[id] = { total: 0, porCategoria: {} });
+    g.total += l.monto_pen;
+    g.porCategoria[l.categoria_id] = (g.porCategoria[l.categoria_id] || 0) + l.monto_pen;
+  });
+  const ids = Object.keys(grupos).filter(id => redondear2_(grupos[id].total) > 0);
+  const total = ids.reduce((s, id) => s + grupos[id].total, 0);
+  return ids.map(id => {
+    const a = (ambitos || []).filter(x => x.id === id)[0] || ambitoPersonal_();
+    const g = grupos[id];
+    const detalle = Object.keys(g.porCategoria).filter(c => redondear2_(g.porCategoria[c]) > 0).map(c => {
+      const cat = categorias.filter(x => x.id === c)[0] || SIN_CATEGORIA;
+      return { categoria_id: c, nombre: cat.nombre, emoji: cat.emoji, monto: redondear2_(g.porCategoria[c]) };
+    }).sort((x, y) => y.monto - x.monto);
+    return {
+      ambito_id: id, nombre: a.nombre, emoji: a.emoji, monto: redondear2_(g.total),
+      porcentaje: Math.round(g.total / total * 100), categorias: detalle,
+    };
+  }).sort((x, y) => y.monto - x.monto);
 }
 
 // Agrupar una sola categoría en "Resto" no aporta: solo se agrupa si sobran 2 o más.
@@ -112,6 +138,7 @@ function construirDashboard_(datos, mes) {
     resumen: resumenMes_(datos.movs, mes),
     resumenAnterior: resumenMes_(datos.movs, sumarMeses_(mes, -1)),
     categorias: agruparCategorias_(gastoPorCategoria_(lineas, datos.categorias, mes), 5),
+    ambitos: gastoPorAmbito_(lineas, datos.ambitos || [], datos.categorias, mes),
     tendencia: tendencia_(datos.movs, mes, 6),
     saldos: saldosPorCuenta_(datos.movs, datos.cuentas, datos.tcUsd),
     comercios: topComercios_(datos.movs, mes, 5),

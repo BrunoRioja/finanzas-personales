@@ -14,7 +14,10 @@ test('generarDatosDemo_ es determinista, cubre 3 meses y cada movimiento es vál
   assert.ok(a.movimientos.some(m => m.moneda === 'USD' && m.tc === 3.75));
   assert.ok(a.movimientos.some(m => m.tipo === 'transferencia'));
   assert.ok(a.movimientos.length > 60);
-  const ctx = { cuentas: a.cuentas, categorias: a.categorias, tcUsd: 3.75 };
+  const ctx = { cuentas: a.cuentas, categorias: a.categorias, ambitos: a.ambitos, tcUsd: 3.75 };
+  assert.deepStrictEqual(a.ambitos.map(x => x.nombre), ['Personal', 'Diversión', 'Familia', 'Trabajo']);
+  ['demo-amb-diversion', 'demo-amb-familia', 'demo-amb-trabajo'].forEach(id =>
+    assert.ok(a.movimientos.some(m => m.ambito_id === id), id));
   a.movimientos.forEach(m => {
     const n = e.llamar('normalizarMovimiento_', m, ctx);
     assert.strictEqual(n.monto_pen, m.monto_pen, 'monto_pen de ' + m.id);
@@ -31,6 +34,7 @@ test('cargarDemo crea una hoja aparte, activa el modo demo y no toca la hoja rea
   const d = e.llamar('obtenerDashboard', '2026-10');
   assert.ok(d.resumen.gastos > 0);
   assert.strictEqual(d.proximosPagos.pagos.length, 5);
+  assert.strictEqual(e.libros[idDemo]._hojas.Ambitos.length, 5);
   const total = e.libros[idDemo]._hojas.Movimientos.length;
   e.llamar('cargarDemo');
   assert.strictEqual(e.propiedades.DEMO_SHEET_ID, idDemo);

@@ -136,3 +136,50 @@ test('obtenerDashboard y obtenerCatalogos.saldos desde la hoja', () => {
   assert.deepStrictEqual(e.llamar('obtenerCatalogos').saldos, d.saldos);
   assert.throws(() => e.interno('obtenerDashboard', '2026-1'), /Mes inválido/);
 });
+
+const AMBS = [
+  { id: 'personal', nombre: 'Personal', emoji: '🙋', orden: 1, activo: true },
+  { id: 'div', nombre: 'Diversión', emoji: '🎉', orden: 2, activo: true },
+];
+
+test('gastoPorAmbito_: sin ámbito suma en Personal, respeta divisiones y excluye ingresos y transferencias', () => {
+  const e = crearEntorno();
+  const dividido = M({ fecha: '2026-10-05', monto: 100, dividido: true });
+  const movs = [
+    M({ fecha: '2026-10-01', monto: 10, categoria_id: 'taxi' }),
+    M({ fecha: '2026-10-02', monto: 30, categoria_id: 'taxi', ambito_id: 'div' }),
+    M({ fecha: '2026-10-03', monto: 999, tipo: 'ingreso', categoria_id: 'sueldo', ambito_id: 'div' }),
+    M({ fecha: '2026-10-04', monto: 500, tipo: 'transferencia', categoria_id: '' }),
+    M({ fecha: '2026-09-30', monto: 77, ambito_id: 'div' }),
+    dividido,
+  ];
+  const divisiones = [
+    { movimiento_id: dividido.id, categoria_id: 'super', monto: 60, ambito_id: 'div' },
+    { movimiento_id: dividido.id, categoria_id: 'aseo', monto: 40, ambito_id: '' },
+  ];
+  const lineas = e.llamar('lineasCategoria_', movs, divisiones);
+  assert.deepStrictEqual(e.llamar('gastoPorAmbito_', lineas, AMBS, CATS, '2026-10'), [
+    { ambito_id: 'div', nombre: 'Diversión', emoji: '🎉', monto: 90, porcentaje: 64, categorias: [
+      { categoria_id: 'super', nombre: 'Supermercado', emoji: '🛒', monto: 60 },
+      { categoria_id: 'taxi', nombre: 'Transporte', emoji: '🚕', monto: 30 },
+    ] },
+    { ambito_id: 'personal', nombre: 'Personal', emoji: '🙋', monto: 50, porcentaje: 36, categorias: [
+      { categoria_id: 'aseo', nombre: 'Aseo personal', emoji: '🧴', monto: 40 },
+      { categoria_id: 'taxi', nombre: 'Transporte', emoji: '🚕', monto: 10 },
+    ] },
+  ]);
+});
+
+test('gastoPorAmbito_: un ámbito borrado de la hoja cuenta como Personal; sin gastos devuelve []', () => {
+  const e = crearEntorno();
+  const lineas = e.llamar('lineasCategoria_', [M({ fecha: '2026-10-01', monto: 5, ambito_id: 'borrado' })], []);
+  assert.deepStrictEqual(e.llamar('gastoPorAmbito_', lineas, AMBS, CATS, '2026-10').map(a => [a.ambito_id, a.monto]), [['personal', 5]]);
+  assert.deepStrictEqual(e.llamar('gastoPorAmbito_', [], AMBS, CATS, '2026-10'), []);
+});
+
+test('obtenerDashboard incluye el gasto por ámbito', () => {
+  const e = entornoInstalado();
+  const div = e.llamar('obtenerCatalogos').ambitos.find(a => a.nombre === 'Diversión').id;
+  e.llamar('guardarMovimiento', { tipo: 'gasto', fecha: '2026-10-10', monto: 25, cuenta_id: e.cuenta('Débito BCP'), categoria_id: e.categoria('Transporte'), ambito_id: div });
+  assert.deepStrictEqual(e.llamar('obtenerDashboard', '2026-10').ambitos.map(a => [a.nombre, a.monto]), [['Diversión', 25]]);
+});

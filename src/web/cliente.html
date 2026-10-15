@@ -52,6 +52,21 @@ function enlazarMes(cont) {
 function categoria(id) {
   return estado.catalogos.categorias.find(c => c.id === id) || { id: id, nombre: 'Sin categoría', emoji: '❓', color: '#3a3a48' };
 }
+function ambito(id) {
+  const lista = estado.catalogos.ambitos || [];
+  return lista.find(a => a.id === id) || lista.find(a => a.id === 'personal') || { id: 'personal', nombre: 'Personal', emoji: '🙋', activo: true };
+}
+// Fila de chips para elegir el ámbito de un gasto (vacío = Personal).
+function chipsAmbito(actual) {
+  const elegido = ambito(actual).id;
+  return '<div class="chips" data-ambitos>' + (estado.catalogos.ambitos || []).filter(a => a.activo || a.id === elegido)
+    .map(a => '<button type="button" class="chip' + (a.id === elegido ? ' activo' : '') + '" data-ambito="' + esc(a.id) + '">' +
+      esc((a.emoji ? a.emoji + ' ' : '') + a.nombre) + '</button>').join('') + '</div>';
+}
+function enlazarChipsAmbito(raiz, alElegir) {
+  const chips = raiz.querySelectorAll('[data-ambito]');
+  chips.forEach(b => { b.onclick = () => { chips.forEach(c => c.classList.toggle('activo', c === b)); alElegir(b.dataset.ambito); }; });
+}
 function cuenta(id) { return estado.catalogos.cuentas.find(c => c.id === id) || { id: id, nombre: '—', moneda: 'PEN' }; }
 const TIPOS_CUENTA_ETIQUETA = { debito: 'Débito', credito: 'Crédito', ahorro: 'Ahorro', billetera: 'Billetera', efectivo: 'Efectivo' };
 function etiquetaTipo(tipo) { return TIPOS_CUENTA_ETIQUETA[tipo] || tipo; }

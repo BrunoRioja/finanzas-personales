@@ -13,13 +13,14 @@ App de finanzas personales que vive en **tu propia cuenta de Google**: lee los c
 |---|---|
 | ![Inicio en laptop](docs/img/dashboard-laptop.png) | ![Inicio en celular](docs/img/dashboard-movil.png) |
 
-## Qué hace (v0.7)
+## Qué hace (v0.8)
 
 - **Lee los correos de tu banco** (BCP y Yape): consumos con débito y crédito en S/ y $, PLIN, yapeos enviados y recibidos, transferencias, pagos de tarjeta y de servicios. Lo que no sabe categorizar va a una bandeja "Por revisar" y se resuelve con un toque.
 - **Bot de Telegram:** te pregunta solo por las compras que no reconoce, registra lo que escribes (`taxi 12 yape`), responde `/hoy`, `/mes`, `/pagos` y `/deshacer`, y te manda un resumen al final del día.
+- **Ámbitos de gasto** (Personal, Diversión, Familia, Trabajo), editables, con análisis en el Inicio.
 - **Presupuestos por categoría:** con lo del mes pasado como referencia; el Inicio muestra cuánto llevas y el bot te avisa al 80 % y al 100 %.
 - **Próximos pagos:** lee el estado de cuenta de tu tarjeta (total, mínimo y fecha límite en S/ y $), sabe qué parte ya pagaste y te recuerda tus pagos fijos y la tarjeta 3 días antes y el mismo día.
-- **Dashboard y movimientos:** ingresos, gastos, ahorro y tasa de ahorro; gasto por categoría; tendencia de 6 meses; saldos por cuenta; comercios donde más gastas; dividir una compra entre categorías.
+- **Dashboard y movimientos:** gasto del mes con ritmo diario y proyección a fin de mes; ingresos, ahorro y tasa; saldos con total neto; "¿En qué se fue?" por categoría, ámbito o comercio; tendencia de 6 meses con promedio; dividir una compra entre categorías.
 - **Instalación con "Hacer una copia"**, actualización importando tus datos y **modo demo** con datos ficticios.
 
 <img src="docs/img/presupuestos-movil.png" alt="Presupuestos y pagos fijos" width="320">

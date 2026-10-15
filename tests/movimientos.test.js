@@ -25,7 +25,7 @@ test('gasto válido en soles', () => {
   assert.deepStrictEqual(norm(e, {}), {
     fecha: '2026-10-06', tipo: 'gasto', monto: 89.3, moneda: 'PEN', tc: 1, monto_pen: 89.3,
     cuenta_id: 'deb', cuenta_destino_id: '', categoria_id: 'super', comercio: 'Tottus', descripcion: '',
-    origen: 'manual', estado: 'confirmado', ref_externa: '', dividido: false,
+    origen: 'manual', estado: 'confirmado', ref_externa: '', dividido: false, ambito_id: '',
   });
 });
 
@@ -84,7 +84,7 @@ test('guardarMovimiento crea con id y creado_en y listarMovimientos lo devuelve'
   assert.ok(m.id);
   assert.strictEqual(m.creado_en, '2026-10-13 10:00:00');
   assert.strictEqual(e.stats.locks, locks + 1);
-  assert.deepStrictEqual(e.llamar('listarMovimientos', { mes: '2026-10' }), [m]);
+  assert.deepStrictEqual(e.llamar('listarMovimientos', { mes: '2026-10' }), [Object.assign({}, m, { ambitos: ['personal'] })]);
   assert.deepStrictEqual(e.llamar('listarMovimientos', { mes: '2026-09' }), []);
 });
 
@@ -145,4 +145,25 @@ test('editar un gasto en USD conserva su tipo de cambio aunque cambie el de Ajus
   assert.strictEqual(editado.monto_pen, 37.46);
   const aSoles = e.llamar('guardarMovimiento', Object.assign({}, editado, { moneda: 'PEN', monto: 40 }));
   assert.strictEqual(aSoles.tc, 1);
+});
+
+test('listarMovimientos filtra por ámbito efectivo (incluidos los divididos) y devuelve sus ámbitos', () => {
+  const e = entornoInstalado();
+  const amb = nombre => e.llamar('obtenerCatalogos').ambitos.find(a => a.nombre === nombre).id;
+  const base = { tipo: 'gasto', fecha: '2026-10-10', cuenta_id: e.cuenta('Débito BCP'), categoria_id: e.categoria('Transporte') };
+  e.llamar('guardarMovimiento', Object.assign({ monto: 10, comercio: 'A' }, base));
+  e.llamar('guardarMovimiento', Object.assign({ monto: 20, comercio: 'B', ambito_id: amb('Trabajo') }, base));
+  const mixto = e.llamar('guardarMovimiento', Object.assign({ monto: 30, comercio: 'C' }, base));
+  e.llamar('dividirMovimiento', { id: mixto.id, partes: [
+    { categoria_id: e.categoria('Transporte'), monto: 10, ambito_id: amb('Trabajo') },
+    { categoria_id: e.categoria('Transporte'), monto: 20, ambito_id: amb('Familia') },
+  ] });
+  const ids = filtro => e.llamar('listarMovimientos', Object.assign({ mes: '2026-10' }, filtro)).map(m => m.comercio).sort();
+  assert.deepStrictEqual(ids({ ambito_id: amb('Trabajo') }), ['B', 'C']);
+  assert.deepStrictEqual(ids({ ambito_id: 'personal' }), ['A']);
+  assert.deepStrictEqual(ids({}), ['A', 'B', 'C']);
+  const porComercio = {};
+  e.llamar('listarMovimientos', { mes: '2026-10' }).forEach(m => { porComercio[m.comercio] = m.ambitos; });
+  assert.deepStrictEqual(porComercio.A, ['personal']);
+  assert.deepStrictEqual(porComercio.C, [amb('Trabajo'), amb('Familia')]);
 });

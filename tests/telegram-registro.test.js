@@ -20,8 +20,9 @@ test('"taxi 12 yape" guarda un gasto confirmado y responde con Deshacer y Cambia
     ['2026-10-13', 'gasto', 12, 'PEN', 12, e.cuenta('Débito BCP'), e.categoria('Transporte'), 'taxi', 'confirmado', 'tg:' + u]);
   assert.strictEqual(e.filas('Reglas')[0].usos, 1);
   const r = e.ultimoEnviado();
-  assert.strictEqual(r.text, '✓ <b>S/ 12.00</b> · taxi · 🚕 Transporte · Débito BCP');
+  assert.strictEqual(r.text, '✓ <b>S/ 12.00</b> · taxi · 🚕 Transporte · 🙋 Personal · Débito BCP');
   assert.deepStrictEqual(e.botones(r)[0].map(b => b.text), ['Deshacer', 'Cambiar categoría']);
+  assert.deepStrictEqual(e.botones(r)[1].map(b => b.text), ['🎉 Diversión', '👨‍👩‍👧 Familia', '💼 Trabajo']);
 });
 
 test('sin regla ni categoría queda por revisar y pregunta con las categorías', () => {
@@ -67,4 +68,24 @@ test('/deshacer borra el último gasto del bot de las últimas 24 h y nada más'
   assert.strictEqual(e.ultimoEnviado().text, 'No hay movimientos registrados por el bot en las últimas 24 horas.');
   assert.strictEqual(e.movsBot().length, 1);
   assert.ok(e.filas('Movimientos').some(m => m.comercio === 'manual'));
+});
+
+test('un gasto escrito con ámbito se guarda con ese ámbito', () => {
+  const e = entorno();
+  e.escribir('taxi 15 diversión yape');
+  const [m] = e.movsBot();
+  const div = e.llamar('obtenerCatalogos').ambitos.find(a => a.nombre === 'Diversión').id;
+  assert.deepStrictEqual([m.comercio, m.categoria_id, m.ambito_id], ['taxi', e.categoria('Transporte'), div]);
+});
+
+test('una hoja v4 se migra al recibir un gasto escrito por el webhook', () => {
+  const e = entorno();
+  delete e.hojas.Ambitos;
+  e.hojas.Movimientos[0] = e.hojas.Movimientos[0].filter(h => h !== 'ambito_id');
+  e.hojas.Divisiones[0] = e.hojas.Divisiones[0].filter(h => h !== 'ambito_id');
+  e.interno('guardarConfig_', { version_esquema: 4 });
+  e.escribir('taxi 12 yape');
+  assert.strictEqual(e.movsBot().length, 1);
+  assert.strictEqual(e.interno('leerConfig_').version_esquema, '5');
+  assert.strictEqual(e.filas('Ambitos').length, 4);
 });

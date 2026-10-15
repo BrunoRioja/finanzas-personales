@@ -38,6 +38,9 @@ function categorizarMovimiento(datos) {
       const categoria = buscarActiva_(leerTabla_('Categorias'), datos.categoria_id, 'La categoría');
       if (categoria.tipo !== mov.tipo) throw new Error('La categoría "' + categoria.nombre + '" no es de ' + mov.tipo + '.');
       cambios.categoria_id = categoria.id;
+      if (datos.ambito_id !== undefined) {
+        cambios.ambito_id = ambitoParaGuardar_(mov.tipo, datos.ambito_id, leerTabla_('Ambitos'), [mov.ambito_id]);
+      }
     }
     if (datos.cuenta_id) cambios.cuenta_id = buscarActiva_(cuentas, datos.cuenta_id, 'La cuenta').id;
     if (datos.cuenta_destino_id) cambios.cuenta_destino_id = buscarActiva_(cuentas, datos.cuenta_destino_id, 'La cuenta destino').id;
@@ -109,7 +112,8 @@ function dividirMovimiento(datos) {
   const resultado = conBloqueo_(() => {
     const mov = leerTabla_('Movimientos').filter(m => m.id === datos.id)[0];
     if (!mov) throw new Error('El movimiento ya no existe.');
-    const partes = normalizarPartes_(mov, datos.partes, leerTabla_('Categorias'));
+    const previos = leerTabla_('Divisiones').filter(d => d.movimiento_id === mov.id).map(d => d.ambito_id).concat([mov.ambito_id]);
+    const partes = normalizarPartes_(mov, datos.partes, leerTabla_('Categorias'), leerTabla_('Ambitos'), previos);
     const cambios = { dividido: true, estado: 'confirmado' };
     if (!mov.cuenta_id) {
       if (!datos.cuenta_id) throw new Error('Elige la cuenta del movimiento antes de dividirlo.');

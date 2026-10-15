@@ -79,3 +79,17 @@ test('/mes muestra los presupuestos en alerta', () => {
   e.escribir('/mes');
   assert.match(e.ultimoEnviado().text, /\n\n<b>Presupuestos<\/b>\n• 🛒 Supermercado 92 % · quedan S\/ 4\.10$/);
 });
+
+test('el resumen diario migra una hoja v4 antes de leer los ámbitos', () => {
+  const e = entornoBot();
+  gasto(e);
+  delete e.hojas.Ambitos;
+  e.hojas.Movimientos[0] = e.hojas.Movimientos[0].filter(h => h !== 'ambito_id');
+  e.hojas.Divisiones[0] = e.hojas.Divisiones[0].filter(h => h !== 'ambito_id');
+  e.interno('guardarConfig_', { version_esquema: 4 });
+  e.llamar('enviarResumenDiario');
+  assert.strictEqual(e.filas('Log').filter(l => l.origen === 'enviarResumenDiario').length, 0);
+  assert.strictEqual(e.interno('leerConfig_').version_esquema, '5');
+  assert.strictEqual(e.filas('Ambitos').length, 4);
+  assert.match(e.ultimoEnviado().text, /Tottus/);
+});

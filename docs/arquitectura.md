@@ -8,11 +8,11 @@ src/web/        api.js · api-revisar.js · vistas .html      src/ingesta/   rev
         │                                                           │  resolver.js (cuenta, regla, tc)
 src/setup/      asistente.js · demo.js                              │  gmail.js  ← única capa que toca Gmail
         │                                                    src/parsers/   bcp.js · yape.js · lectores.js (puros)
-src/core/       movimientos.js · agregados.js · catalogos.js · divisiones.js · util.js   ← lógica pura
+src/core/       movimientos.js · agregados.js · catalogos.js · divisiones.js · ambitos.js · util.js   ← lógica pura
         │
 src/core/repo.js   ← única capa que toca SpreadsheetApp (y migra el esquema)
         │
-Google Sheet    Movimientos · Divisiones · Cuentas · Categorias · Reglas · Pendientes · Config · Log
+Google Sheet    Movimientos · Divisiones · Cuentas · Categorias · Ambitos · Reglas · Pendientes · Config · Log
 ```
 
 ## Bot de Telegram (receptor + biblioteca)
@@ -44,10 +44,11 @@ Telegram ──POST /exec?secret=…──► Receptor (web app anónima, ejecut
 
 | Hoja | Para qué |
 |---|---|
-| Movimientos | Gastos, ingresos y transferencias. `monto` en la moneda original, `monto_pen` en soles. |
-| Divisiones | Partes de un movimiento dividido entre categorías (se usa desde v0.2). |
+| Movimientos | Gastos, ingresos y transferencias. `monto` en la moneda original, `monto_pen` en soles. `ambito_id` en los gastos (vacío = Personal). |
+| Divisiones | Partes de un movimiento dividido entre categorías (se usa desde v0.2); cada parte puede llevar su `ambito_id` (vacío = Personal). |
 | Cuentas | Débito, crédito (saldo negativo = deuda), ahorro, billetera, efectivo. `numeros`: últimos 4 dígitos de cuentas y tarjetas (varios por cuenta); `yape`: la cuenta de la que sale Yape. |
 | Categorias | De gasto o de ingreso; desactivar conserva el historial. |
+| Ambitos | Para qué fue el gasto (Personal, Diversión, Familia, Trabajo; desde v0.8). `Personal` es fijo; desactivar conserva el historial. |
 | Reglas | Comercio → categoría (se usa desde v0.2). |
 | Pendientes | Correos bancarios que ningún lector pudo leer (se registran a mano o se descartan). |
 | Config | Nombre, tipo de cambio, versión del esquema. Nunca secretos. |

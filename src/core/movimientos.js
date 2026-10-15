@@ -12,7 +12,7 @@ function buscarActiva_(lista, id, etiqueta, idsPrevios) {
   return item;
 }
 
-// ctx = { cuentas, categorias, tcUsd, idsPrevios? }
+// ctx = { cuentas, categorias, ambitos?, tcUsd, idsPrevios? }
 function normalizarMovimiento_(datos, ctx) {
   const tipo = String(datos.tipo || '');
   if (TIPOS_MOVIMIENTO.indexOf(tipo) < 0) throw new Error('Tipo de movimiento inválido.');
@@ -31,6 +31,7 @@ function normalizarMovimiento_(datos, ctx) {
     comercio: String(datos.comercio || '').trim(), descripcion: String(datos.descripcion || '').trim(),
     origen: datos.origen || 'manual', estado: datos.estado || 'confirmado',
     ref_externa: String(datos.ref_externa || ''), dividido: false,
+    ambito_id: ambitoParaGuardar_(tipo, datos.ambito_id, ctx.ambitos, ctx.idsPrevios),
   };
   if (tipo === 'transferencia') {
     const destino = buscarActiva_(ctx.cuentas, datos.cuenta_destino_id, 'La cuenta destino', ctx.idsPrevios);

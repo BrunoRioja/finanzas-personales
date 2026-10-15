@@ -7,6 +7,7 @@ function obtenerCatalogos() {
   return {
     cuentas: cuentas,
     categorias: leerTabla_('Categorias'),
+    ambitos: ordenarAmbitos_(leerTabla_('Ambitos')),
     saldos: saldosPorCuenta_(leerTabla_('Movimientos'), cuentas, tcUsd),
     config: {
       nombre: config.nombre || '',
@@ -52,6 +53,21 @@ function guardarCategoria(datos) {
   });
 }
 
+function guardarAmbito(datos) {
+  return conBloqueo_(() => {
+    const existentes = leerTabla_('Ambitos');
+    const ambito = normalizarAmbito_(datos, existentes, datos.id || '');
+    if (datos.id) {
+      if (!existentes.some(a => a.id === datos.id)) throw new Error('El ámbito ya no existe.');
+      actualizarFila_('Ambitos', datos.id, ambito);
+      return Object.assign({ id: datos.id }, ambito);
+    }
+    const nuevo = Object.assign({ id: nuevoId_() }, ambito);
+    agregarFilas_('Ambitos', [nuevo]);
+    return nuevo;
+  });
+}
+
 function guardarAjustes(datos) {
   conBloqueo_(() => {
     const nombre = String(datos.nombre || '').trim();
@@ -67,6 +83,7 @@ function contextoMovimientos_() {
   return {
     cuentas: leerTabla_('Cuentas'),
     categorias: leerTabla_('Categorias'),
+    ambitos: leerTabla_('Ambitos'),
     tcUsd: Number(leerConfig_().ultimo_tc) || 0,
   };
 }
@@ -78,7 +95,7 @@ function guardarMovimiento(datos) {
       const previo = leerTabla_('Movimientos').filter(m => m.id === datos.id)[0];
       if (!previo) throw new Error('El movimiento ya no existe.');
       if (previo.dividido) throw new Error('Este movimiento está dividido; edítalo desde "Dividir".');
-      ctx.idsPrevios = [previo.cuenta_id, previo.cuenta_destino_id, previo.categoria_id];
+      ctx.idsPrevios = [previo.cuenta_id, previo.cuenta_destino_id, previo.categoria_id, previo.ambito_id];
       // Si la moneda no cambia se conserva el tipo de cambio original: editar una nota
       // no debe recalcular en silencio el monto en soles de un gasto pasado.
       const mismaMoneda = (datos.moneda || previo.moneda) === previo.moneda;
@@ -104,10 +121,15 @@ function guardarMovimiento(datos) {
 function listarMovimientos(filtro) {
   filtro = filtro || {};
   const mes = validarMes_(filtro.mes);
+  const ambitos = leerTabla_('Ambitos');
+  const partes = {};
+  leerTabla_('Divisiones').forEach(d => { (partes[d.movimiento_id] = partes[d.movimiento_id] || []).push(d); });
   return leerTabla_('Movimientos')
     .filter(m => mesDe_(m.fecha) === mes)
+    .map(m => Object.assign(m, { ambitos: ambitosDeMovimiento_(m, partes[m.id], ambitos) }))
     .filter(m => !filtro.cuenta_id || m.cuenta_id === filtro.cuenta_id || m.cuenta_destino_id === filtro.cuenta_id)
     .filter(m => !filtro.categoria_id || m.categoria_id === filtro.categoria_id)
+    .filter(m => !filtro.ambito_id || m.ambitos.indexOf(filtro.ambito_id) >= 0)
     .sort((a, b) => (b.fecha + b.creado_en).localeCompare(a.fecha + a.creado_en));
 }
 
@@ -138,6 +160,7 @@ function obtenerDashboard(mes) {
     movs: movs,
     divisiones: divisiones,
     categorias: categorias,
+    ambitos: leerTabla_('Ambitos'),
     cuentas: leerTabla_('Cuentas'),
     tcUsd: Number(leerConfig_().ultimo_tc) || 0,
   }, mes);

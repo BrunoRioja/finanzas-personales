@@ -58,6 +58,7 @@ function atenderTelegram_(updateId, mensaje, boton) {
       enviarMensaje_('La app está en modo demo; sal del modo demo para usar el bot.');
       return;
     }
+    asegurarEsquema_(); // fuera de conBloqueo_: toma el lock solo si hay que migrar
     if (boton) {
       try {
         manejarBoton_(boton);

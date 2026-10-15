@@ -1,6 +1,6 @@
 // Botones de los mensajes del bot. callback_data = "acción:id[:id]" (ids compactados):
 // c categorizar · o otras categorías · v volver · r recordar · s solo esta vez ·
-// d deshacer · k cambiar categoría · ok resumen visto.
+// d deshacer · k cambiar categoría · a cambiar ámbito · ok resumen visto.
 
 function manejarBoton_(boton) {
   const partes = String(boton.data || '').split(':');
@@ -11,10 +11,10 @@ function manejarBoton_(boton) {
   const mov = leerTabla_('Movimientos').filter(m => m.id === expandirId_(partes[1]))[0];
   if (!mov) return editarMensaje_(messageId, 'Ese movimiento ya no existe.', null);
   // Un importado ya resuelto (en la app o con otro botón) no se vuelve a tocar desde un mensaje viejo.
-  if (mov.estado === 'confirmado' && mov.origen !== 'telegram' && accion !== 'r' && accion !== 's') {
+  if (mov.estado === 'confirmado' && mov.origen !== 'telegram' && ['r', 's', 'a'].indexOf(accion) < 0) {
     return editarMensaje_(messageId, textoYaEstaba_(mov, ctx), null);
   }
-  if ((accion === 'r' || accion === 's') && (mov.estado !== 'confirmado' || !mov.categoria_id)) {
+  if (['r', 's', 'a'].indexOf(accion) >= 0 && (mov.estado !== 'confirmado' || !mov.categoria_id)) {
     return editarMensaje_(messageId, textoMovimiento_(mov, ctx), tecladoCategorias_(mov, frecuentes_(mov, ctx), ctx));
   }
   switch (accion) {
@@ -23,18 +23,44 @@ function manejarBoton_(boton) {
       return editarMensaje_(messageId, textoMovimiento_(mov, ctx), tecladoTodas_(mov, ctx));
     case 'v':
       return editarMensaje_(messageId, textoMovimiento_(mov, ctx),
-        mov.estado === 'confirmado' ? tecladoRegistrado_(mov) : tecladoCategorias_(mov, frecuentes_(mov, ctx), ctx));
+        mov.estado === 'confirmado' ? tecladoRegistrado_(mov, ctx) : tecladoCategorias_(mov, frecuentes_(mov, ctx), ctx));
     case 'c':
       return elegirCategoria_(mov, expandirId_(partes[2]), messageId, ctx);
     case 'r':
       return recordarDesdeBot_(mov, messageId, ctx);
     case 's':
-      return editarMensaje_(messageId, textoCategorizado_(mov, mov.categoria_id, ctx), null);
+      return editarMensaje_(messageId, textoCategorizado_(mov, mov.categoria_id, ctx), tecladoONulo_(filaAmbitos_(mov, ctx, false)));
+    case 'a':
+      return cambiarAmbitoDesdeBot_(mov, expandirId_(partes[2]), partes[3] === 'r', messageId, ctx);
     case 'd':
       return deshacerDesdeBot_(mov, messageId, ctx);
     default:
       return null;
   }
+}
+
+function tecladoONulo_(filas) {
+  return filas.length ? filas : null;
+}
+
+function preguntaRecordar_(mov) {
+  return '\n¿Recordar para <b>' + escaparHtml_(normalizarTexto_(mov.comercio)) + '</b>?';
+}
+
+function cambiarAmbitoDesdeBot_(mov, ambitoId, conRecordar, messageId, ctx) {
+  const guardado = conBloqueo_(() => {
+    const id = ambitoParaGuardar_(mov.tipo, ambitoId, ctx.ambitos, [mov.ambito_id]);
+    actualizarFila_('Movimientos', mov.id, { ambito_id: id });
+    return id;
+  });
+  const actualizado = Object.assign({}, mov, { ambito_id: guardado });
+  if (mov.origen === 'telegram') {
+    return editarMensaje_(messageId, textoRegistrado_(actualizado, ctx), tecladoRegistrado_(actualizado, ctx));
+  }
+  if (conRecordar && mov.comercio) {
+    return editarMensaje_(messageId, textoCategorizado_(actualizado, mov.categoria_id, ctx, preguntaRecordar_(mov)), tecladoRecordar_(actualizado, ctx));
+  }
+  return editarMensaje_(messageId, textoCategorizado_(actualizado, mov.categoria_id, ctx), tecladoONulo_(filaAmbitos_(actualizado, ctx, false)));
 }
 
 function frecuentes_(mov, ctx) {
@@ -60,17 +86,16 @@ function elegirCategoria_(mov, categoriaId, messageId, ctx) {
   }
   const actualizado = Object.assign({}, mov, { categoria_id: categoriaId, estado: 'confirmado' });
   if (estabaPorRevisar && mov.comercio) {
-    const pregunta = '\n¿Recordar para <b>' + escaparHtml_(normalizarTexto_(mov.comercio)) + '</b>?';
-    return editarMensaje_(messageId, textoCategorizado_(actualizado, categoriaId, ctx, pregunta), tecladoRecordar_(actualizado));
+    return editarMensaje_(messageId, textoCategorizado_(actualizado, categoriaId, ctx, preguntaRecordar_(mov)), tecladoRecordar_(actualizado, ctx));
   }
   return editarMensaje_(messageId, textoCategorizado_(actualizado, categoriaId, ctx),
-    mov.origen === 'telegram' ? tecladoRegistrado_(actualizado) : null);
+    mov.origen === 'telegram' ? tecladoRegistrado_(actualizado, ctx) : tecladoONulo_(filaAmbitos_(actualizado, ctx, false)));
 }
 
 function recordarDesdeBot_(mov, messageId, ctx) {
   const r = conBloqueo_(() => recordarComercio_(leerTabla_('Movimientos'), mov, '', mov.categoria_id));
   const extra = ' · recordado para <b>' + escaparHtml_(r.regla.patron) + '</b>' + (r.confirmados ? ' (+' + r.confirmados + ' más)' : '');
-  return editarMensaje_(messageId, textoCategorizado_(mov, mov.categoria_id, ctx, extra), null);
+  return editarMensaje_(messageId, textoCategorizado_(mov, mov.categoria_id, ctx, extra), tecladoONulo_(filaAmbitos_(mov, ctx, false)));
 }
 
 function deshacerDesdeBot_(mov, messageId, ctx) {

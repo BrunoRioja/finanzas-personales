@@ -37,13 +37,13 @@ test('importa todas las tablas con sus ids, la configuración elegida y deja la 
   assert.deepStrictEqual(r.estado, { instalado: true, modoDemo: false });
   assert.strictEqual(r.importado.Movimientos, 1);
   assert.strictEqual(r.importado.Recurrentes, 1);
-  ['Cuentas', 'Categorias', 'Movimientos', 'Divisiones', 'Reglas', 'Presupuestos', 'Recurrentes', 'EstadosCuenta']
+  ['Cuentas', 'Categorias', 'Ambitos', 'Movimientos', 'Divisiones', 'Reglas', 'Presupuestos', 'Recurrentes', 'EstadosCuenta']
     .forEach(t => assert.deepStrictEqual(e.filas(t), a.filas(t), t));
   const config = e.llamar('leerConfig_');
   assert.strictEqual(config.nombre, 'Ana');
   assert.strictEqual(config.ultimo_tc, '3.75');
   assert.strictEqual(config.horario_inicio, '8');
-  assert.strictEqual(config.version_esquema, '4');
+  assert.strictEqual(config.version_esquema, '5');
   assert.strictEqual(config.instalado, 'si');
   assert.strictEqual(config.importar_desde, undefined);
   assert.strictEqual(config.lectura_activa, undefined);
@@ -54,13 +54,14 @@ test('importa todas las tablas con sus ids, la configuración elegida y deja la 
 test('importa una hoja de una versión anterior (sin Presupuestos ni pagos fijos, con ultimos4)', () => {
   const a = hojaAnterior();
   const hojas = JSON.parse(JSON.stringify(a.hojas));
-  ['Presupuestos', 'Recurrentes', 'EstadosCuenta'].forEach(h => { delete hojas[h]; });
+  ['Presupuestos', 'Recurrentes', 'EstadosCuenta', 'Ambitos'].forEach(h => { delete hojas[h]; });
   hojas.Cuentas[0] = hojas.Cuentas[0].map(h => (h === 'numeros' ? 'ultimos4' : h));
   const e = copiaNueva(hojas);
   const r = e.llamar('importarHojaAnterior', ID_ANTERIOR);
   assert.strictEqual(r.importado.Presupuestos, 0);
   assert.deepStrictEqual(e.filas('Cuentas').map(c => c.numeros), a.filas('Cuentas').map(c => c.numeros));
   assert.deepStrictEqual(e.filas('Recurrentes'), []);
+  assert.deepStrictEqual(e.filas('Ambitos').map(a => a.nombre), ['Personal', 'Diversión', 'Familia', 'Trabajo']);
   assert.strictEqual(e.llamar('estadoInstalacion').instalado, true);
 });
 

@@ -3,6 +3,7 @@
 //
 // Uso: node tests/ui/ver.js "<js a ejecutar>" <id del elemento> [captura.png] [ancho]
 // Ej.: node tests/ui/ver.js "mostrar('movimientos')" vista captura.png 390
+// Captura más alta (página completa): ALTO=3000 node tests/ui/ver.js ...
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -46,7 +47,7 @@ html = html.replace('</body>', () => cierre);
 const tmp = path.join(os.tmpdir(), 'finanzas-ui-' + process.pid + '.html');
 fs.writeFileSync(tmp, html);
 const url = 'file:///' + tmp.replace(/\\/g, '/');
-const base = ['--headless=new', '--disable-gpu', '--hide-scrollbars', '--window-size=' + Math.max(500, Number(ancho) || 420) + ',900', '--virtual-time-budget=6000'];
+const base = ['--headless=new', '--disable-gpu', '--hide-scrollbars', '--window-size=' + Math.max(500, Number(ancho) || 420) + ',' + (Number(process.env.ALTO) || 900), '--virtual-time-budget=6000'];
 try {
   const dom = execFileSync(CHROME, [...base, '--dump-dom', url], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
   const m = /<pre id="__salida"[^>]*>([\s\S]*?)<\/pre>/.exec(dom);

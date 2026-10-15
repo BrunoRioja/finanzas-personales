@@ -1,24 +1,20 @@
 <script>
 'use strict';
+// Tablero del Inicio. El orden del HTML es el del celular (lo urgente primero); en pantallas
+// anchas cada bloque va a su área de la grilla (.tablero en estilos.html).
 VISTAS.inicio = async function (cont) {
   const d = await api('obtenerDashboard', estado.mes);
-  const r = d.resumen;
-  const ant = d.resumenAnterior;
-  const nota = r.tasaAhorro == null || ant.tasaAhorro == null ? '' : 'vs ' + ant.tasaAhorro + '% el mes anterior';
+  const sinPagos = !d.proximosPagos;
   cont.innerHTML =
     '<div class="cabecera"><h1>Hola, ' + esc(estado.catalogos.config.nombre) + '</h1>' + selectorMes() + '</div>' +
     (d.porRevisar ? '<button type="button" class="franja" id="ir-revisar"><span>🔔 <b>' + d.porRevisar + '</b> por revisar</span><span>→</span></button>' : '') +
-    '<div class="grid">' +
-      kpi('Ingresos', dinero(r.ingresos), 'pos') +
-      kpi('Gastos', dinero(r.gastos), '') +
-      kpi('Ahorro del mes', dinero(r.ahorro), r.ahorro < 0 ? 'neg' : 'pos') +
-      kpi('Tasa de ahorro', r.tasaAhorro == null ? '—' : r.tasaAhorro + '%', '', nota) +
-      bloquePresupuesto(d.presupuesto) +
+    '<div class="tablero' + (sinPagos ? ' sin-pagos' : '') + '">' +
+      bloqueResumen(d) +
       bloqueProximosPagos(d.proximosPagos) +
-      bloqueCategorias(d.categorias) +
-      bloqueTendencia(d.tendencia) +
+      bloquePresupuesto(d.presupuesto) +
+      bloqueEnQueSeFue(d) +
       bloqueSaldos(d.saldos) +
-      bloqueComercios(d.comercios) +
+      bloqueTendencia(d.tendencia, d.mes) +
     '</div>';
   enlazarMes(cont);
   const franja = $('#ir-revisar');
@@ -27,20 +23,53 @@ VISTAS.inicio = async function (cont) {
   if (irPresupuestos) irPresupuestos.onclick = () => mostrar('presupuestos');
   const irFijos = $('#ir-pagos-fijos');
   if (irFijos) irFijos.onclick = () => mostrar('presupuestos');
-  cont.querySelectorAll('[data-categoria]').forEach(f => {
-    f.onclick = () => { estado.filtro = { categoria_id: f.dataset.categoria }; mostrar('movimientos'); };
-  });
+  enlazarEnQueSeFue(cont);
 };
 
-function kpi(titulo, valor, clase, nota) {
-  return '<section class="tarjeta"><div class="etiqueta">' + esc(titulo) + '</div><div class="kpi num ' + clase + '">' + valor + '</div>' +
-    (nota ? '<div class="etiqueta" style="margin:4px 0 0">' + esc(nota) + '</div>' : '') + '</section>';
+// Días del mes que ya pasaron: todos si el mes terminó, 0 si es futuro.
+function diasTranscurridos(mes) {
+  const p = mes.split('-').map(Number);
+  const total = new Date(p[0], p[1], 0).getDate();
+  const hoy = hoyIso();
+  if (mes < hoy.slice(0, 7)) return { pasados: total, total: total };
+  if (mes > hoy.slice(0, 7)) return { pasados: 0, total: total };
+  return { pasados: Number(hoy.slice(8, 10)), total: total };
+}
+
+function nombreMesCorto(mes) { return MESES[Number(mes.slice(5)) - 1].toLowerCase(); }
+
+// Lo primero que se mira: cuánto llevas gastado, a qué ritmo y cómo cierra el mes.
+function bloqueResumen(d) {
+  const r = d.resumen;
+  const ant = d.resumenAnterior;
+  const anterior = nombreMesCorto(sumarMes(d.mes, -1));
+  const dias = diasTranscurridos(d.mes);
+  const enCurso = dias.pasados > 0 && dias.pasados < dias.total;
+  let ritmo = '';
+  if (enCurso && dias.pasados >= 3 && r.gastos > 0) {
+    const proyeccion = r.gastos / dias.pasados * dias.total;
+    const clase = ant.gastos > 0 ? (proyeccion > ant.gastos ? 'neg' : 'pos') : '';
+    ritmo = '<div class="ritmo"><span>' + dinero(r.gastos / dias.pasados) + ' por día</span><span>A este ritmo cierras en <b class="num ' + clase + '">' +
+      dinero(proyeccion) + '</b></span>' + (ant.gastos > 0 ? '<span class="tenue">' + anterior + ' cerró en ' + dinero(ant.gastos) + '</span>' : '') + '</div>';
+  } else if (!enCurso && ant.gastos > 0 && r.gastos > 0) {
+    const cambio = Math.round((r.gastos - ant.gastos) / ant.gastos * 100);
+    ritmo = '<div class="ritmo"><span class="' + (cambio > 0 ? 'neg' : 'pos') + '">' + (cambio > 0 ? '▲ ' : '▼ ') + Math.abs(cambio) +
+      '% vs ' + anterior + '</span><span class="tenue">' + anterior + ': ' + dinero(ant.gastos) + '</span></div>';
+  }
+  const progreso = enCurso ? '<div class="barra-mes" title="Día ' + dias.pasados + ' de ' + dias.total + '"><i style="width:' +
+    (dias.pasados / dias.total * 100) + '%"></i></div><div class="etiqueta">Día ' + dias.pasados + ' de ' + dias.total + '</div>' : '';
+  const tasa = r.tasaAhorro == null ? '' : '<div class="etiqueta">' + r.tasaAhorro + '% de tus ingresos' +
+    (ant.tasaAhorro == null ? '' : ' · ' + ant.tasaAhorro + '% en ' + anterior) + '</div>';
+  return '<section class="tarjeta area-resumen"><div class="etiqueta">Gastos de ' + nombreMesCorto(d.mes) + '</div>' +
+    '<div class="cifra num">' + dinero(r.gastos) + '</div>' + ritmo + progreso +
+    '<div class="resumen-pie"><div><div class="etiqueta">Ingresos</div><b class="num pos">' + dinero(r.ingresos) + '</b></div>' +
+    '<div><div class="etiqueta">Ahorro</div><b class="num ' + (r.ahorro < 0 ? 'neg' : 'pos') + '">' + dinero(r.ahorro) + '</b>' + tasa + '</div></div></section>';
 }
 
 function bloquePresupuesto(p) {
   const titulo = '<div class="etiqueta">Presupuesto del mes</div>';
   if (!p || !p.filas.length) {
-    return '<section class="tarjeta ancho-2">' + titulo + '<div class="vacio">Aún no defines presupuestos para este mes. ' +
+    return '<section class="tarjeta area-ppto">' + titulo + '<div class="vacio">Aún no defines presupuestos para este mes. ' +
       '<button type="button" class="boton" id="ir-presupuestos">Definir presupuestos</button></div></section>';
   }
   const claseEstado = { ok: 'tenue', alerta: 'alerta', pasado: 'neg' };
@@ -50,7 +79,7 @@ function bloquePresupuesto(p) {
     '<b style="left:' + f.ritmo + '%" title="Dónde deberías ir a esta fecha"></b></span>' +
     '<span class="der num">' + dinero(f.gastado) + '<span class="tenue de-ppto"> de ' + dinero(f.presupuesto) + '</span></span>' +
     '<span class="der num ' + claseEstado[f.estado] + '">' + f.porcentaje + '%</span></div>').join('');
-  return '<section class="tarjeta ancho-2">' + titulo + '<div class="filas">' + filas + '</div>' +
+  return '<section class="tarjeta area-ppto">' + titulo + '<div class="filas">' + filas + '</div>' +
     '<div class="pie-ppto"><span>Total: <b class="num">' + dinero(p.total.gastado) + '</b> de ' + dinero(p.total.presupuesto) + '</span>' +
     '<span class="tenue">Sin presupuesto: ' + dinero(p.sinPresupuesto) + '</span></div></section>';
 }
@@ -73,7 +102,7 @@ function bloqueProximosPagos(r) {
   if (!r) return '';
   const titulo = '<div class="etiqueta">Próximos pagos</div>';
   if (!r.pagos.length) {
-    return '<section class="tarjeta ancho-2">' + titulo + '<div class="vacio">Agrega tus pagos fijos (alquiler, suscripciones, gimnasio) ' +
+    return '<section class="tarjeta area-pagos">' + titulo + '<div class="vacio">Agrega tus pagos fijos (alquiler, suscripciones, gimnasio) ' +
       'para verlos aquí antes de que venzan. <button type="button" class="boton" id="ir-pagos-fijos">Agregar pagos fijos</button></div></section>';
   }
   const filas = r.pagos.map(p => {
@@ -87,7 +116,7 @@ function bloqueProximosPagos(r) {
     return '<div class="fila-pago' + (tarjeta ? ' larga' : '') + (pagada ? ' atenuada' : '') + '"><span>' + esc(p.emoji + ' ' + p.nombre) + '</span>' +
       '<span class="cuando ' + clase + '">' + esc(cuandoPago(p)) + '</span><span class="der num">' + monto + '</span></div>';
   }).join('');
-  return '<section class="tarjeta ancho-2">' + titulo + '<div class="filas">' + filas + '</div>' +
+  return '<section class="tarjeta area-pagos">' + titulo + '<div class="filas">' + filas + '</div>' +
     '<div class="pie-ppto"><span>Por pagar en 30 días: <b class="num">' + dinero(r.porPagar) + '</b></span></div></section>';
 }
 
@@ -104,9 +133,38 @@ function dona(items) {
     '<circle cx="21" cy="21" r="15.9155" fill="none" style="stroke:var(--borde)" stroke-width="6"/>' + arcos + '</svg>';
 }
 
-function bloqueCategorias(items) {
-  const titulo = '<div class="etiqueta">Gasto por categoría</div>';
-  if (!items.length) return '<section class="tarjeta ancho-2">' + titulo + '<div class="vacio">Sin gastos este mes.</div></section>';
+// Categorías, ámbitos y comercios responden lo mismo desde tres ángulos: una tarjeta con pestañas.
+function bloqueEnQueSeFue(d) {
+  const vistas = [['categorias', 'Categorías', panelCategorias(d.categorias)]];
+  if ((d.ambitos || []).length > 1) vistas.push(['ambitos', 'Ámbitos', panelAmbitos(d.ambitos)]);
+  vistas.push(['comercios', 'Comercios', panelComercios(d.comercios)]);
+  const guardada = leerLocal('inicioPestana');
+  const activa = vistas.some(v => v[0] === guardada) ? guardada : 'categorias';
+  return '<section class="tarjeta area-gasto"><div class="cabecera-seccion"><div class="etiqueta">¿En qué se fue?</div>' +
+    '<div class="segmento mini-seg" role="tablist">' + vistas.map(v => '<button type="button" role="tab" data-pestana="' + v[0] + '"' +
+      (v[0] === activa ? ' class="activo" aria-selected="true"' : ' aria-selected="false"') + '>' + v[1] + '</button>').join('') + '</div></div>' +
+    vistas.map(v => '<div data-panel="' + v[0] + '"' + (v[0] === activa ? '' : ' hidden') + '>' + v[2] + '</div>').join('') + '</section>';
+}
+
+function enlazarEnQueSeFue(cont) {
+  const pestanas = cont.querySelectorAll('[data-pestana]');
+  pestanas.forEach(b => {
+    b.onclick = () => {
+      pestanas.forEach(x => { x.classList.toggle('activo', x === b); x.setAttribute('aria-selected', String(x === b)); });
+      cont.querySelectorAll('[data-panel]').forEach(p => { p.hidden = p.dataset.panel !== b.dataset.pestana; });
+      guardarLocal('inicioPestana', b.dataset.pestana);
+    };
+  });
+  cont.querySelectorAll('[data-categoria]').forEach(f => {
+    f.onclick = () => { estado.filtro = { categoria_id: f.dataset.categoria }; mostrar('movimientos'); };
+  });
+  cont.querySelectorAll('[data-ver-ambito]').forEach(b => {
+    b.onclick = () => { estado.filtro = { ambito_id: b.dataset.verAmbito }; mostrar('movimientos'); };
+  });
+}
+
+function panelCategorias(items) {
+  if (!items.length) return '<div class="vacio">Sin gastos este mes.</div>';
   const max = Math.max(...items.map(c => c.monto));
   const filas = items.map(c => {
     const clic = c.categoria_id !== '_resto' ? ' clic" data-categoria="' + esc(c.categoria_id) + '"' : '"';
@@ -114,42 +172,59 @@ function bloqueCategorias(items) {
       '<span class="mini"><i style="width:' + (c.monto / max * 100) + '%;background:' + esc(c.color) + '"></i></span>' +
       '<span class="der num">' + dinero(c.monto) + '</span><span class="der tenue num">' + c.porcentaje + '%</span></div>';
   }).join('');
-  return '<section class="tarjeta ancho-2">' + titulo + '<div class="dona-fila">' + dona(items) + '<div class="filas">' + filas + '</div></div></section>';
+  return '<div class="dona-fila">' + dona(items) + '<div class="filas">' + filas + '</div></div>';
 }
 
-function bloqueTendencia(meses) {
+function panelAmbitos(items) {
+  const max = Math.max(...items.map(a => a.monto));
+  return items.map(a => '<details class="ambito-detalle"><summary class="fila-barra clic"><span>' + esc((a.emoji ? a.emoji + ' ' : '') + a.nombre) + '</span>' +
+    '<span class="mini"><i style="width:' + (a.monto / max * 100) + '%;background:var(--primario)"></i></span>' +
+    '<span class="der num">' + dinero(a.monto) + '</span><span class="der tenue num">' + a.porcentaje + '%</span></summary>' +
+    a.categorias.map(c => '<div class="fila-simple sub"><span>' + esc(c.emoji + ' ' + c.nombre) + '</span><span class="num">' + dinero(c.monto) + '</span></div>').join('') +
+    '<button type="button" class="enlace sub" data-ver-ambito="' + esc(a.ambito_id) + '">Ver movimientos →</button></details>').join('') +
+    '<p class="tenue nota">Toca un ámbito para ver en qué categorías se fue.</p>';
+}
+
+function panelComercios(lista) {
+  if (!lista.length) return '<div class="vacio">Sin comercios este mes.</div>';
+  const max = Math.max(...lista.map(c => c.monto));
+  return '<div class="fila-barra cabeza"><span>Comercio</span><span></span><span class="der">Monto</span><span class="der">Veces</span></div>' +
+    lista.map(c => '<div class="fila-barra"><span>' + esc(c.comercio) + '</span><span class="mini"><i style="width:' + (c.monto / max * 100) + '%;background:var(--positivo)"></i></span>' +
+      '<span class="der num">' + dinero(c.monto) + '</span><span class="der tenue num">' + c.veces + '×</span></div>').join('');
+}
+
+// El mes elegido resalta; la línea punteada es el gasto promedio de los meses anteriores.
+function bloqueTendencia(meses, mesActual) {
   const max = Math.max(1, ...meses.map(m => Math.max(m.ingresos, m.gastos)));
   const ancho = 300;
   const alto = 120;
   const paso = ancho / meses.length;
+  const previos = meses.filter(m => m.mes < mesActual && (m.gastos || m.ingresos));
+  const promedio = previos.length ? previos.reduce((s, m) => s + m.gastos, 0) / previos.length : 0;
   const barras = meses.map((m, i) => {
     const x = i * paso + paso / 2;
     const hi = m.ingresos / max * (alto - 10);
     const hg = Math.max(0, m.gastos) / max * (alto - 10);
     const etiqueta = MESES[Number(m.mes.slice(5)) - 1].slice(0, 3).toLowerCase();
-    return '<rect x="' + (x - 15) + '" y="' + (alto - hi) + '" width="14" height="' + hi + '" rx="3" style="fill:var(--positivo)"><title>Ingresos ' + dinero(m.ingresos) + '</title></rect>' +
-      '<rect x="' + (x + 1) + '" y="' + (alto - hg) + '" width="14" height="' + hg + '" rx="3" style="fill:var(--primario)"><title>Gastos ' + dinero(m.gastos) + '</title></rect>' +
-      '<text x="' + x + '" y="' + (alto + 16) + '" text-anchor="middle" font-size="11" style="fill:var(--texto-2)">' + etiqueta + '</text>';
+    const opacidad = m.mes === mesActual ? '' : ' opacity=".45"';
+    return '<rect x="' + (x - 15) + '" y="' + (alto - hi) + '" width="14" height="' + hi + '" rx="3" style="fill:var(--positivo)"' + opacidad + '><title>Ingresos ' + dinero(m.ingresos) + '</title></rect>' +
+      '<rect x="' + (x + 1) + '" y="' + (alto - hg) + '" width="14" height="' + hg + '" rx="3" style="fill:var(--primario)"' + opacidad + '><title>Gastos ' + dinero(m.gastos) + '</title></rect>' +
+      '<text x="' + x + '" y="' + (alto + 16) + '" text-anchor="middle" font-size="11" style="fill:' + (m.mes === mesActual ? 'var(--texto)' : 'var(--texto-2)') + '">' + etiqueta + '</text>';
   }).join('');
-  return '<section class="tarjeta ancho-2"><div class="etiqueta">Últimos 6 meses · <span class="pos">■</span> ingresos <span style="color:var(--primario)">■</span> gastos</div>' +
-    '<svg viewBox="0 0 ' + ancho + ' ' + (alto + 22) + '" width="100%" style="max-height:210px" role="img" aria-label="Ingresos y gastos de los últimos 6 meses">' + barras + '</svg></section>';
+  const yProm = alto - promedio / max * (alto - 10);
+  const linea = promedio ? '<line x1="0" x2="' + ancho + '" y1="' + yProm + '" y2="' + yProm + '" stroke-dasharray="4 4" style="stroke:var(--texto-2)" stroke-width="1"/>' : '';
+  return '<section class="tarjeta area-tendencia"><div class="etiqueta">Últimos 6 meses · <span class="pos">■</span> ingresos <span style="color:var(--primario)">■</span> gastos</div>' +
+    '<svg viewBox="0 0 ' + ancho + ' ' + (alto + 22) + '" width="100%" style="max-height:210px" role="img" aria-label="Ingresos y gastos de los últimos 6 meses">' + barras + linea + '</svg>' +
+    (promedio ? '<div class="etiqueta">┄ Gasto promedio de los meses anteriores: <b class="num">' + dinero(promedio) + '</b></div>' : '') + '</section>';
 }
 
 function bloqueSaldos(saldos) {
+  const neto = saldos.reduce((s, x) => s + x.saldo_pen, 0);
   const filas = saldos.length ? saldos.map(s =>
     '<div class="fila-simple"><span>' + esc(s.nombre) + ' <span class="tenue">· ' + esc(s.banco) + '</span></span>' +
     '<span class="num ' + (s.saldo_pen < 0 ? 'neg' : '') + '">' + dinero(s.saldo_pen) + '</span></div>').join('') : '<div class="vacio">Sin cuentas activas.</div>';
-  return '<section class="tarjeta ancho-2"><div class="etiqueta">Saldos actuales</div>' + filas + '</section>';
-}
-
-function bloqueComercios(lista) {
-  const titulo = '<div class="etiqueta">Comercios donde más gastas</div>';
-  if (!lista.length) return '<section class="tarjeta ancho-2">' + titulo + '<div class="vacio">Sin comercios este mes.</div></section>';
-  const max = Math.max(...lista.map(c => c.monto));
-  const filas = lista.map(c =>
-    '<div class="fila-barra"><span>' + esc(c.comercio) + '</span><span class="mini"><i style="width:' + (c.monto / max * 100) + '%;background:var(--positivo)"></i></span>' +
-    '<span class="der num">' + dinero(c.monto) + '</span><span class="der tenue num">' + c.veces + '×</span></div>').join('');
-  return '<section class="tarjeta ancho-2">' + titulo +
-    '<div class="fila-barra cabeza"><span>Comercio</span><span></span><span class="der">Monto</span><span class="der">Veces</span></div>' + filas + '</section>';
+  return '<section class="tarjeta area-saldos"><div class="cabecera-seccion"><div class="etiqueta">Saldos actuales</div>' +
+    (saldos.length ? '<div class="etiqueta" title="Suma de todas las cuentas; las tarjetas restan lo que debes">Neto <b class="num ' + (neto < 0 ? 'neg' : '') + '">' + dinero(neto) + '</b></div>' : '') +
+    '</div>' + filas + '</section>';
 }
 </script>
