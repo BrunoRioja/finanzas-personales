@@ -5,6 +5,8 @@
 
 > **EN —** Self-hosted personal finance app built on Google Apps Script + Google Sheets. Each person runs their own copy in their own Google account: no servers, no shared data. It reads bank notification emails (BCP, Yape), has a Telegram bot that only asks about what it doesn't recognize, tracks monthly budgets and upcoming card and fixed payments. Install it with one "Make a copy" click. Gemini (receipts) is future work.
 
+https://github.com/user-attachments/assets/440b9768-16e0-4ed1-96ac-be9e70cb3a4f
+
 App de finanzas personales que vive en **tu propia cuenta de Google**: lee los correos de tu banco, te pregunta por Telegram solo lo que no reconoce y te muestra en qué se va tu dinero, cuánto llevas de tu presupuesto y qué pagos vienen.
 
 **[📄 Hacer una copia](https://docs.google.com/spreadsheets/d/12jTo7S7wRd1xs4XMN9ftS2PyDjCArfTAaT6gun2GemE/copy)** · 4 pasos, sin programar: [cómo instalarla](docs/instalacion.md)
