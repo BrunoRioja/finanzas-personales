@@ -22,12 +22,14 @@ function tarjetaRevisar(m, frecuentes) {
   const activas = cat.cuentas.filter(c => c.activa);
   const ids = [''].concat(activas.map(c => c.id));
   const nombres = ['Elige…'].concat(activas.map(c => c.nombre));
-  const titulo = m.comercio || m.descripcion || etiquetaTipoMov(m.tipo);
+  const titulo = m.titulo || etiquetaTipoMov(m.tipo);
+  // Debajo: el comercio si el título es la descripción propia; si no, una descripción automática.
+  const extra = m.subtitulo || (m.descripcion && m.descripcion !== m.titulo ? m.descripcion : '');
   let html = '<section class="tarjeta seccion" data-rv="' + esc(m.id) + '">' +
     '<div class="fila-simple" style="border:0;padding-top:0"><b>' + esc(titulo) + '</b><b class="num ' + (m.tipo === 'ingreso' ? 'pos' : '') + '">' +
     (m.tipo === 'ingreso' ? '+' : '') + dinero(m.monto, m.moneda) + '</b></div>' +
     '<div class="tenue" style="font-size:12px;margin-bottom:10px">📧 ' + esc(fechaLarga(m.fecha) + ' · ' + etiquetaTipoMov(m.tipo) + ' · ' +
-    (m.cuenta_id ? cuenta(m.cuenta_id).nombre : 'cuenta sin identificar') + (m.descripcion && m.comercio ? ' · ' + m.descripcion : '')) + '</div>';
+    (m.cuenta_id ? cuenta(m.cuenta_id).nombre : 'cuenta sin identificar') + (extra ? ' · ' + extra : '')) + '</div>';
   if (!m.cuenta_id) html += campo('¿De qué cuenta salió?', seleccion('rv-cta-' + m.id, ids, '', nombres));
   if (m.tipo === 'transferencia') {
     if (!m.cuenta_destino_id) html += campo('¿A qué cuenta llegó?', seleccion('rv-dst-' + m.id, ids, '', nombres));

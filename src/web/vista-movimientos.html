@@ -64,14 +64,14 @@ function itemMovimiento(m) {
   let etiquetaAmb = '';
   if (m.tipo === 'transferencia') {
     icono = '🔁';
-    titulo = m.descripcion || 'Transferencia';
+    titulo = m.titulo || 'Transferencia';
     sub = cuenta(m.cuenta_id).nombre + ' → ' + cuenta(m.cuenta_destino_id).nombre;
     clase = 'tenue';
   } else {
     const c = categoria(m.categoria_id);
     icono = c.emoji;
-    titulo = m.comercio || m.descripcion || c.nombre;
-    sub = c.nombre + ' · ' + cuenta(m.cuenta_id).nombre + (m.moneda !== 'PEN' ? ' · ≈ ' + dinero(m.monto_pen) : '');
+    titulo = m.titulo || c.nombre;
+    sub = (m.subtitulo ? m.subtitulo + ' · ' : '') + c.nombre + ' · ' + cuenta(m.cuenta_id).nombre + (m.moneda !== 'PEN' ? ' · ≈ ' + dinero(m.monto_pen) : '');
     clase = m.tipo === 'ingreso' ? 'pos' : '';
     const ambs = m.ambitos || [];
     etiquetaAmb = ambs.length > 1 ? 'Varios ámbitos' : (ambs[0] && ambs[0] !== 'personal' ? (ambito(ambs[0]).emoji + ' ' + ambito(ambs[0]).nombre).trim() : '');

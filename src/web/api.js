@@ -155,7 +155,7 @@ function listarMovimientos(filtro) {
   leerTabla_('Divisiones').forEach(d => { (partes[d.movimiento_id] = partes[d.movimiento_id] || []).push(d); });
   return leerTabla_('Movimientos')
     .filter(m => mesDe_(m.fecha) === mes)
-    .map(m => Object.assign(m, { ambitos: ambitosDeMovimiento_(m, partes[m.id], ambitos) }))
+    .map(m => Object.assign(m, conTitulo_(m), { ambitos: ambitosDeMovimiento_(m, partes[m.id], ambitos) }))
     .filter(m => !filtro.cuenta_id || m.cuenta_id === filtro.cuenta_id || m.cuenta_destino_id === filtro.cuenta_id)
     .filter(m => !filtro.categoria_id || m.categoria_id === filtro.categoria_id)
     .filter(m => !filtro.ambito_id || m.ambitos.indexOf(filtro.ambito_id) >= 0)

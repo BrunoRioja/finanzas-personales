@@ -77,14 +77,16 @@ test('tecladoTodas_: categorías activas del tipo, 2 por fila, y ← Volver', ()
 test('mensajePorRevisar_: sin cuenta o transferencia → solo Abrir en la app; si no, categorías', () => {
   const sinCuenta = f('mensajePorRevisar_', Object.assign({}, MOV, { cuenta_id: '' }), [UUID_SUPER], CTX);
   assert.match(sinCuenta.texto, /\n<i>Elige la cuenta en la app\.<\/i>$/);
-  assert.deepStrictEqual(sinCuenta.teclado, [[{ text: 'Abrir en la app', url: URL_APP }]]);
+  const lapiz = [{ text: '✏️ Descripción', callback_data: 'e:' + C(UUID_MOV) }];
+  assert.deepStrictEqual(sinCuenta.teclado, [[{ text: 'Abrir en la app', url: URL_APP }], lapiz]);
   const tr = f('mensajePorRevisar_', Object.assign({}, MOV, { tipo: 'transferencia' }), [], CTX);
   assert.match(tr.texto, /Elige la cuenta destino en la app\./);
   const sinApp = f('mensajePorRevisar_', Object.assign({}, MOV, { cuenta_id: '' }), [], Object.assign({}, CTX, { urlApp: '' }));
-  assert.strictEqual(sinApp.teclado, null);
+  assert.deepStrictEqual(sinApp.teclado, [lapiz]);
   const normal = f('mensajePorRevisar_', MOV, [UUID_SUPER], CTX);
   assert.strictEqual(normal.texto, f('textoMovimiento_', MOV, CTX));
   assert.strictEqual(normal.teclado[0][0].text, '🛒 Supermercado');
+  assert.deepStrictEqual(normal.teclado[normal.teclado.length - 1], lapiz);
 });
 
 test('mensajeAgrupado_, textoCategorizado_, tecladoRecordar_, textoRegistrado_ y tecladoRegistrado_', () => {
@@ -95,12 +97,12 @@ test('mensajeAgrupado_, textoCategorizado_, tecladoRecordar_, textoRegistrado_ y
   assert.strictEqual(f('textoCategorizado_', MOV, UUID_SUPER, CTX, ' · extra'), f('textoMovimiento_', MOV, CTX) + '\n✓ 🛒 Supermercado · 🙋 Personal · extra');
   assert.deepStrictEqual(f('tecladoRecordar_', MOV, CTX), [[
     { text: 'Sí, recordar', callback_data: 'r:' + C(UUID_MOV) }, { text: 'Solo esta vez', callback_data: 's:' + C(UUID_MOV) },
-  ]]);
+  ], [{ text: '✏️ Descripción', callback_data: 'e:' + C(UUID_MOV) }]]);
   const escrito = Object.assign({}, MOV, { monto: 12, comercio: 'taxi', categoria_id: 'cat-trans', cuenta_id: 'cu-deb' });
   assert.strictEqual(f('textoRegistrado_', escrito, CTX), '✓ <b>S/ 12.00</b> · taxi · 🚕 Transporte · 🙋 Personal · Débito BCP');
   assert.deepStrictEqual(f('tecladoRegistrado_', escrito, CTX), [[
     { text: 'Deshacer', callback_data: 'd:' + C(UUID_MOV) }, { text: 'Cambiar categoría', callback_data: 'k:' + C(UUID_MOV) },
-  ]]);
+  ], [{ text: '✏️ Descripción', callback_data: 'e:' + C(UUID_MOV) }]]);
 });
 
 test('textoResumen_: vacío sin movimientos; totales, líneas escapadas y pie', () => {

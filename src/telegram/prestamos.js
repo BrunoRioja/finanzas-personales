@@ -19,6 +19,12 @@ function tecladoFechaPromesa_(prestamo) {
   return [[b('Mañana', 'm'), b('Esta semana', 's')], [b('Fin de quincena', 'q'), b('Fin de mes', 'f')], [b('Sin fecha', 'n')]];
 }
 
+// Mensaje de un préstamo con sus botones: la fecha si es nuevo y los del movimiento (con ✏️).
+function mensajePrestamo_(prestamo, mov, ctx) {
+  const delMovimiento = !mov ? [] : mov.origen === 'telegram' ? tecladoRegistrado_(mov, ctx) : tecladoConfirmado_(mov, ctx);
+  return { texto: textoPrestamo_(prestamo, mov, ctx), teclado: (prestamo.nuevo ? tecladoFechaPromesa_(prestamo) : []).concat(delMovimiento) };
+}
+
 function botonReembolsoGasto_(mov, categoriaId, ctx) {
   return boton_(nombreCategoria_(ctx.categorias, categoriaId), 'g:' + compactarId_(mov.id) + ':' + compactarId_(categoriaId));
 }

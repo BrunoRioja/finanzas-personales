@@ -110,7 +110,17 @@ function textoMovimiento_(mov, ctx) {
     : nombreCuenta_(ctx.cuentas, mov.cuenta_id);
   const cuando = mov.fecha === ctx.hoy ? 'hoy' : mov.fecha.slice(8, 10) + '/' + mov.fecha.slice(5, 7);
   return (ICONO_TIPO[mov.tipo] || '•') + ' <b>' + formatoMonto_(mov.monto, mov.moneda) + '</b> · ' + escaparHtml_(cuenta) +
-    '\n' + escaparHtml_(mov.comercio || mov.descripcion || 'Sin descripción') + ' · ' + cuando;
+    '\n' + escaparHtml_(tituloMovimiento_(mov) || 'Sin descripción') + ' · ' + cuando +
+    (subtituloMovimiento_(mov) ? '\n<i>' + escaparHtml_(subtituloMovimiento_(mov)) + '</i>' : '');
+}
+
+function botonDescripcion_(mov) {
+  return [boton_('✏️ Descripción', 'e:' + compactarId_(mov.id))];
+}
+
+// Botones de un movimiento ya confirmado (importado o transferencia): ámbitos y ✏️.
+function tecladoConfirmado_(mov, ctx) {
+  return filaAmbitos_(mov, ctx, false).concat([botonDescripcion_(mov)]);
 }
 
 function botonCategoria_(mov, categoriaId, ctx) {
@@ -120,7 +130,8 @@ function botonCategoria_(mov, categoriaId, ctx) {
 function tecladoCategorias_(mov, idsFrecuentes, ctx) {
   const id = compactarId_(mov.id);
   const top = idsFrecuentes.slice(0, 3).map(cid => botonCategoria_(mov, cid, ctx));
-  return [top, [boton_('Otra…', 'o:' + id)].concat(botonApp_(ctx.urlApp, 'Abrir en la app'))].filter(fila => fila.length);
+  return [top, [boton_('Otra…', 'o:' + id)].concat(botonApp_(ctx.urlApp, 'Abrir en la app')), botonDescripcion_(mov)]
+    .filter(fila => fila.length);
 }
 
 function tecladoTodas_(mov, ctx) {
@@ -137,7 +148,7 @@ function mensajePorRevisar_(mov, idsFrecuentes, ctx) {
   if (!mov.cuenta_id || mov.tipo === 'transferencia') {
     const app = botonApp_(ctx.urlApp, 'Abrir en la app');
     const falta = mov.cuenta_id ? 'Elige la cuenta destino en la app.' : 'Elige la cuenta en la app.';
-    return { texto: texto + '\n<i>' + falta + '</i>', teclado: app.length ? [app] : null };
+    return { texto: texto + '\n<i>' + falta + '</i>', teclado: (app.length ? [app] : []).concat([botonDescripcion_(mov)]) };
   }
   return { texto: texto, teclado: tecladoCategorias_(mov, idsFrecuentes, ctx) };
 }
@@ -153,17 +164,17 @@ function textoCategorizado_(mov, categoriaId, ctx, extra) {
 
 function tecladoRecordar_(mov, ctx) {
   const id = compactarId_(mov.id);
-  return [[boton_('Sí, recordar', 'r:' + id), boton_('Solo esta vez', 's:' + id)]].concat(filaAmbitos_(mov, ctx, true));
+  return [[boton_('Sí, recordar', 'r:' + id), boton_('Solo esta vez', 's:' + id)]].concat(filaAmbitos_(mov, ctx, true), [botonDescripcion_(mov)]);
 }
 
 function textoRegistrado_(mov, ctx) {
-  return '✓ <b>' + formatoMonto_(mov.monto, mov.moneda) + '</b> · ' + escaparHtml_(mov.comercio) + ' · ' +
+  return '✓ <b>' + formatoMonto_(mov.monto, mov.moneda) + '</b> · ' + escaparHtml_(tituloMovimiento_(mov)) + ' · ' +
     escaparHtml_(nombreCategoria_(ctx.categorias, mov.categoria_id) + conAmbito_(mov, ctx)) + ' · ' + escaparHtml_(nombreCuenta_(ctx.cuentas, mov.cuenta_id));
 }
 
 function tecladoRegistrado_(mov, ctx) {
   const id = compactarId_(mov.id);
-  return [[boton_('Deshacer', 'd:' + id), boton_('Cambiar categoría', 'k:' + id)]].concat(filaAmbitos_(mov, ctx, false));
+  return [[boton_('Deshacer', 'd:' + id), boton_('Cambiar categoría', 'k:' + id)]].concat(filaAmbitos_(mov, ctx, false), [botonDescripcion_(mov)]);
 }
 
 // movs = movimientos de un día (todos se listan); extras = { porRevisar, noLeidos, cuentan }:
@@ -179,7 +190,7 @@ function textoResumen_(movs, ctx, extras) {
       : m.tipo === 'transferencia' ? '🔁 transferencia' : nombreCategoria_(ctx.categorias, m.categoria_id);
     const rol = rolDe_(ctx.categorias, m.categoria_id) && que.indexOf('🤝') !== 0 ? '🤝 ' : '';
     return '• ' + formatoMonto_(m.monto, m.moneda) + ' ' + rol + escaparHtml_(que) + ' — ' +
-      escaparHtml_(m.comercio || m.descripcion || nombreCuenta_(ctx.cuentas, m.cuenta_id));
+      escaparHtml_(tituloMovimiento_(m) || nombreCuenta_(ctx.cuentas, m.cuenta_id));
   });
   if (movs.length > MAX_LINEAS_RESUMEN) lineas.push('…y ' + (movs.length - MAX_LINEAS_RESUMEN) + ' más');
   partes.push(lineas.join('\n'));

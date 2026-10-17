@@ -4,7 +4,7 @@
 function obtenerPorRevisar() {
   const movs = leerTabla_('Movimientos');
   return {
-    movimientos: movs.filter(m => m.estado === 'por_revisar')
+    movimientos: movs.filter(m => m.estado === 'por_revisar').map(m => Object.assign(m, conTitulo_(m)))
       .sort((a, b) => (b.fecha + b.creado_en).localeCompare(a.fecha + a.creado_en)),
     pendientes: leerTabla_('Pendientes').filter(p => p.estado === 'pendiente')
       .sort((a, b) => b.fecha.localeCompare(a.fecha)),

@@ -19,7 +19,7 @@ test('elegir Préstamos crea el préstamo y pregunta la fecha; "Esta semana" fij
   const ed = e.ultimoEditado();
   assert.match(ed.text, /🤝 Préstamo a <b>Juan Prueba<\/b> · S\/ 200\.00\n¿Para cuándo te lo devuelve\?$/);
   assert.deepStrictEqual(e.botones(ed).map(f => f.map(b => b.text)),
-    [['Mañana', 'Esta semana'], ['Fin de quincena', 'Fin de mes'], ['Sin fecha']]);
+    [['Mañana', 'Esta semana'], ['Fin de quincena', 'Fin de mes'], ['Sin fecha'], ['✏️ Descripción']]);
   assert.ok(!/Recordar/.test(ed.text));
   const p = e.filas('Prestamos')[0];
   assert.deepStrictEqual([p.persona, Number(p.monto), p.movimiento_id], ['Juan Prueba', 200, mov.id]);
@@ -27,7 +27,7 @@ test('elegir Préstamos crea el préstamo y pregunta la fecha; "Esta semana" fij
   assert.strictEqual(e.filas('Prestamos')[0].fecha_promesa, '2026-10-18');
   const final = e.ultimoEditado();
   assert.match(final.text, /🤝 Préstamo a <b>Juan Prueba<\/b> · S\/ 200\.00 · vuelve el dom 18\/10$/);
-  assert.ok(!final.reply_markup);
+  assert.deepStrictEqual(e.botones(final).map(f => f.map(b => b.text)), [['✏️ Descripción']]);
 });
 
 test('las otras fechas prometidas: mañana, quincena, fin de mes y sin fecha', () => {
@@ -106,7 +106,8 @@ test('reembolso de cena desde el bot: g resta de Comida fuera', () => {
   assert.deepStrictEqual([r.tipo, Number(r.monto), Number(r.monto_pen), r.categoria_id, r.estado], ['gasto', -40, -40, comida, 'confirmado']);
   const ed = e.ultimoEditado();
   assert.match(ed.text, /\n✓ 🍽️? ?Comida fuera · 🙋 Personal · reembolso$/u);
-  assert.ok(e.botones(ed).flat().every(b => /^a:/.test(b.callback_data)));
+  assert.ok(e.botones(ed).slice(0, -1).flat().every(b => /^a:/.test(b.callback_data)));
+  assert.deepStrictEqual(e.botones(ed).slice(-1)[0].map(b => b.text), ['✏️ Descripción']);
   e.tocar(e.dato('g', mov, comida));
   assert.strictEqual(Number(e.mov(mov.id).monto), -40);
   assert.strictEqual(e.filas('Abonos').length, 0);
@@ -134,10 +135,10 @@ test('escrito: un préstamo pregunta la fecha y un reembolso pregunta de qué es
   assert.match(enviado.text, /🤝 Préstamo a <b>juan prueba<\/b> · S\/ 120\.00\n¿Para cuándo te lo devuelve\?$/);
   const filas = e.botones(enviado).map(f => f.map(b => b.text));
   assert.deepStrictEqual(filas.slice(0, 3), [['Mañana', 'Esta semana'], ['Fin de quincena', 'Fin de mes'], ['Sin fecha']]);
-  assert.deepStrictEqual(filas[3], ['Deshacer', 'Cambiar categoría']);
+  assert.deepStrictEqual(filas.slice(3), [['Deshacer', 'Cambiar categoría'], ['✏️ Descripción']]);
   const p = e.filas('Prestamos')[0];
   e.tocar('f:' + e.interno('compactarId_', p.id) + ':m');
-  assert.deepStrictEqual(e.botones(e.ultimoEditado()).map(f => f.map(b => b.text)), [['Deshacer', 'Cambiar categoría']]);
+  assert.deepStrictEqual(e.botones(e.ultimoEditado()).map(f => f.map(b => b.text)), [['Deshacer', 'Cambiar categoría'], ['✏️ Descripción']]);
 
   e.escribir('+ juan prueba 20 reembolsos');
   const r = e.ultimoEnviado();

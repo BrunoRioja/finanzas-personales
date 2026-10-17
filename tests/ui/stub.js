@@ -32,14 +32,20 @@
     ],
     totalMensual: 140.9, cuentas: CUENTAS, categorias: CATEGORIAS.filter(c => c.tipo === 'gasto'), tc: 3.75,
   };
-  const mov = (id, fecha, tipo, monto, cuenta_id, categoria_id, comercio, extra) => Object.assign({
+  // titulo y subtitulo como los arma el servidor (tituloMovimiento_ / subtituloMovimiento_).
+  const conTitulo = m => {
+    const propia = !!m.descripcion && ['Transferencia entre mis cuentas', 'Pago de tarjeta'].indexOf(m.descripcion) < 0 &&
+      m.descripcion.indexOf('Falta el tipo de cambio') !== 0;
+    return Object.assign(m, { titulo: propia ? m.descripcion : m.comercio || m.descripcion, subtitulo: propia ? m.comercio : '' });
+  };
+  const mov = (id, fecha, tipo, monto, cuenta_id, categoria_id, comercio, extra) => conTitulo(Object.assign({
     id, fecha, tipo, monto, moneda: 'PEN', tc: 1, monto_pen: monto, cuenta_id, cuenta_destino_id: '', categoria_id, comercio,
     descripcion: '', ambito_id: '', origen: 'manual', estado: 'confirmado', ref_externa: '', dividido: false, creado_en: fecha + ' 12:00:00',
-  }, extra || {});
+  }, extra || {}));
   const MOVS = [
     mov('m1', '2026-10-12', 'gasto', 89.3, 'a1', 'c1', 'Tottus', { origen: 'gmail', dividido: true, ambitos: ['m1', 'personal'] }),
     mov('m2', '2026-10-12', 'gasto', 12, 'a1', '', 'BRAYAN G. MUNOZ', { origen: 'gmail', estado: 'por_revisar', ambitos: ['personal'] }),
-    mov('m3', '2026-10-11', 'gasto', 38.5, 'a2', 'c2', 'Pardos Chicken', { ambitos: ['m1'] }),
+    mov('m3', '2026-10-11', 'gasto', 38.5, 'a2', 'c2', 'Pardos Chicken', { descripcion: 'Cena con Ana', ambitos: ['m1'] }),
     mov('m4', '2026-10-09', 'gasto', 9.99, 'a2', 'c4', 'Netflix', { moneda: 'USD', tc: 3.75, monto_pen: 37.46, origen: 'gmail', ambitos: ['personal'] }),
     mov('m5', '2026-10-05', 'transferencia', 600, 'a1', '', '', { cuenta_destino_id: 'a2', descripcion: 'Pago de tarjeta', origen: 'gmail', ambitos: [] }),
     mov('m6', '2026-10-01', 'ingreso', 3500, 'a1', 'c6', 'Empresa Demo SAC', { ambitos: [] }),
@@ -48,7 +54,7 @@
     mov('m9', '2026-10-11', 'gasto', -25, 'a1', 'c2', 'Pedro Vargas', { origen: 'gmail', descripcion: 'Su parte de la cena', ambitos: ['personal'] }),
   ];
   const POR_REVISAR = [
-    mov('r1', '2026-10-12', 'gasto', 12, 'a1', '', 'BRAYAN G. MUNOZ', { origen: 'gmail', estado: 'por_revisar' }),
+    mov('r1', '2026-10-12', 'gasto', 12, 'a1', '', 'BRAYAN G. MUNOZ', { origen: 'gmail', estado: 'por_revisar', descripcion: 'Pasaje de mamá' }),
     mov('r2', '2026-10-11', 'gasto', 24.47, '', '', 'CLARO', { origen: 'gmail', estado: 'por_revisar' }),
     mov('r3', '2026-10-10', 'transferencia', 290.26, 'a4', '', '', { origen: 'gmail', estado: 'por_revisar', descripcion: 'Transferencia entre mis cuentas' }),
     mov('r4', '2026-10-13', 'ingreso', 50, 'a1', '', 'LUCIA FERNANDEZ R.', { origen: 'gmail', estado: 'por_revisar' }),

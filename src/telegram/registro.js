@@ -46,8 +46,8 @@ function manejarEscrito_(texto, updateId) {
     return enviarMensaje_(m.texto, m.teclado);
   }
   if (r.prestamo) {
-    const prestamo = Object.assign({}, r.prestamo, { nuevo: true });
-    return enviarMensaje_(textoPrestamo_(prestamo, r.mov, ctx), tecladoFechaPromesa_(prestamo).concat(tecladoRegistrado_(r.mov, ctx)));
+    const m = mensajePrestamo_(Object.assign({}, r.prestamo, { nuevo: true }), r.mov, ctx);
+    return enviarMensaje_(m.texto, m.teclado);
   }
   if (r.mov.estado === 'por_revisar') {
     const frecuentes = categoriasFrecuentes_(leerTabla_('Movimientos'), ctx.categorias)[r.mov.tipo] || [];

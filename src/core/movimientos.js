@@ -44,3 +44,25 @@ function normalizarMovimiento_(datos, ctx) {
   }
   return mov;
 }
+
+// Descripciones que pone el lector de correos: no cuentan como descripción de la persona.
+const DESCRIPCIONES_AUTOMATICAS = ['Transferencia entre mis cuentas', 'Pago de tarjeta'];
+
+function descripcionPropia_(mov) {
+  const d = String(mov.descripcion || '');
+  return !!d && DESCRIPCIONES_AUTOMATICAS.indexOf(d) < 0 && d.indexOf('Falta el tipo de cambio') !== 0;
+}
+
+// La descripción puesta por la persona va de título y el comercio debajo; si no, como siempre.
+function tituloMovimiento_(mov) {
+  return descripcionPropia_(mov) ? mov.descripcion : mov.comercio || mov.descripcion || '';
+}
+
+function subtituloMovimiento_(mov) {
+  return descripcionPropia_(mov) ? mov.comercio || '' : '';
+}
+
+// Para la web: el título y el subtítulo ya resueltos.
+function conTitulo_(mov) {
+  return { titulo: tituloMovimiento_(mov), subtitulo: subtituloMovimiento_(mov) };
+}
