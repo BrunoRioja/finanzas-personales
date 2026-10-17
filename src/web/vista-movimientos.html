@@ -150,7 +150,15 @@ function abrirFormMovimiento(mov, opciones) {
     $('#form-mov', caja).innerHTML = html;
 
     caja.querySelectorAll('[data-tipo]').forEach(b => {
-      b.onclick = () => { leerForm(); f.tipo = b.dataset.tipo; f.categoria_id = ''; f.ambito_id = ''; pintar(); };
+      b.onclick = () => {
+        leerForm();
+        f.tipo = b.dataset.tipo;
+        f.categoria_id = '';
+        f.ambito_id = '';
+        // Un reembolso guardado como gasto negativo vuelve a ser ingreso (o transferencia) positivo.
+        if (f.tipo !== 'gasto' && Number(f.monto) < 0) f.monto = String(Math.abs(Number(f.monto)));
+        pintar();
+      };
     });
     caja.querySelectorAll('[data-cat]').forEach(b => {
       b.onclick = () => {
@@ -199,7 +207,7 @@ function abrirFormMovimiento(mov, opciones) {
     boton.disabled = true;
     try {
       await api('guardarMovimiento', {
-        id: mov ? mov.id : '', tipo: comoGasto ? 'gasto' : f.tipo, fecha: f.fecha, monto: comoGasto ? -Math.abs(Number(f.monto)) : f.monto,
+        id: mov ? mov.id : '', tipo: comoGasto ? 'gasto' : f.tipo, fecha: f.fecha, monto: comoGasto ? -Math.abs(Number(f.monto)) : f.tipo !== 'gasto' && Number(f.monto) < 0 ? Math.abs(Number(f.monto)) : f.monto,
         moneda: f.moneda || cuenta(f.cuenta_id).moneda || 'PEN', cuenta_id: f.cuenta_id,
         cuenta_destino_id: f.tipo === 'transferencia' ? f.cuenta_destino_id : '',
         categoria_id: f.tipo === 'transferencia' ? '' : comoGasto || f.categoria_id,
