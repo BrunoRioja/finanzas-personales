@@ -164,17 +164,19 @@ function tecladoRegistrado_(mov, ctx) {
   return [[boton_('Deshacer', 'd:' + id), boton_('Cambiar categoría', 'k:' + id)]].concat(filaAmbitos_(mov, ctx, false));
 }
 
-// movs = movimientos de un día; extras = { porRevisar, noLeidos } de toda la bandeja.
+// movs = movimientos de un día (todos se listan); extras = { porRevisar, noLeidos, cuentan }:
+// cuentan = los que suman en gastos e ingresos (sin préstamos ni reembolsos); si falta, cuentan todos.
 function textoResumen_(movs, ctx, extras) {
   if (!movs.length) return '';
-  const suma = tipo => redondear2_(movs.filter(m => m.tipo === tipo).reduce((s, m) => s + m.monto_pen, 0));
+  const suma = tipo => redondear2_((extras.cuentan || movs).filter(m => m.tipo === tipo).reduce((s, m) => s + m.monto_pen, 0));
   const ingresos = suma('ingreso');
   const partes = ['📊 <b>Hoy · ' + formatoMonto_(suma('gasto'), 'PEN') + ' en gastos</b>' +
     (ingresos ? '\n💰 ' + formatoMonto_(ingresos, 'PEN') + ' en ingresos' : '')];
   const lineas = movs.slice(0, MAX_LINEAS_RESUMEN).map(m => {
     const que = m.estado === 'por_revisar' ? '⚠ por revisar'
       : m.tipo === 'transferencia' ? '🔁 transferencia' : nombreCategoria_(ctx.categorias, m.categoria_id);
-    return '• ' + formatoMonto_(m.monto, m.moneda) + ' ' + escaparHtml_(que) + ' — ' +
+    const rol = rolDe_(ctx.categorias, m.categoria_id) && que.indexOf('🤝') !== 0 ? '🤝 ' : '';
+    return '• ' + formatoMonto_(m.monto, m.moneda) + ' ' + rol + escaparHtml_(que) + ' — ' +
       escaparHtml_(m.comercio || m.descripcion || nombreCuenta_(ctx.cuentas, m.cuenta_id));
   });
   if (movs.length > MAX_LINEAS_RESUMEN) lineas.push('…y ' + (movs.length - MAX_LINEAS_RESUMEN) + ' más');

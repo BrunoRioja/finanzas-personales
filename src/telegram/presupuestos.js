@@ -7,8 +7,9 @@ function presupuestoDelMesActual_() {
   const mes = mesDe_(hoy);
   const vigentes = presupuestosVigentes_(leerTabla_('Presupuestos'), mes);
   if (!Object.keys(vigentes).length) return { mes: mes, hoy: hoy, filas: [] };
-  const r = presupuestoVsReal_(lineasCategoria_(leerTabla_('Movimientos'), leerTabla_('Divisiones')),
-    vigentes, leerTabla_('Categorias'), mes, hoy);
+  const categorias = leerTabla_('Categorias');
+  const r = presupuestoVsReal_(lineasCategoria_(movimientosQueCuentan_(leerTabla_('Movimientos'), categorias), leerTabla_('Divisiones')),
+    vigentes, categorias, mes, hoy);
   return { mes: mes, hoy: hoy, filas: r.filas };
 }
 

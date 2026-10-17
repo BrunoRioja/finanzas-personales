@@ -183,3 +183,42 @@ test('obtenerDashboard incluye el gasto por ámbito', () => {
   e.llamar('guardarMovimiento', { tipo: 'gasto', fecha: '2026-10-10', monto: 25, cuenta_id: e.cuenta('Débito BCP'), categoria_id: e.categoria('Transporte'), ambito_id: div });
   assert.deepStrictEqual(e.llamar('obtenerDashboard', '2026-10').ambitos.map(a => [a.nombre, a.monto]), [['Diversión', 25]]);
 });
+
+const CATS_ROL = CATS.concat([
+  { id: 'prest', nombre: 'Préstamos', emoji: '🤝', color: '#999', tipo: 'gasto', activa: true, rol: 'prestamo' },
+  { id: 'reemb', nombre: 'Reembolsos', emoji: '↩️', color: '#999', tipo: 'ingreso', activa: true, rol: 'reembolso' },
+]);
+
+test('movimientosQueCuentan_: saca préstamos y reembolsos; deja transferencias y gastos negativos', () => {
+  const e = crearEntorno();
+  const movs = [
+    M({ fecha: '2026-10-02', monto: 200, categoria_id: 'prest' }),
+    M({ fecha: '2026-10-03', tipo: 'ingreso', monto: 50, categoria_id: 'reemb' }),
+    M({ fecha: '2026-10-04', monto: 100 }),
+    M({ fecha: '2026-10-05', monto: -40 }),
+    M({ fecha: '2026-10-06', tipo: 'transferencia', monto: 10, cuenta_destino_id: 'visa', categoria_id: '' }),
+  ];
+  const r = e.llamar('movimientosQueCuentan_', movs, CATS_ROL);
+  assert.deepStrictEqual(r.map(m => m.id), [movs[2].id, movs[3].id, movs[4].id]);
+  const inactivas = CATS_ROL.map(c => Object.assign({}, c, { activa: false }));
+  assert.strictEqual(e.llamar('movimientosQueCuentan_', movs, inactivas).length, 5);
+});
+
+test('préstamo y devolución no cambian gastos, ingresos ni tendencia; sí los saldos', () => {
+  const e = crearEntorno();
+  const datos = {
+    movs: [
+      M({ fecha: '2026-10-02', monto: 200, categoria_id: 'prest' }),
+      M({ fecha: '2026-10-03', tipo: 'ingreso', monto: 50, categoria_id: 'reemb' }),
+      M({ fecha: '2026-10-04', monto: 100 }),
+    ],
+    divisiones: [], categorias: CATS_ROL,
+    cuentas: [{ id: 'deb', nombre: 'Débito', banco: 'BCP', tipo: 'debito', moneda: 'PEN', saldo_inicial: 1000, activa: true }],
+    tcUsd: 3.7,
+  };
+  const d = e.llamar('construirDashboard_', datos, '2026-10');
+  assert.deepStrictEqual([d.resumen.gastos, d.resumen.ingresos], [100, 0]);
+  assert.deepStrictEqual([d.tendencia[5].gastos, d.tendencia[5].ingresos], [100, 0]);
+  assert.ok(!d.categorias.some(c => c.categoria_id === 'prest'));
+  assert.strictEqual(d.saldos[0].saldo_pen, 1000 - 200 + 50 - 100);
+});

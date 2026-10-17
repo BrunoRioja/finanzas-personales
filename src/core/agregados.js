@@ -19,6 +19,15 @@ function lineasCategoria_(movs, divisiones) {
   return lineas;
 }
 
+// Un préstamo (gasto con rol prestamo) y su devolución (ingreso con rol reembolso) mueven saldos
+// pero no son gasto ni ingreso. Las transferencias y los gastos negativos se quedan.
+function movimientosQueCuentan_(movs, categorias) {
+  return movs.filter(m => {
+    const rol = rolDe_(categorias, m.categoria_id);
+    return !((m.tipo === 'gasto' && rol === 'prestamo') || (m.tipo === 'ingreso' && rol === 'reembolso'));
+  });
+}
+
 function resumenMes_(movs, mes) {
   let ingresos = 0;
   let gastos = 0;
@@ -132,15 +141,16 @@ function topComercios_(movs, mes, n) {
 
 // datos = { movs, divisiones, categorias, cuentas, tcUsd }
 function construirDashboard_(datos, mes) {
-  const lineas = lineasCategoria_(datos.movs, datos.divisiones);
+  const cuentan = movimientosQueCuentan_(datos.movs, datos.categorias);
+  const lineas = lineasCategoria_(cuentan, datos.divisiones);
   return {
     mes: mes,
-    resumen: resumenMes_(datos.movs, mes),
-    resumenAnterior: resumenMes_(datos.movs, sumarMeses_(mes, -1)),
+    resumen: resumenMes_(cuentan, mes),
+    resumenAnterior: resumenMes_(cuentan, sumarMeses_(mes, -1)),
     categorias: agruparCategorias_(gastoPorCategoria_(lineas, datos.categorias, mes), 5),
     ambitos: gastoPorAmbito_(lineas, datos.ambitos || [], datos.categorias, mes),
-    tendencia: tendencia_(datos.movs, mes, 6),
+    tendencia: tendencia_(cuentan, mes, 6),
     saldos: saldosPorCuenta_(datos.movs, datos.cuentas, datos.tcUsd),
-    comercios: topComercios_(datos.movs, mes, 5),
+    comercios: topComercios_(cuentan, mes, 5),
   };
 }

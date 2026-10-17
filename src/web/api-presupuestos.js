@@ -3,11 +3,12 @@
 
 function obtenerPresupuestos() {
   const mes = mesDe_(hoyIso_());
+  const todas = leerTabla_('Categorias');
   return {
     mes: mes,
     montos: presupuestosVigentes_(leerTabla_('Presupuestos'), mes),
-    referencia: referenciaPresupuesto_(lineasCategoria_(leerTabla_('Movimientos'), leerTabla_('Divisiones')), mes),
-    categorias: leerTabla_('Categorias').filter(c => c.tipo === 'gasto' && c.activa),
+    referencia: referenciaPresupuesto_(lineasCategoria_(movimientosQueCuentan_(leerTabla_('Movimientos'), todas), leerTabla_('Divisiones')), mes),
+    categorias: todas.filter(c => c.tipo === 'gasto' && c.activa),
   };
 }
 

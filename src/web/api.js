@@ -169,7 +169,7 @@ function obtenerDashboard(mes) {
   }, mes);
   dashboard.porRevisar = movs.filter(m => m.estado === 'por_revisar').length +
     leerTabla_('Pendientes').filter(p => p.estado === 'pendiente').length;
-  dashboard.presupuesto = presupuestoVsReal_(lineasCategoria_(movs, divisiones),
+  dashboard.presupuesto = presupuestoVsReal_(lineasCategoria_(movimientosQueCuentan_(movs, categorias), divisiones),
     presupuestosVigentes_(leerTabla_('Presupuestos'), mes), categorias, mes, hoyIso_());
   dashboard.proximosPagos = mes === mesDe_(hoyIso_()) ? proximosPagosDeHoy_(movs) : null;
   return dashboard;

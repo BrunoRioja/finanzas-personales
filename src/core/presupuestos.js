@@ -49,7 +49,8 @@ function presupuestoVsReal_(lineas, vigentes, categorias, mes, hoyIso) {
   const filas = Object.keys(vigentes).map(id => {
     const c = categorias.filter(x => x.id === id)[0] || SIN_CATEGORIA;
     const presupuesto = vigentes[id];
-    const g = redondear2_(gastado[id] || 0);
+    // Una categoría con más reembolsos que gastos no baja de 0.
+    const g = Math.max(0, redondear2_(gastado[id] || 0));
     const porcentaje = Math.round(g / presupuesto * 100);
     const estado = porcentaje >= 100 ? 'pasado' : porcentaje >= UMBRAL_ALERTA ? 'alerta' : 'ok';
     return {
