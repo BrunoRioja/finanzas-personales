@@ -116,7 +116,7 @@ main { max-width: 1180px; margin: 0 auto; padding: 20px 24px 110px; }
 .ambito-detalle summary::-webkit-details-marker { display: none; }
 .fila-simple.sub { padding: 5px 4px 5px 28px; font-size: 12px; color: var(--texto-2); }
 .etiqueta-mini.amb { background: rgba(124, 92, 255, .18); color: var(--texto); }
-.etiqueta-mini { font-size: 10px; padding: 1px 6px; border-radius: 99px; background: rgba(255, 179, 71, .15); color: var(--alerta); margin-left: 6px; vertical-align: middle; }
+.etiqueta-mini { white-space: nowrap; font-size: 10px; padding: 1px 6px; border-radius: 99px; background: rgba(255, 179, 71, .15); color: var(--alerta); margin-left: 6px; vertical-align: middle; }
 .subtitulo { font-size: 15px; margin: 22px 0 10px; color: var(--texto-2); }
 .fila-division { display: grid; grid-template-columns: 1fr 104px 40px; gap: 8px; align-items: center; margin-bottom: 8px; }
 .fila-division { align-items: start; }
@@ -159,6 +159,26 @@ main { max-width: 1180px; margin: 0 auto; padding: 20px 24px 110px; }
 .abrir-fijo { all: unset; cursor: pointer; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .abrir-fijo .detalle { font-size: 12px; }
 .abrir-fijo:focus-visible { outline: 2px solid var(--primario); outline-offset: 2px; border-radius: 6px; }
+
+/* Préstamos (Presupuestos e Inicio) */
+.fila-prestamo { all: unset; box-sizing: border-box; width: 100%; cursor: pointer; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--borde); }
+.fila-prestamo:focus-visible { outline: 2px solid var(--primario); outline-offset: 2px; border-radius: 6px; }
+.fila-prestamo .quien { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.fila-prestamo .quien > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fila-prestamo .detalle { font-size: 12px; }
+.pagados { margin-top: 10px; }
+.pagados summary { cursor: pointer; font-size: 13px; color: var(--texto-2); padding: 6px 0; }
+.pagados .fila-prestamo { opacity: .7; }
+.abono-nuevo { border-top: 1px solid var(--borde); margin-top: 8px; padding-top: 12px; }
+.icono-boton { background: none; border: 0; cursor: pointer; padding: 0 2px 0 6px; font-size: 14px; }
+.icono-boton:disabled { opacity: .4; cursor: default; }
+.pila-tablero { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.pila-tablero > .tarjeta:last-child { flex: 1; }
+.te-deben .fila-simple .alerta { font-weight: 600; }
+.reembolso-de { border: 1px solid rgba(124, 92, 255, .4); background: rgba(124, 92, 255, .08); border-radius: 12px; padding: 10px 12px; margin-top: 10px; }
+.reembolso-de > b { display: block; font-size: 14px; margin-bottom: 8px; }
+.reembolso-de .chips + .etiqueta, .reembolso-de p + .etiqueta { margin-top: 10px; }
+.reembolso-de p { margin: 0; font-size: 13px; }
 
 /* Pantallas medianas: dos columnas, sin bloques angostos. */
 @media (max-width: 1000px) {

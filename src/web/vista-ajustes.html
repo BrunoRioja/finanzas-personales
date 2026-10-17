@@ -4,7 +4,8 @@ VISTAS.ajustes = async function (cont) {
   const [cat, lectura, reglas, telegram, version] = await Promise.all([cargarCatalogos(), api('estadoLectura'), api('listarReglas'),
     api('estadoTelegram'), api('estadoVersion').catch(() => null)]);
   const chips = tipo => cat.categorias.filter(c => c.tipo === tipo).map(c =>
-    '<button type="button" class="chip' + (c.activa ? '' : ' apagado') + '" data-cat="' + esc(c.id) + '">' + esc(c.emoji + ' ' + c.nombre) + '</button>').join('');
+    '<button type="button" class="chip' + (c.activa ? '' : ' apagado') + '" data-cat="' + esc(c.id) + '">' + esc(c.emoji + ' ' + c.nombre) +
+    (c.rol ? ' <span class="etiqueta-mini amb">' + (c.rol === 'prestamo' ? 'préstamos' : 'reembolsos') + '</span>' : '') + '</button>').join('');
   cont.innerHTML = '<div class="cabecera"><h1>Ajustes</h1></div>' +
     '<section class="tarjeta seccion"><div class="etiqueta">General</div><div class="dos-col">' +
       campo('Tu nombre', '<input class="entrada" id="a-nombre" value="' + esc(cat.config.nombre) + '">') +
@@ -200,7 +201,8 @@ function seccionReglas(reglas) {
   const filas = reglas.length ? reglas.map(r => {
     const c = categoria(r.categoria_id);
     return '<div class="fila-simple"><span>' + esc(r.patron) + ' → ' + esc(c.emoji + ' ' + c.nombre) +
-      ' <span class="tenue">· ' + r.usos + ' usos</span></span>' +
+      ' <span class="tenue">· ' + r.usos + ' usos</span>' +
+      (r.en_pausa ? '<span class="etiqueta-mini" title="Su categoría es de préstamos o reembolsos: esos movimientos quedan en Por revisar">en pausa (préstamos)</span>' : '') + '</span>' +
       '<button type="button" class="boton" data-regla="' + esc(r.id) + '" aria-label="Borrar regla">✕</button></div>';
   }).join('') : '<p class="tenue" style="margin:0;font-size:13px">Aún no hay reglas. Se crean al categorizar en "Por revisar".</p>';
   return '<section class="tarjeta seccion"><div class="etiqueta">Reglas (comercio → categoría)</div>' + filas + '</section>';
@@ -247,8 +249,15 @@ function abrirFormAmbito(a) {
   };
 }
 
+// Rol que puede marcar cada tipo de categoría (uno solo por rol entre las activas).
+const ROL_POR_TIPO = {
+  gasto: ['prestamo', 'Es préstamo', 'Lo que gastes aquí se anota como préstamo y te avisa cuando toca cobrar.'],
+  ingreso: ['reembolso', 'Es devolución / reembolso', 'Al elegirla pregunta de qué es: el abono de un préstamo o la devolución de un gasto.'],
+};
+
 function abrirFormCategoria(c, tipo) {
-  const v = c || { nombre: '', emoji: '', color: '#7c5cff', activa: true };
+  const v = c || { nombre: '', emoji: '', color: '#7c5cff', activa: true, rol: '' };
+  const rol = ROL_POR_TIPO[tipo];
   const caja = abrirModal('<h2 class="titulo-modal">' + (c ? 'Editar categoría' : 'Nueva categoría de ' + tipo) + '</h2>' +
     '<div class="dos-col" style="grid-template-columns:1fr 80px 64px">' +
       campo('Nombre', '<input class="entrada" id="k-nombre" value="' + esc(v.nombre) + '">') +
@@ -256,6 +265,8 @@ function abrirFormCategoria(c, tipo) {
       campo('Color', '<input class="entrada" type="color" id="k-color" value="' + esc(v.color) + '" style="padding:4px;height:42px">') +
     '</div>' +
     (c ? '<label class="check"><input type="checkbox" id="k-activa"' + (v.activa ? ' checked' : '') + '> Categoría activa (desactivarla la oculta al registrar, pero conserva el historial)</label>' : '') +
+    (rol ? '<label class="check"><input type="checkbox" id="k-rol"' + (v.rol === rol[0] ? ' checked' : '') + '> ' + esc(rol[1]) + '</label>' +
+      '<p class="tenue" style="margin:-4px 0 0 24px;font-size:12px">' + esc(rol[2]) + ' Solo una categoría puede tenerlo.</p>' : '') +
     '<div class="acciones"><button type="button" class="boton" id="k-cancelar">Cancelar</button><button type="button" class="boton primario" id="k-guardar">Guardar</button></div>');
   $('#k-cancelar', caja).onclick = cerrarModal;
   $('#k-guardar', caja).onclick = async e => {
@@ -264,6 +275,7 @@ function abrirFormCategoria(c, tipo) {
       await api('guardarCategoria', {
         id: c ? c.id : '', nombre: $('#k-nombre', caja).value, emoji: $('#k-emoji', caja).value,
         color: $('#k-color', caja).value, tipo: tipo, activa: c ? $('#k-activa', caja).checked : true,
+        rol: rol && $('#k-rol', caja).checked ? rol[0] : '',
       });
       cerrarModal();
       aviso('Categoría guardada');
