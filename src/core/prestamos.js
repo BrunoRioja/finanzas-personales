@@ -87,6 +87,23 @@ function mismaPersona_(a, b) {
   return pa.slice(0, n).join(' ') === pb.slice(0, n).join(' ');
 }
 
+// Pendientes agrupados por persona (mismaPersona_, como prestamosSugeridos_): suma lo que falta
+// y queda vencido si alguno lo está. `pendientes` viene ordenado (vencidos primero), así que el
+// primer préstamo de cada persona es el más urgente y fija su nombre y su lugar.
+function personasQueDeben_(pendientes, max) {
+  const grupos = [];
+  (pendientes || []).forEach(p => {
+    const g = grupos.filter(x => mismaPersona_(x.persona, p.persona))[0];
+    if (g) {
+      g.falta = redondear2_(g.falta + p.falta);
+      g.vencido = g.vencido || p.vencido;
+    } else {
+      grupos.push({ persona: p.persona, falta: p.falta, vencido: !!p.vencido });
+    }
+  });
+  return grupos.slice(0, max);
+}
+
 function prestamosSugeridos_(pendientes, comercio, max) {
   const porFecha = (a, b) => (a.fecha < b.fecha ? 1 : a.fecha > b.fecha ? -1 : 0);
   const mismos = pendientes.filter(p => mismaPersona_(p.persona, comercio)).sort(porFecha);

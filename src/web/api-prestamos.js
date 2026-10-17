@@ -56,6 +56,11 @@ function sincronizarPrestamos_(previo, actual) {
   const sigueSiendoPrestamo = esMovDeRol_(categorias, actual, 'prestamo') &&
     (!!prestamo || !esMovDeRol_(categorias, previo, 'prestamo'));
   const sigueSiendoAbono = esMovDeRol_(categorias, actual, 'reembolso');
+  // Préstamo y abono se quitan solo si el movimiento se va (se borra o cambia de categoría o
+  // de tipo). Si su categoría perdió el rol (se desmarcó o desactivó), se quedan tal cual.
+  const seVa = !actual || !previo || actual.categoria_id !== previo.categoria_id || actual.tipo !== previo.tipo;
+  const conservarPrestamo = !!prestamo && !sigueSiendoPrestamo && !seVa;
+  const conservarAbono = !!abono && !sigueSiendoAbono && !seVa;
 
   let datosPrestamo = null;
   if (sigueSiendoPrestamo) {
@@ -66,7 +71,7 @@ function sincronizarPrestamos_(previo, actual) {
         monto: actual.monto_pen, fecha: actual.fecha, fecha_promesa: '', nota: '',
       });
     if (prestamo) validarMontoContraAbonos_(datosPrestamo.monto, abonosDe_(prestamo.id));
-  } else if (prestamo && abonosDe_(prestamo.id).length) {
+  } else if (prestamo && !conservarPrestamo && abonosDe_(prestamo.id).length) {
     throw new Error('Este préstamo ya tiene abonos: bórralos primero en Préstamos.');
   }
   const datosAbono = abono && sigueSiendoAbono ? normalizarAbono_({ monto: actual.monto_pen, fecha: actual.fecha }) : null;
@@ -78,11 +83,11 @@ function sincronizarPrestamos_(previo, actual) {
     agregarFilas_('Prestamos', [Object.assign({ id: nuevoId_() }, datosPrestamo, {
       movimiento_id: actual.id, estado: 'pendiente', creado_en: formatearFecha_(new Date(), 'yyyy-MM-dd HH:mm:ss'),
     })]);
-  } else if (prestamo) {
+  } else if (prestamo && !conservarPrestamo) {
     eliminarFila_('Prestamos', prestamo.id);
   }
 
-  if (abono) {
+  if (abono && !conservarAbono) {
     if (datosAbono) actualizarFila_('Abonos', abono.id, datosAbono);
     else eliminarFila_('Abonos', abono.id);
     const suyo = leerTabla_('Prestamos').filter(p => p.id === abono.prestamo_id)[0];
@@ -93,6 +98,7 @@ function sincronizarPrestamos_(previo, actual) {
 // Valida que `mov` pueda volverse abono de `prestamoId`, sin escribir nada.
 function validarAbonoConMovimiento_(mov, prestamoId) {
   if (mov.tipo !== 'ingreso') throw new Error('Solo un ingreso puede ser abono de un préstamo.');
+  if (mov.dividido) throw new Error('Un movimiento dividido no puede ser un abono.');
   if (abonoDeMovimiento_(mov.id)) throw new Error('Este movimiento ya es un abono.');
   const prestamo = buscarPrestamo_(prestamoId);
   if (prestamo.estado === 'pagado') throw new Error('Ese préstamo ya está pagado.');
@@ -169,7 +175,11 @@ function eliminarPrestamo(id) {
   conBloqueo_(() => {
     const prestamo = buscarPrestamo_(id);
     if (prestamo.movimiento_id) throw new Error('Este préstamo viene de un movimiento: cámbialo o bórralo en Movimientos.');
-    abonosDe_(prestamo.id).forEach(a => eliminarFila_('Abonos', a.id));
+    const abonos = abonosDe_(prestamo.id);
+    if (abonos.some(a => a.movimiento_id)) {
+      throw new Error('Este préstamo tiene abonos que vienen de un yapeo: cámbiales la categoría primero.');
+    }
+    abonos.forEach(a => eliminarFila_('Abonos', a.id));
     eliminarFila_('Prestamos', prestamo.id);
   });
   return obtenerPrestamos();

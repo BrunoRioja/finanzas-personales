@@ -48,6 +48,8 @@ Haz esto, en orden:
    - qué versión de la app tengo (Ajustes -> Acerca de),
    - instrucciones claras para volver a aplicarlo en una copia nueva de la app después de
      actualizar. Esto es importante: al actualizar, mi copia se reemplaza y el lector se pierde.
+   El archivo debe tener solo código e instrucciones: nunca el contenido de mis correos reales
+   (ni montos, ni nombres, ni números de cuenta). Si usaste un ejemplo, que sea inventado.
 
 Al terminar, dime dónde quedó guardado el archivo y cómo probar que funciona
 (Ajustes -> Lectura de correos -> Revisar ahora).

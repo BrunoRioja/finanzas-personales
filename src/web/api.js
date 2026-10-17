@@ -202,7 +202,7 @@ function obtenerDashboard(mes) {
   const prestamos = obtenerPrestamos();
   dashboard.prestamos = {
     total: prestamos.total,
-    personas: prestamos.pendientes.slice(0, 3).map(p => ({ persona: p.persona, falta: p.falta, vencido: p.vencido })),
+    personas: personasQueDeben_(prestamos.pendientes, 3),
   };
   return dashboard;
 }

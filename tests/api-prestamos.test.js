@@ -240,19 +240,20 @@ test('categorizar en Préstamos con "recordar" no crea la regla', () => {
   assert.deepStrictEqual(e.filas('Reglas'), []);
 });
 
-test('obtenerDashboard trae prestamos.total y hasta 3 personas, vencidos primero', () => {
+test('obtenerDashboard trae prestamos.total y hasta 3 personas (sumando lo de cada una), vencidos primero', () => {
   const e = entorno();
   e.llamar('guardarPrestamo', { persona: 'Ana Ficticia', monto: 10, fecha: '2026-10-01', fecha_promesa: '2026-10-20' });
+  e.llamar('guardarPrestamo', { persona: 'Ana Ficticia', monto: 5, fecha: '2026-09-20', fecha_promesa: '2026-10-01' });
   e.llamar('guardarPrestamo', { persona: 'Beto Ficticio', monto: 20, fecha: '2026-10-01' });
   e.llamar('guardarPrestamo', { persona: 'Carla Ficticia', monto: 30, fecha: '2026-10-01', fecha_promesa: '2026-10-05' });
   e.llamar('guardarPrestamo', { persona: 'Dante Ficticio', monto: 40, fecha: '2026-10-01', fecha_promesa: '2026-10-15' });
   const d = e.llamar('obtenerDashboard', '2026-10');
   assert.deepStrictEqual(d.prestamos, {
-    total: 100,
+    total: 105,
     personas: [
+      { persona: 'Ana Ficticia', falta: 15, vencido: true },
       { persona: 'Carla Ficticia', falta: 30, vencido: true },
       { persona: 'Dante Ficticio', falta: 40, vencido: false },
-      { persona: 'Ana Ficticia', falta: 10, vencido: false },
     ],
   });
 });
@@ -277,4 +278,87 @@ test('pasar el gasto de un préstamo a ingreso de Reembolsos abonando a su propi
   assert.throws(() => editar(e, movId, { tipo: 'ingreso', categoria_id: e.reembolsos, prestamo_id: prestamo.id }),
     /Un movimiento no puede abonar a su propio préstamo\./);
   assert.deepStrictEqual(['Movimientos', 'Prestamos', 'Abonos'].map(h => e.filas(h)), antes);
+});
+
+const categoriaFila = (e, id) => e.filas('Categorias').find(c => c.id === id);
+const guardarCat = (e, id, cambios) => e.llamar('guardarCategoria', Object.assign({}, categoriaFila(e, id), cambios));
+
+test('quitar "Es préstamo" a la categoría y editar la descripción del movimiento no borra su préstamo', () => {
+  const e = entorno();
+  const { movId } = e.prestar();
+  const antes = e.filas('Prestamos');
+  guardarCat(e, e.prestamos, { rol: '' });
+  editar(e, movId, { descripcion: 'nota nueva' });
+  assert.strictEqual(e.mov(movId).descripcion, 'nota nueva');
+  assert.deepStrictEqual(e.filas('Prestamos'), antes);
+});
+
+test('desactivar Reembolsos y editar la descripción del movimiento de un abono no borra el abono', () => {
+  const e = entorno();
+  const { prestamo } = e.prestar();
+  const ing = e.porRevisar({ tipo: 'ingreso', monto: 200 });
+  e.llamar('resolverReembolso', { id: ing, prestamo_id: prestamo.id });
+  const abonos = e.filas('Abonos');
+  const prestamos = e.filas('Prestamos');
+  assert.strictEqual(prestamos[0].estado, 'pagado');
+  guardarCat(e, e.reembolsos, { activa: false });
+  editar(e, ing, { descripcion: 'devolvió todo' });
+  assert.strictEqual(e.mov(ing).descripcion, 'devolvió todo');
+  assert.deepStrictEqual(e.filas('Abonos'), abonos);
+  assert.deepStrictEqual(e.filas('Prestamos'), prestamos);
+});
+
+test('sin el rol, cambiar de categoría el movimiento de un préstamo o de un abono sí los quita', () => {
+  const e = entorno();
+  const { movId, prestamo } = e.prestar();
+  const otro = e.prestar({ comercio: 'Luis Inventado' }).prestamo;
+  const ing = e.porRevisar({ tipo: 'ingreso', monto: 20 });
+  e.llamar('resolverReembolso', { id: ing, prestamo_id: otro.id });
+  guardarCat(e, e.prestamos, { rol: '' });
+  guardarCat(e, e.reembolsos, { activa: false });
+  editar(e, ing, { categoria_id: e.sueldo });
+  assert.deepStrictEqual(e.filas('Abonos'), []);
+  editar(e, movId, { categoria_id: e.comida });
+  assert.deepStrictEqual(e.filas('Prestamos').map(p => p.id), [otro.id]);
+  assert.notStrictEqual(otro.id, prestamo.id);
+});
+
+test('eliminarPrestamo rechaza un préstamo manual con abonos que vienen de un yapeo, sin escribir nada', () => {
+  const e = entorno();
+  const manual = e.llamar('guardarPrestamo', { persona: 'Rosa Inventada', monto: 100, fecha: '2026-10-01' }).pendientes[0];
+  const ing = e.porRevisar({ tipo: 'ingreso', monto: 30 });
+  e.llamar('resolverReembolso', { id: ing, prestamo_id: manual.id });
+  const antes = ['Movimientos', 'Prestamos', 'Abonos'].map(h => e.filas(h));
+  assert.throws(() => e.llamar('eliminarPrestamo', manual.id),
+    /^Error: Este préstamo tiene abonos que vienen de un yapeo: cámbiales la categoría primero\.$/);
+  assert.deepStrictEqual(['Movimientos', 'Prestamos', 'Abonos'].map(h => e.filas(h)), antes);
+});
+
+test('un movimiento dividido no puede ser un abono', () => {
+  const e = entorno();
+  const { prestamo } = e.prestar();
+  const ing = e.porRevisar({ tipo: 'ingreso', monto: 30 });
+  e.interno('actualizarFila_', 'Movimientos', ing, { dividido: true });
+  assert.throws(() => e.interno('validarAbonoConMovimiento_', e.mov(ing), prestamo.id), /Un movimiento dividido no puede ser un abono\./);
+  const antes = ['Movimientos', 'Prestamos', 'Abonos'].map(h => e.filas(h));
+  assert.throws(() => e.llamar('resolverReembolso', { id: ing, prestamo_id: prestamo.id }), /Un movimiento dividido no puede ser un abono\./);
+  assert.deepStrictEqual(['Movimientos', 'Prestamos', 'Abonos'].map(h => e.filas(h)), antes);
+});
+
+test('un resolverReembolso o un guardarMovimiento con prestamo_id rechazados no escriben nada', () => {
+  const e = entorno();
+  const { prestamo } = e.prestar();
+  e.llamar('saldarPrestamo', prestamo.id);
+  const ing = e.porRevisar({ tipo: 'ingreso', monto: 30 });
+  const antes = ['Movimientos', 'Prestamos', 'Abonos'].map(h => e.filas(h));
+  const sinCambios = () => assert.deepStrictEqual(['Movimientos', 'Prestamos', 'Abonos'].map(h => e.filas(h)), antes);
+  assert.throws(() => e.llamar('resolverReembolso', { id: ing, prestamo_id: prestamo.id }), /Ese préstamo ya está pagado\./);
+  sinCambios();
+  assert.throws(() => e.llamar('resolverReembolso', { id: ing, prestamo_id: 'no-existe' }), /El préstamo ya no existe\./);
+  sinCambios();
+  const nuevo = { fecha: '2026-10-12', tipo: 'ingreso', monto: 50, cuenta_id: e.deb, categoria_id: e.reembolsos, prestamo_id: prestamo.id };
+  assert.throws(() => e.llamar('guardarMovimiento', nuevo), /Ese préstamo ya está pagado\./);
+  sinCambios();
+  assert.throws(() => editar(e, ing, { categoria_id: e.reembolsos, prestamo_id: prestamo.id }), /Ese préstamo ya está pagado\./);
+  sinCambios();
 });
