@@ -33,7 +33,7 @@ function registrarEscrito_(texto, updateId) {
     if (rol === 'prestamo') sincronizarPrestamos_(null, mov);
     agregarFilas_('Movimientos', [mov]);
     if (leido.regla_id) contarUsosReglas_([{ regla_id: leido.regla_id }], reglas);
-    return { mov: mov };
+    return { mov: mov, rol: rol, prestamo: rol === 'prestamo' ? prestamoDeMovimiento_(mov.id) : null };
   });
 }
 
@@ -41,6 +41,14 @@ function manejarEscrito_(texto, updateId) {
   const r = registrarEscrito_(texto, updateId);
   if (r.error) return enviarMensaje_(r.error);
   const ctx = contextoBot_();
+  if (r.rol === 'reembolso' && r.mov.estado === 'por_revisar' && r.mov.tipo === 'ingreso') {
+    const m = mensajeReembolsoDe_(r.mov, ctx);
+    return enviarMensaje_(m.texto, m.teclado);
+  }
+  if (r.prestamo) {
+    const prestamo = Object.assign({}, r.prestamo, { nuevo: true });
+    return enviarMensaje_(textoPrestamo_(prestamo, r.mov, ctx), tecladoFechaPromesa_(prestamo).concat(tecladoRegistrado_(r.mov, ctx)));
+  }
   if (r.mov.estado === 'por_revisar') {
     const frecuentes = categoriasFrecuentes_(leerTabla_('Movimientos'), ctx.categorias)[r.mov.tipo] || [];
     const m = mensajePorRevisar_(r.mov, frecuentes, ctx);

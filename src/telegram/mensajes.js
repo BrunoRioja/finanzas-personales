@@ -87,8 +87,9 @@ function nombreAmbito_(ambitos, id) {
 
 // Filas para cambiar el ámbito de un gasto ya categorizado (los otros ámbitos activos, de a 3).
 // `conRecordar` viaja en el botón para volver a preguntar "¿Recordar?" si seguía pendiente.
+// Un préstamo no tiene ámbito: no suma en los gastos.
 function filaAmbitos_(mov, ctx, conRecordar) {
-  if (mov.tipo !== 'gasto' || mov.dividido) return [];
+  if (mov.tipo !== 'gasto' || mov.dividido || rolDe_(ctx.categorias, mov.categoria_id)) return [];
   const actual = ambitoEfectivo_(mov.ambito_id, ctx.ambitos);
   const id = compactarId_(mov.id);
   const botones = ordenarAmbitos_(ctx.ambitos).filter(a => a.activo && a.id !== actual)
