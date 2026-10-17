@@ -140,6 +140,9 @@ function prestamoParaReembolso_(datos, previo, actual, categorias) {
   }
   const abono = previo ? abonoDeMovimiento_(previo.id) : null;
   if (abono && abono.prestamo_id === datos.prestamo_id) return '';
+  // sincronizarPrestamos_ borraría ese préstamo antes de crear el abono.
+  const propio = previo ? prestamoDeMovimiento_(previo.id) : null;
+  if (propio && propio.id === datos.prestamo_id) throw new Error('Un movimiento no puede abonar a su propio préstamo.');
   validarAbonoConMovimiento_(actual, datos.prestamo_id);
   return datos.prestamo_id;
 }

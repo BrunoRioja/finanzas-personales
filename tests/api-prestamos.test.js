@@ -256,3 +256,25 @@ test('obtenerDashboard trae prestamos.total y hasta 3 personas, vencidos primero
     ],
   });
 });
+
+test('editar un movimiento que ya estaba en Préstamos sin línea (antes de la v0.9) no crea el préstamo, aunque sea negativo', () => {
+  const e = entorno();
+  const id = e.porRevisar();
+  e.interno('actualizarFila_', 'Movimientos', id, { estado: 'confirmado', categoria_id: e.prestamos });
+  editar(e, id, { descripcion: 'nota corregida' });
+  assert.deepStrictEqual(e.filas('Prestamos'), []);
+  const neg = e.porRevisar({ monto: -30 });
+  e.interno('actualizarFila_', 'Movimientos', neg, { estado: 'confirmado', categoria_id: e.prestamos });
+  editar(e, neg, { descripcion: 'devolución' });
+  assert.strictEqual(e.mov(neg).descripcion, 'devolución');
+  assert.deepStrictEqual(e.filas('Prestamos'), []);
+});
+
+test('pasar el gasto de un préstamo a ingreso de Reembolsos abonando a su propio préstamo se rechaza sin escribir nada', () => {
+  const e = entorno();
+  const { movId, prestamo } = e.prestar();
+  const antes = ['Movimientos', 'Prestamos', 'Abonos'].map(h => e.filas(h));
+  assert.throws(() => editar(e, movId, { tipo: 'ingreso', categoria_id: e.reembolsos, prestamo_id: prestamo.id }),
+    /Un movimiento no puede abonar a su propio préstamo\./);
+  assert.deepStrictEqual(['Movimientos', 'Prestamos', 'Abonos'].map(h => e.filas(h)), antes);
+});

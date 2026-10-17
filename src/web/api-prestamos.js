@@ -51,7 +51,10 @@ function sincronizarPrestamos_(previo, actual) {
   const categorias = leerTabla_('Categorias');
   const prestamo = previo ? prestamoDeMovimiento_(previo.id) : null;
   const abono = previo ? abonoDeMovimiento_(previo.id) : null;
-  const sigueSiendoPrestamo = esMovDeRol_(categorias, actual, 'prestamo');
+  // Solo se crea la línea al entrar al rol: lo que ya estaba en Préstamos sin línea (antes de
+  // la v0.9) no gana una al editarlo.
+  const sigueSiendoPrestamo = esMovDeRol_(categorias, actual, 'prestamo') &&
+    (!!prestamo || !esMovDeRol_(categorias, previo, 'prestamo'));
   const sigueSiendoAbono = esMovDeRol_(categorias, actual, 'reembolso');
 
   let datosPrestamo = null;
