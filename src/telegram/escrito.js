@@ -86,7 +86,7 @@ function leerEscrito_(texto, ctx) {
   let reglaId = '';
   if (!categoriaId) {
     const regla = reglaPara_(descripcion, ctx.reglas);
-    const deRegla = regla ? categorias.filter(c => c.id === regla.categoria_id)[0] : null;
+    const deRegla = regla && !rolDe_(ctx.categorias, regla.categoria_id) ? categorias.filter(c => c.id === regla.categoria_id)[0] : null;
     if (deRegla) {
       categoriaId = deRegla.id;
       reglaId = regla.id;

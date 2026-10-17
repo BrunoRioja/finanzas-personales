@@ -92,6 +92,7 @@ function cambiosParaConfirmar_(final) {
 // Dentro del bloqueo: crea o actualiza la regla del comercio y confirma los demás
 // "por revisar" que coinciden. `confirmados` no cuenta a `mov`. La usan la bandeja y el bot.
 function recordarComercio_(movs, mov, patronTexto, categoriaId) {
+  if (rolDe_(leerTabla_('Categorias'), categoriaId)) throw new Error('Los préstamos y reembolsos no se recuerdan.');
   const patron = normalizarTexto_(patronTexto || mov.comercio);
   if (!patron) throw new Error('Escribe el texto del comercio a recordar.');
   const regla = guardarRegla_(patron, categoriaId);
@@ -117,7 +118,9 @@ function guardarRegla_(patron, categoriaId) {
 }
 
 function listarReglas() {
-  return leerTabla_('Reglas').sort((a, b) => a.patron.localeCompare(b.patron));
+  const categorias = leerTabla_('Categorias');
+  // En pausa: apunta a una categoría con rol, así que no categoriza hasta que se quite el rol.
+  return leerTabla_('Reglas').map(r => Object.assign({}, r, { en_pausa: !!rolDe_(categorias, r.categoria_id) })).sort((a, b) => a.patron.localeCompare(b.patron));
 }
 
 function eliminarRegla(id) {
@@ -134,6 +137,7 @@ function dividirMovimiento(datos) {
   const resultado = conBloqueo_(() => {
     const mov = leerTabla_('Movimientos').filter(m => m.id === datos.id)[0];
     if (!mov) throw new Error('El movimiento ya no existe.');
+    if (rolDe_(leerTabla_('Categorias'), mov.categoria_id)) throw new Error('Los préstamos y reembolsos no se dividen.');
     const previos = leerTabla_('Divisiones').filter(d => d.movimiento_id === mov.id).map(d => d.ambito_id).concat([mov.ambito_id]);
     const partes = normalizarPartes_(mov, datos.partes, leerTabla_('Categorias'), leerTabla_('Ambitos'), previos);
     const cambios = { dividido: true, estado: 'confirmado' };

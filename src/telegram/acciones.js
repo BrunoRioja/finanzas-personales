@@ -103,6 +103,7 @@ function deshacerDesdeBot_(mov, messageId, ctx) {
     return editarMensaje_(messageId, textoMovimiento_(mov, ctx) + '\nSolo se puede deshacer lo registrado por el bot.', null);
   }
   conBloqueo_(() => {
+    sincronizarPrestamos_(mov, null);
     eliminarFila_('Movimientos', mov.id);
     borrarDivisiones_(mov.id);
   });
