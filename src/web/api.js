@@ -41,9 +41,12 @@ function guardarCuenta(datos) {
 function guardarCategoria(datos) {
   return conBloqueo_(() => {
     const existentes = leerTabla_('Categorias');
+    const previa = datos.id ? existentes.filter(c => c.id === datos.id)[0] : null;
+    if (datos.id && !previa) throw new Error('La categoría ya no existe.');
+    // El editor no envía el rol: sin él se conserva el que ya tenía.
+    if (previa && datos.rol === undefined) datos = Object.assign({}, datos, { rol: previa.rol || '' });
     const categoria = normalizarCategoria_(datos, existentes, datos.id || '');
     if (datos.id) {
-      if (!existentes.some(c => c.id === datos.id)) throw new Error('La categoría ya no existe.');
       actualizarFila_('Categorias', datos.id, categoria);
       return Object.assign({ id: datos.id }, categoria);
     }

@@ -75,3 +75,15 @@ test('las categorías por defecto traen Préstamos y Reembolsos con su rol', () 
   assert.strictEqual(cats.find(c => c.nombre === 'Reembolsos').rol, 'reembolso');
   assert.strictEqual(cats.filter(c => c.rol).length, 2);
 });
+
+test('guardarCategoria conserva el rol al editar sin enviarlo y lo quita con rol vacío', () => {
+  const e = entornoInstalado();
+  const id = e.categoria('Préstamos');
+  e.llamar('guardarCategoria', { id: id, nombre: 'Préstamos a amigos', emoji: '🤝', tipo: 'gasto' });
+  let c = e.filas('Categorias').find(x => x.id === id);
+  assert.strictEqual(c.nombre, 'Préstamos a amigos');
+  assert.strictEqual(c.rol, 'prestamo');
+  e.llamar('guardarCategoria', { id: id, nombre: 'Préstamos a amigos', emoji: '🤝', tipo: 'gasto', rol: '' });
+  c = e.filas('Categorias').find(x => x.id === id);
+  assert.strictEqual(c.rol, '');
+});
