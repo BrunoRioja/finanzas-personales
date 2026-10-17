@@ -41,9 +41,12 @@ function guardarCuenta(datos) {
 function guardarCategoria(datos) {
   return conBloqueo_(() => {
     const existentes = leerTabla_('Categorias');
+    const previa = datos.id ? existentes.filter(c => c.id === datos.id)[0] : null;
+    if (datos.id && !previa) throw new Error('La categoría ya no existe.');
+    // El editor no envía el rol: sin él se conserva el que ya tenía.
+    if (previa && datos.rol === undefined) datos = Object.assign({}, datos, { rol: previa.rol || '' });
     const categoria = normalizarCategoria_(datos, existentes, datos.id || '');
     if (datos.id) {
-      if (!existentes.some(c => c.id === datos.id)) throw new Error('La categoría ya no existe.');
       actualizarFila_('Categorias', datos.id, categoria);
       return Object.assign({ id: datos.id }, categoria);
     }
@@ -105,17 +108,43 @@ function guardarMovimiento(datos) {
         tc: tc, origen: previo.origen, estado: previo.estado === 'por_revisar' ? 'confirmado' : previo.estado,
         ref_externa: previo.ref_externa,
       }), ctx);
+      const actual = Object.assign({ id: previo.id }, mov, { creado_en: previo.creado_en });
+      const prestamoId = prestamoParaReembolso_(datos, previo, actual, ctx.categorias);
+      sincronizarPrestamos_(previo, actual);
       actualizarFila_('Movimientos', previo.id, mov);
-      return Object.assign({ id: previo.id }, mov, { creado_en: previo.creado_en });
+      if (prestamoId) abonarConMovimiento_(actual, prestamoId);
+      return actual;
     }
     const nuevo = Object.assign({ id: nuevoId_() }, normalizarMovimiento_(datos, ctx), {
       creado_en: formatearFecha_(new Date(), 'yyyy-MM-dd HH:mm:ss'),
     });
+    const prestamoId = prestamoParaReembolso_(datos, null, nuevo, ctx.categorias);
+    sincronizarPrestamos_(null, nuevo);
     agregarFilas_('Movimientos', [nuevo]);
+    if (prestamoId) abonarConMovimiento_(nuevo, prestamoId);
     return nuevo;
   });
   revisarPresupuestos_();
   return resultado;
+}
+
+// Préstamo del que `actual` (ingreso en la categoría de reembolsos) será abono, o '' si no
+// hace falta crear uno. Valida antes de escribir: uno nuevo o que recién pasa a ese rol
+// debe decir de qué es; editar uno que ya lo era no lo exige.
+function prestamoParaReembolso_(datos, previo, actual, categorias) {
+  if (!esMovDeRol_(categorias, actual, 'reembolso')) return '';
+  const yaEra = !!previo && previo.categoria_id === actual.categoria_id && esMovDeRol_(categorias, previo, 'reembolso');
+  if (!datos.prestamo_id) {
+    if (yaEra) return '';
+    throw new Error('Elige de qué es el reembolso.');
+  }
+  const abono = previo ? abonoDeMovimiento_(previo.id) : null;
+  if (abono && abono.prestamo_id === datos.prestamo_id) return '';
+  // sincronizarPrestamos_ borraría ese préstamo antes de crear el abono.
+  const propio = previo ? prestamoDeMovimiento_(previo.id) : null;
+  if (propio && propio.id === datos.prestamo_id) throw new Error('Un movimiento no puede abonar a su propio préstamo.');
+  validarAbonoConMovimiento_(actual, datos.prestamo_id);
+  return datos.prestamo_id;
 }
 
 function listarMovimientos(filtro) {
@@ -126,7 +155,7 @@ function listarMovimientos(filtro) {
   leerTabla_('Divisiones').forEach(d => { (partes[d.movimiento_id] = partes[d.movimiento_id] || []).push(d); });
   return leerTabla_('Movimientos')
     .filter(m => mesDe_(m.fecha) === mes)
-    .map(m => Object.assign(m, { ambitos: ambitosDeMovimiento_(m, partes[m.id], ambitos) }))
+    .map(m => Object.assign(m, conTitulo_(m), { ambitos: ambitosDeMovimiento_(m, partes[m.id], ambitos) }))
     .filter(m => !filtro.cuenta_id || m.cuenta_id === filtro.cuenta_id || m.cuenta_destino_id === filtro.cuenta_id)
     .filter(m => !filtro.categoria_id || m.categoria_id === filtro.categoria_id)
     .filter(m => !filtro.ambito_id || m.ambitos.indexOf(filtro.ambito_id) >= 0)
@@ -136,6 +165,7 @@ function listarMovimientos(filtro) {
 function eliminarMovimiento(id) {
   conBloqueo_(() => {
     const mov = leerTabla_('Movimientos').filter(m => m.id === id)[0];
+    if (mov) sincronizarPrestamos_(mov, null);
     eliminarFila_('Movimientos', id); // lanza "No existe" si ya no está
     borrarDivisiones_(id);
     // Un importado que el usuario borra (p. ej. duplicado) no debe volver en la siguiente lectura.
@@ -166,8 +196,13 @@ function obtenerDashboard(mes) {
   }, mes);
   dashboard.porRevisar = movs.filter(m => m.estado === 'por_revisar').length +
     leerTabla_('Pendientes').filter(p => p.estado === 'pendiente').length;
-  dashboard.presupuesto = presupuestoVsReal_(lineasCategoria_(movs, divisiones),
+  dashboard.presupuesto = presupuestoVsReal_(lineasCategoria_(movimientosQueCuentan_(movs, categorias), divisiones),
     presupuestosVigentes_(leerTabla_('Presupuestos'), mes), categorias, mes, hoyIso_());
   dashboard.proximosPagos = mes === mesDe_(hoyIso_()) ? proximosPagosDeHoy_(movs) : null;
+  const prestamos = obtenerPrestamos();
+  dashboard.prestamos = {
+    total: prestamos.total,
+    personas: personasQueDeben_(prestamos.pendientes, 3),
+  };
   return dashboard;
 }

@@ -169,3 +169,23 @@ test('si quedaron dos triggers del recordatorio, abrir la app o el propio record
   e.recordar();
   assert.strictEqual(recordatorios().length, 1);
 });
+
+test('pago fijo y préstamo el mismo día van en un solo mensaje', () => {
+  const e = entornoPagos();
+  e.fijo('Streaming', '20.90', 13);
+  e.interno('agregarFilas_', 'Prestamos', [{
+    id: 'pr1', persona: 'Juan Prueba', monto: 200, fecha: '2026-10-05', fecha_promesa: '2026-10-14', movimiento_id: '',
+    estado: 'pendiente', nota: '', creado_en: '2026-10-05 10:00:00',
+  }]);
+  e.recordar();
+  e.recordar();
+  assert.strictEqual(e.enviados().length, 1);
+  assert.strictEqual(e.ultimoEnviado().text, [
+    '📅 <b>Pagos por venir</b>',
+    '<b>Hoy</b>',
+    '• 📺 Streaming · S/ 20.90 · Débito BCP',
+    '',
+    '🤝 <b>Préstamos</b>',
+    'Mañana Juan Prueba quedó en devolverte S/ 200.00',
+  ].join('\n'));
+});

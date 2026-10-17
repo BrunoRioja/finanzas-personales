@@ -5,7 +5,7 @@ function datosAsistente() {
     bancos: BANCOS,
     tiposCuenta: TIPOS_CUENTA,
     monedas: MONEDAS,
-    categorias: CATEGORIAS_POR_DEFECTO.map(c => ({ nombre: c[0], emoji: c[1], tipo: c[2] })),
+    categorias: CATEGORIAS_POR_DEFECTO.map(c => ({ nombre: c[0], emoji: c[1], tipo: c[2], rol: c[3] || '' })),
   };
 }
 
@@ -51,6 +51,7 @@ function completarAsistente(datos) {
     crearHojas_(libro);
     agregarFilas_('Cuentas', cuentas);
     agregarFilas_('Categorias', categorias);
+    asegurarRolesPrestamo_(); // una lista propia (o un cliente que no envía el rol) también queda con sus roles
     asegurarAmbitos_();
     guardarConfig_({
       nombre: nombre, moneda_principal: 'PEN', ultimo_tc: tc, modo_bot: 'B', hora_resumen: '21:00',

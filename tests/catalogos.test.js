@@ -39,14 +39,14 @@ test('completarAsistente crea hojas, cuentas, categorías por defecto y config',
   assert.deepStrictEqual(e.llamar('completarAsistente', ASISTENTE), { instalado: true, modoDemo: false });
   const cat = e.llamar('obtenerCatalogos');
   assert.deepStrictEqual(cat.cuentas.map(c => [c.nombre, c.numeros, c.saldo_inicial]), [['Débito BCP', '1234', 1000], ['VISA BCP', '0042', -200]]);
-  assert.strictEqual(cat.categorias.length, 20);
+  assert.strictEqual(cat.categorias.length, 21);
   assert.strictEqual(cat.categorias.filter(c => c.tipo === 'ingreso').length, 4);
   assert.deepStrictEqual(cat.config, { nombre: 'Ana', ultimo_tc: 3.75, moneda_principal: 'PEN' });
   assert.deepStrictEqual(cat.opciones.monedas, ['PEN', 'USD']);
   assert.ok(cat.opciones.bancos.indexOf('BCP') >= 0);
   assert.strictEqual(cat.urlHoja, 'https://docs.google.com/spreadsheets/d/libro-principal');
   const config = e.llamar('leerConfig_');
-  assert.strictEqual(config.version_esquema, '5');
+  assert.strictEqual(config.version_esquema, '6');
   assert.strictEqual(config.modo_bot, 'B');
   assert.strictEqual(config.hora_resumen, '21:00');
 });
@@ -60,7 +60,7 @@ test('completarAsistente acepta categorías propias y valida sin crear nada si f
   assert.deepStrictEqual(Object.keys(e.hojas), []);
 
   e.llamar('completarAsistente', Object.assign({}, ASISTENTE, { categorias: [{ nombre: 'Comida', emoji: '🍔', tipo: 'gasto' }, { nombre: 'Sueldo', emoji: '💼', tipo: 'ingreso' }] }));
-  assert.deepStrictEqual(e.llamar('obtenerCatalogos').categorias.map(c => c.nombre), ['Comida', 'Sueldo']);
+  assert.deepStrictEqual(e.llamar('obtenerCatalogos').categorias.map(c => c.nombre), ['Comida', 'Sueldo', 'Préstamos'], 'se agrega la de préstamos');
 });
 
 test('completarAsistente no se puede repetir', () => {

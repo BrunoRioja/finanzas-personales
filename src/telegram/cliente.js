@@ -46,6 +46,13 @@ function enviarMensaje_(texto, teclado) {
   return llamarTelegram_('sendMessage', datosMensaje_(texto, teclado));
 }
 
+// Mensaje que abre el teclado en modo "responder": lo que se escriba llega como reply a él.
+function pedirRespuesta_(texto, placeholder) {
+  const datos = datosMensaje_(texto);
+  datos.reply_markup = { force_reply: true, input_field_placeholder: placeholder };
+  return llamarTelegram_('sendMessage', datos);
+}
+
 function editarMensaje_(messageId, texto, teclado) {
   try {
     return llamarTelegram_('editMessageText', Object.assign({ message_id: messageId }, datosMensaje_(texto, teclado)));

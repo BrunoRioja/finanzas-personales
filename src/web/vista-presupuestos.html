@@ -11,12 +11,17 @@ function montoEscrito(texto) {
 }
 // Lo último que se pintó. Guardar redibuja con lo que devuelve el servidor: sin volver a
 // pedir todo (dos consultas más a la hoja) y sin perder la posición en la pantalla.
-const pantallaPresupuestos = { cont: null, p: null, rec: null };
+const pantallaPresupuestos = { cont: null, p: null, rec: null, pr: null };
 
 VISTAS.presupuestos = async function (cont) {
-  const [p, rec] = await Promise.all([api('obtenerPresupuestos'), api('obtenerRecurrentes')]);
-  Object.assign(pantallaPresupuestos, { cont: cont, p: p, rec: rec });
+  const [p, rec, pr] = await Promise.all([api('obtenerPresupuestos'), api('obtenerRecurrentes'), api('obtenerPrestamos')]);
+  Object.assign(pantallaPresupuestos, { cont: cont, p: p, rec: rec, pr: pr });
   pintarPresupuestos();
+  // "Ver préstamos" del Inicio: baja directo a la sección.
+  if (estado.irA === 'prestamos') {
+    estado.irA = '';
+    $('#prestamos', cont).scrollIntoView();
+  }
 };
 
 function repintarPresupuestos(cambios) {
@@ -28,9 +33,10 @@ function repintarPresupuestos(cambios) {
 }
 
 function pintarPresupuestos() {
-  const { cont, p, rec } = pantallaPresupuestos;
+  const { cont, p, rec, pr } = pantallaPresupuestos;
   const ref = id => p.referencia[id] || { mesPasado: 0, promedio3: 0 };
-  const filas = p.categorias.map(c =>
+  // Préstamos no es un gasto del mes: no lleva presupuesto.
+  const filas = p.categorias.filter(c => !c.rol).map(c =>
     '<div class="fila-presupuesto"><span class="nombre">' + esc(c.emoji + ' ' + c.nombre) + '</span>' +
     '<input class="entrada num" inputmode="decimal" data-presupuesto="' + esc(c.id) + '" value="' + (p.montos[c.id] ? esc(p.montos[c.id]) : '') +
     '" placeholder="—" aria-label="Presupuesto de ' + esc(c.nombre) + '">' +
@@ -43,7 +49,7 @@ function pintarPresupuestos() {
       filas +
       '<div class="acciones"><button type="button" class="boton" id="p-copiar">Usar lo del mes pasado</button>' +
       '<button type="button" class="boton primario" id="p-guardar">Guardar</button></div>' +
-    '</section>' + seccionPagosFijos(rec);
+    '</section>' + seccionPagosFijos(rec) + seccionPrestamos(pr);
   const entradas = Array.from(cont.querySelectorAll('[data-presupuesto]'));
   const total = () => {
     $('#p-total').textContent = dinero(entradas.reduce((s, i) => s + (montoEscrito(i.value) || 0), 0));
@@ -71,6 +77,7 @@ function pintarPresupuestos() {
     }
   };
   enlazarPagosFijos(cont, rec);
+  enlazarPrestamos(cont, pr);
 }
 // Pagos fijos: solo se recuerdan (Telegram e Inicio); no crean movimientos.
 function seccionPagosFijos(rec) {
@@ -160,5 +167,117 @@ function abrirFormFijo(r, rec) {
     };
   }
   if (!r) $('#pf-nombre', caja).focus();
+}
+
+// Préstamos: lo que te deben. Los que vienen de un movimiento (yapeo) cambian su monto en
+// Movimientos; los manuales (sin movimiento) se crean y se borran aquí.
+function textoPromesa(p) {
+  if (!p.fecha_promesa) return 'sin fecha prometida';
+  if (p.vencido) return 'venció el ' + fechaCorta(p.fecha_promesa);
+  if (p.dias === 0) return 'para hoy';
+  if (p.dias === 1) return 'para mañana';
+  return 'para el ' + fechaCorta(p.fecha_promesa);
+}
+
+function filaPrestamo(p) {
+  const pagado = p.estado === 'pagado';
+  const ultimo = p.abonos.length ? p.abonos[p.abonos.length - 1].fecha : p.fecha;
+  const detalle = pagado ? 'Prestado el ' + fechaCorta(p.fecha) + ' · pagó el ' + fechaCorta(ultimo) : textoPromesa(p);
+  const monto = pagado ? '<span class="tenue">' + dinero(p.monto) + '</span>'
+    : dinero(p.falta) + (p.abonado ? '<span class="tenue"> / ' + dinero(p.monto) + '</span>' : '');
+  return '<button type="button" class="fila-prestamo" data-prestamo="' + esc(p.id) + '">' +
+    '<span class="quien"><span>' + esc(p.persona) + (p.movimiento_id ? '' : ' <span class="tenue">· a mano</span>') + '</span>' +
+    '<span class="detalle ' + (p.vencido && !pagado ? 'alerta' : 'tenue') + '">' + esc(detalle) + '</span></span>' +
+    '<span class="der num">' + monto + '</span></button>';
+}
+
+function seccionPrestamos(pr) {
+  const pendientes = pr.pendientes.map(filaPrestamo).join('');
+  const pagados = pr.pagados.length
+    ? '<details class="pagados"><summary>Pagados (' + pr.pagados.length + ')</summary>' + pr.pagados.map(filaPrestamo).join('') + '</details>' : '';
+  return '<section class="tarjeta seccion" id="prestamos">' +
+    '<div class="cabecera-seccion"><div class="etiqueta">Te deben</div><div class="kpi num">' + dinero(pr.total) + '</div></div>' +
+    '<p class="tenue" style="margin:0 0 12px;font-size:13px">Un gasto en la categoría de préstamos se anota aquí solo. ' +
+      'Te recuerdo por Telegram un día antes de la fecha prometida y el mismo día.</p>' +
+    (pendientes || '<div class="vacio">Nadie te debe nada. 🙌</div>') + pagados +
+    '<div class="acciones"><button type="button" class="boton" id="pr-nuevo">+ Nuevo préstamo</button></div></section>';
+}
+
+function enlazarPrestamos(cont, pr) {
+  $('#pr-nuevo', cont).onclick = () => abrirFormPrestamo(null);
+  cont.querySelectorAll('[data-prestamo]').forEach(b => { b.onclick = () => abrirFormPrestamo(buscarEnPrestamos(pr, b.dataset.prestamo)); });
+}
+
+function buscarEnPrestamos(pr, id) { return pr.pendientes.concat(pr.pagados).find(p => p.id === id) || null; }
+
+// Pinta lo que devolvió el servidor y, si se pide y el préstamo sigue ahí, vuelve a abrir su formulario.
+function trasCambioPrestamo(pr, id, texto) {
+  aviso(texto);
+  repintarPresupuestos({ pr: pr });
+  const p = id ? buscarEnPrestamos(pr, id) : null;
+  if (p) abrirFormPrestamo(p); else cerrarModal();
+}
+
+function abrirFormPrestamo(p) {
+  const nuevo = !p;
+  const v = p || { persona: '', monto: '', fecha: hoyIso(), fecha_promesa: '', nota: '', abonos: [], estado: 'pendiente' };
+  const manual = nuevo || !p.movimiento_id;
+  const pendiente = v.estado !== 'pagado';
+  const abonos = v.abonos.map(a => '<div class="fila-simple"><span>' + esc(fechaCorta(a.fecha)) + ' <span class="tenue">· ' +
+    (a.movimiento_id ? '📧 movimiento' : 'efectivo') + '</span></span><span class="num">' + dinero(a.monto) +
+    (a.movimiento_id ? '' : ' <button type="button" class="icono-boton" data-borrar-abono="' + esc(a.id) + '" aria-label="Borrar abono">🗑</button>') +
+    '</span></div>').join('');
+  const resumen = nuevo ? '' : '<p class="tenue" style="margin:-8px 0 14px;font-size:13px">Prestado el ' + esc(fechaCorta(v.fecha) + '/' + v.fecha.slice(0, 4)) +
+    ' · ' + dinero(v.monto) + (pendiente ? ' · falta <b class="num" style="color:var(--texto)">' + dinero(v.falta) + '</b>' : ' · pagado ✓') + '</p>';
+  const caja = abrirModal('<h2 class="titulo-modal">' + (nuevo ? 'Nuevo préstamo' : esc(v.persona)) + '</h2>' + resumen +
+    campo('A quién', '<input class="entrada" id="pr-persona" maxlength="60" value="' + esc(v.persona) + '" placeholder="Nombre de la persona">') +
+    (manual ? '<div class="dos-col">' + campo('Monto', '<input class="entrada num" id="pr-monto" inputmode="decimal" placeholder="0.00" value="' + esc(v.monto) + '">') +
+      (nuevo ? campo('Fecha del préstamo', '<input class="entrada" type="date" id="pr-fecha" value="' + esc(v.fecha) + '">') : '<div></div>') + '</div>' : '') +
+    '<div class="dos-col">' + campo('Fecha prometida', '<input class="entrada" type="date" id="pr-promesa" value="' + esc(v.fecha_promesa) + '">') +
+      campo('Nota', '<input class="entrada" id="pr-nota" maxlength="200" value="' + esc(v.nota) + '">') + '</div>' +
+    (nuevo ? '<p class="tenue" style="margin:0;font-size:12px">Para lo que prestaste sin movimiento (efectivo): no se anota como gasto.</p>' : '') +
+    (nuevo ? '' : '<div class="etiqueta" style="margin-top:6px">Abonos</div>' + (abonos || '<p class="tenue" style="margin:0 0 8px;font-size:13px">Aún no hay abonos.</p>')) +
+    (!nuevo && pendiente ? '<div class="abono-nuevo"><div class="dos-col">' +
+      campo('Abono en efectivo', '<input class="entrada num" id="pr-abono" inputmode="decimal" placeholder="0.00">') +
+      campo('Fecha', '<input class="entrada" type="date" id="pr-abono-fecha" value="' + esc(hoyIso()) + '">') + '</div>' +
+      '<div class="acciones" style="margin-top:0"><button type="button" class="boton" id="pr-abonar">Registrar abono</button>' +
+      '<button type="button" class="boton" id="pr-saldar">Ya me pagó todo</button></div></div>' : '') +
+    '<div class="acciones">' + (!nuevo && manual ? '<button type="button" class="boton peligro" id="pr-eliminar">Eliminar</button>' : '') +
+    '<button type="button" class="boton" id="pr-cancelar">Cancelar</button><button type="button" class="boton primario" id="pr-guardar">Guardar</button></div>');
+  // Corre una acción del servidor con el botón deshabilitado mientras tanto.
+  const accion = async (boton, llamada, texto, siguiente) => {
+    boton.disabled = true;
+    try {
+      trasCambioPrestamo(await llamada(), siguiente, texto);
+    } catch (err) {
+      aviso(err.message, true);
+      boton.disabled = false;
+    }
+  };
+  $('#pr-cancelar', caja).onclick = cerrarModal;
+  $('#pr-guardar', caja).onclick = e => {
+    const datos = { id: nuevo ? '' : v.id, persona: $('#pr-persona', caja).value, fecha_promesa: $('#pr-promesa', caja).value, nota: $('#pr-nota', caja).value };
+    if (manual) datos.monto = montoEscrito($('#pr-monto', caja).value);
+    if (nuevo) datos.fecha = $('#pr-fecha', caja).value;
+    accion(e.target, () => api('guardarPrestamo', datos), nuevo ? 'Préstamo guardado' : 'Préstamo actualizado', '');
+  };
+  const abonar = $('#pr-abonar', caja);
+  if (abonar) {
+    abonar.onclick = () => accion(abonar, () => api('registrarAbono', {
+      prestamo_id: v.id, monto: montoEscrito($('#pr-abono', caja).value), fecha: $('#pr-abono-fecha', caja).value,
+    }), 'Abono registrado', v.id);
+    $('#pr-saldar', caja).onclick = e => accion(e.target, () => api('saldarPrestamo', v.id), v.persona + ' ya te pagó todo ✓', '');
+  }
+  caja.querySelectorAll('[data-borrar-abono]').forEach(b => {
+    b.onclick = () => accion(b, () => api('eliminarAbono', b.dataset.borrarAbono), 'Abono borrado', v.id);
+  });
+  const eliminar = $('#pr-eliminar', caja);
+  if (eliminar) {
+    eliminar.onclick = () => {
+      if (!eliminar.dataset.seguro) { eliminar.dataset.seguro = '1'; eliminar.textContent = '¿Seguro? Toca otra vez'; return; }
+      accion(eliminar, () => api('eliminarPrestamo', v.id), 'Préstamo eliminado', '');
+    };
+  }
+  if (nuevo) $('#pr-persona', caja).focus();
 }
 </script>

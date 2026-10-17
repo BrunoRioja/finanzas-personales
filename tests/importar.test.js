@@ -43,7 +43,7 @@ test('importa todas las tablas con sus ids, la configuración elegida y deja la 
   assert.strictEqual(config.nombre, 'Ana');
   assert.strictEqual(config.ultimo_tc, '3.75');
   assert.strictEqual(config.horario_inicio, '8');
-  assert.strictEqual(config.version_esquema, '5');
+  assert.strictEqual(config.version_esquema, '6');
   assert.strictEqual(config.instalado, 'si');
   assert.strictEqual(config.importar_desde, undefined);
   assert.strictEqual(config.lectura_activa, undefined);
@@ -93,4 +93,62 @@ test('no importa en una copia que ya tiene datos (importación cortada a medias)
   assert.throws(() => e.interno('importarHojaAnterior', ID_ANTERIOR), /ya tiene datos/);
   assert.deepStrictEqual(e.filas('Movimientos'), [], 'nada escrito');
   assert.strictEqual(e.filas('Cuentas').length, 1);
+});
+
+// Hoja v0.8: sin hojas Prestamos/Abonos, sin columna rol, con "Reembolsos" y una "Préstamo" de gasto sin rol.
+function hojaV08() {
+  const a = hojaAnterior();
+  const hojas = JSON.parse(JSON.stringify(a.hojas));
+  delete hojas.Prestamos;
+  delete hojas.Abonos;
+  const enc = hojas.Categorias[0];
+  const iRol = enc.indexOf('rol');
+  hojas.Categorias = hojas.Categorias.map(f => f.filter((_, i) => i !== iRol));
+  const iNom = enc.filter((_, i) => i !== iRol).indexOf('nombre');
+  hojas.Categorias.slice(1).forEach(f => { if (f[iNom] === 'Préstamos') f[iNom] = 'Préstamo'; });
+  return hojas;
+}
+
+test('importar una hoja v0.8 aplica los roles de préstamo y reembolso', () => {
+  const e = copiaNueva(hojaV08());
+  e.llamar('importarHojaAnterior', ID_ANTERIOR);
+  const cats = e.filas('Categorias');
+  const roles = cats.filter(c => c.rol).map(c => c.rol + ':' + c.nombre).sort();
+  assert.deepStrictEqual(roles, ['prestamo:Préstamo', 'reembolso:Reembolsos']);
+  assert.deepStrictEqual(e.filas('Prestamos'), []);
+  assert.deepStrictEqual(e.filas('Abonos'), []);
+});
+
+test('importar una hoja v0.8 sin categoría de préstamos la crea con su rol', () => {
+  const hojas = hojaV08();
+  const iNom = hojas.Categorias[0].indexOf('nombre');
+  hojas.Categorias = hojas.Categorias.filter((f, i) => i === 0 || f[iNom] !== 'Préstamo');
+  const e = copiaNueva(hojas);
+  e.llamar('importarHojaAnterior', ID_ANTERIOR);
+  const prest = e.filas('Categorias').filter(c => c.rol === 'prestamo');
+  assert.strictEqual(prest.length, 1);
+  assert.strictEqual(prest[0].tipo, 'gasto');
+});
+
+test('importar una hoja v0.9 trae Prestamos y Abonos', () => {
+  const a = hojaAnterior();
+  a.llamar('guardarPrestamo', { persona: 'Juan Prueba', monto: '200', fecha: '2026-10-05', fecha_promesa: '', nota: '' });
+  const e = copiaNueva(a.hojas);
+  const r = e.llamar('importarHojaAnterior', ID_ANTERIOR);
+  assert.strictEqual(r.importado.Prestamos, 1);
+  assert.deepStrictEqual(e.filas('Prestamos'), a.filas('Prestamos'));
+  assert.deepStrictEqual(e.filas('Abonos'), a.filas('Abonos'));
+});
+
+test('importar una hoja v0.8 con "Préstamos" desactivada la reusa y reactiva con su rol, sin duplicar', () => {
+  const hojas = hojaV08();
+  const enc = hojas.Categorias[0];
+  hojas.Categorias.slice(1).forEach(f => {
+    if (f[enc.indexOf('nombre')] === 'Préstamo') { f[enc.indexOf('nombre')] = 'Préstamos'; f[enc.indexOf('activa')] = false; }
+  });
+  const e = copiaNueva(hojas);
+  e.llamar('importarHojaAnterior', ID_ANTERIOR);
+  const prest = e.filas('Categorias').filter(c => /^Pr[eé]stamo/.test(c.nombre));
+  assert.deepStrictEqual(prest.map(c => [c.nombre, c.rol, c.activa]), [['Préstamos', 'prestamo', true]]);
+  assert.strictEqual(Number(e.llamar('leerConfig_').version_esquema), 6);
 });

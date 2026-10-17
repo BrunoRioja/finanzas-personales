@@ -69,6 +69,8 @@ function atenderTelegram_(updateId, mensaje, boton) {
       revisarPresupuestos_();
       return;
     }
+    // Una respuesta a un aviso de movimiento cambia su descripción; cualquier otra sigue como siempre.
+    if (mensaje.reply_to_message && manejarRespuesta_(mensaje)) return;
     const texto = String(mensaje.text || '').trim();
     if (!texto) {
       enviarMensaje_('Por ahora solo entiendo texto. El audio y las fotos llegan en una próxima versión.');
@@ -103,6 +105,8 @@ function manejarComando_(texto) {
       return enviarMensaje_(resumenDelMes_(mesDe_(hoyIso_())));
     case '/pagos':
       return enviarMensaje_(textoPagos_(proximosPagosDeHoy_()));
+    case '/prestamos':
+      return enviarMensaje_(textoPrestamos_(listaPrestamos_(leerTabla_('Prestamos'), leerTabla_('Abonos'), hoyIso_())));
     case '/deshacer':
       return deshacerUltimo_();
     default:

@@ -64,25 +64,32 @@ function itemMovimiento(m) {
   let etiquetaAmb = '';
   if (m.tipo === 'transferencia') {
     icono = '🔁';
-    titulo = m.descripcion || 'Transferencia';
+    titulo = m.titulo || 'Transferencia';
     sub = cuenta(m.cuenta_id).nombre + ' → ' + cuenta(m.cuenta_destino_id).nombre;
     clase = 'tenue';
   } else {
     const c = categoria(m.categoria_id);
     icono = c.emoji;
-    titulo = m.comercio || m.descripcion || c.nombre;
-    sub = c.nombre + ' · ' + cuenta(m.cuenta_id).nombre + (m.moneda !== 'PEN' ? ' · ≈ ' + dinero(m.monto_pen) : '');
+    titulo = m.titulo || c.nombre;
+    sub = (m.subtitulo ? m.subtitulo + ' · ' : '') + c.nombre + ' · ' + cuenta(m.cuenta_id).nombre + (m.moneda !== 'PEN' ? ' · ≈ ' + dinero(m.monto_pen) : '');
     clase = m.tipo === 'ingreso' ? 'pos' : '';
     const ambs = m.ambitos || [];
     etiquetaAmb = ambs.length > 1 ? 'Varios ámbitos' : (ambs[0] && ambs[0] !== 'personal' ? (ambito(ambs[0]).emoji + ' ' + ambito(ambs[0]).nombre).trim() : '');
   }
   const monto = (m.tipo === 'ingreso' ? '+' : '') + dinero(m.monto, m.moneda);
   return '<div class="item" data-id="' + esc(m.id) + '"><div class="icono">' + esc(icono) + '</div>' +
-    '<div class="cuerpo"><div class="titulo">' + esc(titulo) + (m.dividido ? ' ✂️' : '') +
+    '<div class="cuerpo"><div class="titulo">' + esc(titulo) + (m.dividido ? ' ✂️' : '') + (deRol(m) ? ' 🤝' : '') +
     (m.estado === 'por_revisar' ? '<span class="etiqueta-mini">por revisar</span>' : '') +
     (etiquetaAmb ? '<span class="etiqueta-mini amb">' + esc(etiquetaAmb) + '</span>' : '') + '</div>' +
     '<div class="sub">' + (m.origen === 'gmail' ? '📧 ' : '') + esc(sub) + '</div></div>' +
     '<div class="num ' + clase + '">' + monto + '</div></div>';
+}
+
+// Préstamo (gasto en la categoría de préstamos) o abono (ingreso en la de reembolsos).
+// Un reembolso de gasto es un gasto negativo más y no lleva distintivo.
+function deRol(m) {
+  const rol = m.tipo === 'transferencia' ? '' : rolCategoria(m.categoria_id);
+  return (rol === 'prestamo' && m.tipo === 'gasto' && m.monto > 0) || (rol === 'reembolso' && m.tipo === 'ingreso');
 }
 
 function cuentaPorDefecto() {
@@ -98,6 +105,10 @@ function abrirFormMovimiento(mov, opciones) {
     cuenta_destino_id: '', categoria_id: '', ambito_id: '', comercio: '', descripcion: '',
   };
   if (!mov) Object.assign(f, opciones.inicial || {});
+  // { prestamo_id } o { reembolso_de } elegido en "¿De qué es este reembolso?", y los préstamos
+  // (se piden la primera vez que se elige la categoría de reembolsos).
+  let reembolso = null;
+  let prestamos = null;
   const caja = abrirModal('<h2 class="titulo-modal">' + (mov ? 'Editar movimiento' : 'Nuevo movimiento') + '</h2><div id="form-mov"></div>');
 
   function leerForm() {
@@ -127,6 +138,7 @@ function abrirFormMovimiento(mov, opciones) {
       const cats = cat.categorias.filter(c => c.tipo === f.tipo && (c.activa || c.id === f.categoria_id));
       html += campo('Categoría', '<div class="chips">' + cats.map(c =>
         '<button type="button" class="chip' + (c.id === f.categoria_id ? ' activo' : '') + '" data-cat="' + esc(c.id) + '">' + esc(c.emoji + ' ' + c.nombre) + '</button>').join('') + '</div>');
+      if (f.tipo === 'ingreso') html += '<div data-reemb-caja hidden></div>';
       if (f.tipo === 'gasto') html += campo('Ámbito', chipsAmbito(f.ambito_id));
       html += campo('Cuenta', seleccion('mv-cuenta_id', idsCuentas, f.cuenta_id, nombresCuentas));
     }
@@ -138,14 +150,24 @@ function abrirFormMovimiento(mov, opciones) {
     $('#form-mov', caja).innerHTML = html;
 
     caja.querySelectorAll('[data-tipo]').forEach(b => {
-      b.onclick = () => { leerForm(); f.tipo = b.dataset.tipo; f.categoria_id = ''; f.ambito_id = ''; pintar(); };
+      b.onclick = () => {
+        leerForm();
+        f.tipo = b.dataset.tipo;
+        f.categoria_id = '';
+        f.ambito_id = '';
+        // Un reembolso guardado como gasto negativo vuelve a ser ingreso (o transferencia) positivo.
+        if (f.tipo !== 'gasto' && Number(f.monto) < 0) f.monto = String(Math.abs(Number(f.monto)));
+        pintar();
+      };
     });
     caja.querySelectorAll('[data-cat]').forEach(b => {
       b.onclick = () => {
         f.categoria_id = b.dataset.cat;
         caja.querySelectorAll('[data-cat]').forEach(x => x.classList.toggle('activo', x === b));
+        pintarReembolso();
       };
     });
+    pintarReembolso();
     enlazarChipsAmbito(caja, id => { f.ambito_id = id; });
     // Al cambiar de cuenta, la moneda pasa a ser la de esa cuenta (editable después).
     $('#mv-cuenta_id', caja).onchange = () => { leerForm(); f.moneda = cuenta(f.cuenta_id).moneda || 'PEN'; pintar(); };
@@ -156,16 +178,41 @@ function abrirFormMovimiento(mov, opciones) {
     if (!mov) $('#mv-monto', caja).focus();
   }
 
+  async function pintarReembolso() {
+    const destino = $('[data-reemb-caja]', caja);
+    if (!destino) return;
+    destino.hidden = rolCategoria(f.categoria_id) !== 'reembolso';
+    if (destino.hidden || destino.dataset.listo) return;
+    destino.innerHTML = '<div class="reembolso-de tenue">Cargando préstamos…</div>';
+    try {
+      if (!prestamos) prestamos = await api('obtenerPrestamos');
+      // Al editar un abono, su préstamo aparece marcado aunque ya esté pagado.
+      const propio = mov ? prestamos.pendientes.concat(prestamos.pagados).find(x => x.abonos.some(a => a.movimiento_id === mov.id)) : null;
+      if (propio && !reembolso) reembolso = { prestamo_id: propio.id };
+      const lista = prestamos.pendientes.concat(propio && propio.estado === 'pagado' ? [propio] : []);
+      destino.innerHTML = selectorReembolso(lista, f.comercio || $('#mv-comercio', caja).value, reembolso);
+      destino.dataset.listo = '1';
+      enlazarSelectorReembolso(destino, v => { reembolso = v; });
+    } catch (err) {
+      destino.innerHTML = '';
+      aviso(err.message, true);
+    }
+  }
+
   async function guardar(boton) {
     leerForm();
+    const esReembolso = f.tipo === 'ingreso' && rolCategoria(f.categoria_id) === 'reembolso';
+    // Devolución de un gasto: se guarda como gasto negativo en esa categoría (no lleva ámbito).
+    const comoGasto = esReembolso && reembolso && reembolso.reembolso_de;
     boton.disabled = true;
     try {
       await api('guardarMovimiento', {
-        id: mov ? mov.id : '', tipo: f.tipo, fecha: f.fecha, monto: f.monto,
+        id: mov ? mov.id : '', tipo: comoGasto ? 'gasto' : f.tipo, fecha: f.fecha, monto: comoGasto ? -Math.abs(Number(f.monto)) : f.tipo !== 'gasto' && Number(f.monto) < 0 ? Math.abs(Number(f.monto)) : f.monto,
         moneda: f.moneda || cuenta(f.cuenta_id).moneda || 'PEN', cuenta_id: f.cuenta_id,
         cuenta_destino_id: f.tipo === 'transferencia' ? f.cuenta_destino_id : '',
-        categoria_id: f.tipo === 'transferencia' ? '' : f.categoria_id,
+        categoria_id: f.tipo === 'transferencia' ? '' : comoGasto || f.categoria_id,
         ambito_id: f.tipo === 'gasto' ? f.ambito_id : '',
+        prestamo_id: esReembolso && reembolso && reembolso.prestamo_id ? reembolso.prestamo_id : '',
         comercio: f.comercio, descripcion: f.descripcion,
       });
       guardarLocal('ultimaCuenta', f.cuenta_id);

@@ -12,8 +12,8 @@ const CATEGORIAS_POR_DEFECTO = [
   ['Salud y gym', '💪', 'gasto'], ['Suplementos', '💊', 'gasto'], ['Aseo personal', '🧴', 'gasto'],
   ['Ropa', '👕', 'gasto'], ['Entretenimiento', '🎮', 'gasto'], ['Educación', '🎓', 'gasto'],
   ['Viajes', '✈️', 'gasto'], ['Regalos', '🎁', 'gasto'], ['Comisiones bancarias', '💸', 'gasto'],
-  ['Otros', '❓', 'gasto'],
-  ['Sueldo', '💼', 'ingreso'], ['Freelance / extras', '💰', 'ingreso'], ['Reembolsos', '🔁', 'ingreso'],
+  ['Préstamos', '🤝', 'gasto', 'prestamo'], ['Otros', '❓', 'gasto'],
+  ['Sueldo', '💼', 'ingreso'], ['Freelance / extras', '💰', 'ingreso'], ['Reembolsos', '🔁', 'ingreso', 'reembolso'],
   ['Otros ingresos', '🎁', 'ingreso'],
 ];
 
@@ -44,9 +44,16 @@ function normalizarCategoria_(datos, existentes, idActual) {
     normalizarTexto_(c.nombre) === normalizarTexto_(nombre));
   if (repetida) throw new Error('Ya existe la categoría "' + nombre + '".');
   const color = /^#[0-9a-fA-F]{6}$/.test(String(datos.color || '')) ? datos.color : PALETA[existentes.length % PALETA.length];
+  const rol = String(datos.rol || '');
+  if (rol) {
+    if (!ROLES_CATEGORIA[rol]) throw new Error('Rol de categoría inválido: ' + rol);
+    if (ROLES_CATEGORIA[rol] !== tipo) throw new Error('La categoría de ' + (rol === 'prestamo' ? 'préstamo' : rol) + ' debe ser de ' + ROLES_CATEGORIA[rol] + '.');
+    const otra = existentes.filter(c => c.id !== idActual && c.rol === rol && c.activa !== false)[0];
+    if (otra) throw new Error('Ya hay una categoría marcada como ' + rol + ': "' + otra.nombre + '".');
+  }
   return {
     nombre: nombre, emoji: String(datos.emoji || '').trim(), color: color, tipo: tipo,
-    padre_id: String(datos.padre_id || ''), activa: datos.activa !== false,
+    padre_id: String(datos.padre_id || ''), activa: datos.activa !== false, rol: rol,
   };
 }
 

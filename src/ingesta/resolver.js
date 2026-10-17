@@ -29,7 +29,9 @@ function resolverMovimiento_(crudo, ctx) {
     completo = completo && !!destino;
   } else {
     const regla = reglaPara_(mov.comercio, ctx.reglas);
-    const categoria = regla ? ctx.categorias.filter(c => c.id === regla.categoria_id && c.activa && c.tipo === crudo.tipo)[0] : null;
+    // Una regla hacia una categoría con rol queda en pausa: esos casos pasan por su propio flujo.
+    const categoria = regla && !rolDe_(ctx.categorias, regla.categoria_id)
+      ? ctx.categorias.filter(c => c.id === regla.categoria_id && c.activa && c.tipo === crudo.tipo)[0] : null;
     if (categoria) {
       mov.categoria_id = categoria.id;
       mov.regla_id = regla.id;

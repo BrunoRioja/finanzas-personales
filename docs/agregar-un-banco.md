@@ -1,5 +1,7 @@
 # Agregar un banco
 
+> ¿Solo quieres que funcione en **tu** copia? No hace falta abrir un PR: pídeselo a tu Claude con [adaptar-con-claude.md](adaptar-con-claude.md). Esta guía es la que seguirá él (o tú, si quieres contribuir tu banco).
+
 Cada banco tiene un **lector**: una función pura que recibe un correo ya convertido a texto y devuelve un movimiento crudo. No toca Gmail ni la hoja, así que se prueba con correos de ejemplo.
 
 ## 1. Consigue un correo de ejemplo y anonimízalo

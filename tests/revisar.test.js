@@ -101,3 +101,13 @@ test('eliminar reglas y descartar correos no leídos', () => {
   assert.deepStrictEqual(e.llamar('obtenerPorRevisar').pendientes, []);
   assert.throws(() => e.interno('categorizarMovimiento', { id: 'nada', categoria_id: e.categoria('Bodega') }), /ya no existe/);
 });
+
+test('recordarComercio_ hacia una categoría con rol lanza y listarReglas marca en_pausa', () => {
+  const e = entorno();
+  const prest = e.categoria('Préstamos');
+  const sup = e.categoria('Supermercado');
+  assert.throws(() => e.interno('recordarComercio_', [], { id: 'x', comercio: 'Juan', tipo: 'gasto' }, 'JUAN', prest), /Los préstamos y reembolsos no se recuerdan\./);
+  e.interno('guardarRegla_', 'JUAN', prest);
+  e.interno('guardarRegla_', 'TOTTUS', sup);
+  assert.deepStrictEqual(e.llamar('listarReglas').map(x => [x.patron, x.en_pausa]), [['JUAN', true], ['TOTTUS', false]]);
+});

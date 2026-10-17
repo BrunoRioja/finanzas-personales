@@ -20,7 +20,8 @@ test('elegir categoría confirma, pregunta si recordar y "Sí, recordar" crea la
   assert.deepStrictEqual([e.mov(otro.id).estado, e.mov(otro.id).categoria_id], ['confirmado', sup]);
   const final = e.ultimoEditado();
   assert.match(final.text, /✓ 🛒 Supermercado · 🙋 Personal · recordado para <b>TOTTUS PRIMAVERA<\/b> \(\+1 más\)$/);
-  assert.deepStrictEqual(e.botones(final).map(f => f.length), [3]);
+  assert.deepStrictEqual(e.botones(final).map(f => f.length), [3, 1]);
+  assert.strictEqual(e.botones(final)[1][0].text, '✏️ Descripción');
 });
 
 test('"Solo esta vez" no crea reglas', () => {
@@ -127,10 +128,10 @@ test('"Solo esta vez" deja la fila de ámbitos; cambiar el ámbito después no v
   e.tocar(e.dato('s', mov));
   const ed = e.ultimoEditado();
   assert.match(ed.text, /\n✓ 🚕 Transporte · 🙋 Personal$/);
-  assert.deepStrictEqual(e.botones(ed).map(f => f.length), [3]);
+  assert.deepStrictEqual(e.botones(ed).map(f => f.length), [3, 1]);
   e.tocar(e.botones(ed)[0][0].callback_data);
   assert.match(e.ultimoEditado().text, /· 🎉 Diversión$/);
-  assert.strictEqual(e.botones(e.ultimoEditado()).length, 1);
+  assert.strictEqual(e.botones(e.ultimoEditado()).length, 2);
 });
 
 test('botón de ámbito en un movimiento borrado o aún por revisar no rompe', () => {

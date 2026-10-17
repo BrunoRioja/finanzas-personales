@@ -1,6 +1,6 @@
 // Hojas y columnas de la base de datos. La fila 1 de cada hoja son estos encabezados.
 // La primera columna de cada hoja es su clave. Tipos: texto | numero | fecha (yyyy-MM-dd) | booleano.
-const VERSION_ESQUEMA = 5;
+const VERSION_ESQUEMA = 6;
 
 const ESQUEMA = {
   Movimientos: [
@@ -18,7 +18,7 @@ const ESQUEMA = {
   ],
   Categorias: [
     ['id', 'texto'], ['nombre', 'texto'], ['emoji', 'texto'], ['color', 'texto'], ['tipo', 'texto'],
-    ['padre_id', 'texto'], ['activa', 'booleano'],
+    ['padre_id', 'texto'], ['activa', 'booleano'], ['rol', 'texto'],
   ],
   Ambitos: [['id', 'texto'], ['nombre', 'texto'], ['emoji', 'texto'], ['orden', 'numero'], ['activo', 'booleano']],
   Reglas: [
@@ -38,6 +38,11 @@ const ESQUEMA = {
     ['id', 'texto'], ['cuenta_id', 'texto'], ['emitido', 'fecha'], ['total_pen', 'numero'], ['total_usd', 'numero'],
     ['minimo_pen', 'numero'], ['minimo_usd', 'numero'], ['fecha_limite', 'fecha'], ['ref_externa', 'texto'],
   ],
+  Prestamos: [
+    ['id', 'texto'], ['persona', 'texto'], ['monto', 'numero'], ['fecha', 'fecha'], ['fecha_promesa', 'fecha'],
+    ['movimiento_id', 'texto'], ['estado', 'texto'], ['nota', 'texto'], ['creado_en', 'texto'],
+  ],
+  Abonos: [['id', 'texto'], ['prestamo_id', 'texto'], ['fecha', 'fecha'], ['monto', 'numero'], ['movimiento_id', 'texto']],
   Config: [['clave', 'texto'], ['valor', 'texto']],
   Log: [['fecha', 'texto'], ['nivel', 'texto'], ['origen', 'texto'], ['mensaje', 'texto'], ['detalle', 'texto']],
 };

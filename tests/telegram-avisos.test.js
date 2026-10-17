@@ -50,7 +50,8 @@ test('sin cuenta reconocida: el aviso pide abrir la app', () => {
   e.llamar('revisarCorreos');
   const [m] = e.enviados();
   assert.match(m.text, /Elige la cuenta en la app\./);
-  assert.deepStrictEqual(e.botones(m), [[{ text: 'Abrir en la app', url: 'https://script.google.com/macros/s/APP-PRUEBA/exec' }]]);
+  assert.deepStrictEqual(e.botones(m).map(f => f.map(b => b.text)), [['Abrir en la app'], ['✏️ Descripción']]);
+  assert.strictEqual(e.botones(m)[0][0].url, 'https://script.google.com/macros/s/APP-PRUEBA/exec');
 });
 
 test('sin bot vinculado no se llama a Telegram', () => {

@@ -77,3 +77,15 @@ test('referenciaPresupuesto_: mes pasado y promedio de los 3 anteriores (los mes
     super: { mesPasado: 400, promedio3: 300 }, comida: { mesPasado: 0, promedio3: 30 },
   });
 });
+
+test('presupuestoVsReal_: una categoría solo con reembolsos queda en 0 %, nunca negativa', () => {
+  const r = f('presupuestoVsReal_', [linea('2026-10-02', 'super', -40)], { super: 100 }, CATS, '2026-10', '2026-10-15');
+  assert.strictEqual(r.filas[0].gastado, 0);
+  assert.strictEqual(r.filas[0].porcentaje, 0);
+  assert.strictEqual(r.filas[0].estado, 'ok');
+});
+
+test('un gasto negativo resta de su categoría y del presupuesto', () => {
+  const r = f('presupuestoVsReal_', [linea('2026-10-02', 'super', 120), linea('2026-10-03', 'super', -40)], { super: 100 }, CATS, '2026-10', '2026-10-15');
+  assert.strictEqual(r.filas[0].gastado, 80);
+});

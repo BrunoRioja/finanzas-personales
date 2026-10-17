@@ -13,6 +13,7 @@ function resumenDelDia_(fecha) {
   const movs = leerTabla_('Movimientos');
   const delDia = movs.filter(m => m.fecha === fecha).sort((a, b) => a.creado_en.localeCompare(b.creado_en));
   return textoResumen_(delDia, ctx, {
+    cuentan: movimientosQueCuentan_(delDia, ctx.categorias),
     porRevisar: movs.filter(m => m.estado === 'por_revisar').length,
     noLeidos: leerTabla_('Pendientes').filter(p => p.estado === 'pendiente').length,
   });
@@ -21,9 +22,10 @@ function resumenDelDia_(fecha) {
 function resumenDelMes_(mes) {
   const movs = leerTabla_('Movimientos');
   const categorias = leerTabla_('Categorias');
-  const lineas = lineasCategoria_(movs, leerTabla_('Divisiones'));
+  const cuentan = movimientosQueCuentan_(movs, categorias);
+  const lineas = lineasCategoria_(cuentan, leerTabla_('Divisiones'));
   const presupuesto = presupuestoVsReal_(lineas, presupuestosVigentes_(leerTabla_('Presupuestos'), mes), categorias, mes, hoyIso_());
-  return textoMes_(mes, resumenMes_(movs, mes), gastoPorCategoria_(lineas, categorias, mes), presupuesto);
+  return textoMes_(mes, resumenMes_(cuentan, mes), gastoPorCategoria_(lineas, categorias, mes), presupuesto);
 }
 
 // La llama el trigger diario. No lanza: un fallo queda en el Log y se avisa (máx. 1 por hora).

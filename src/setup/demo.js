@@ -22,7 +22,7 @@ function generarDatosDemo_(hoyIso) {
     { id: 'demo-efectivo', nombre: 'Efectivo', banco: 'Efectivo', tipo: 'efectivo', moneda: 'PEN', saldo_inicial: 150, numeros: '', activa: true, yape: false },
   ];
   const categorias = CATEGORIAS_POR_DEFECTO.map((c, i) => ({
-    id: 'demo-cat-' + (i + 1), nombre: c[0], emoji: c[1], color: PALETA[i % PALETA.length], tipo: c[2], padre_id: '', activa: true,
+    id: 'demo-cat-' + (i + 1), nombre: c[0], emoji: c[1], color: PALETA[i % PALETA.length], tipo: c[2], padre_id: '', activa: true, rol: c[3] || '',
   }));
   const ambitos = [
     ambitoPersonal_(),
@@ -60,6 +60,8 @@ function generarDatosDemo_(hoyIso) {
     if (rnd() < 0.05) agregar(fecha, 'gasto', entre(60, 160), 'demo-visa', { categoria_id: cat('Ropa'), comercio: elegir(['Saga Falabella', 'Zara']) });
     if (rnd() < 0.06) agregar(fecha, 'gasto', entre(15, 40), 'demo-debito', { categoria_id: cat('Aseo personal'), comercio: 'Inkafarma' });
   }
+  // Reembolso de una cena: un gasto negativo en su misma categoría (sí cuenta, y baja el gasto).
+  agregar(sumarDias_(hoyIso, -2), 'gasto', -40, 'demo-visa', { categoria_id: cat('Comida fuera'), comercio: 'Sushi Bar', descripcion: 'Reembolso de cena' });
   // Presupuestos sobre lo gastado este mes: factor < 1 queda pasado, ~1.15 en alerta, > 1.3 holgado.
   const mes = hoyIso.slice(0, 7);
   const gastoDelMes = nombre => movimientos
@@ -84,7 +86,24 @@ function generarDatosDemo_(hoyIso) {
     minimo_pen: 120, minimo_usd: 9.99, fecha_limite: sumarDias_(hoyIso, 12), ref_externa: '',
   }];
   agregar(sumarDias_(hoyIso, -1), 'transferencia', 845.3, 'demo-debito', { cuenta_destino_id: 'demo-visa', descripcion: 'Pago tarjeta VISA' });
-  return { cuentas: cuentas, categorias: categorias, ambitos: ambitos, movimientos: movimientos, presupuestos: presupuestos, recurrentes: recurrentes, estadosCuenta: estadosCuenta };
+  // Préstamos: cada yapeo es un gasto en la categoría de rol prestamo; el abono, un ingreso de rol reembolso.
+  const yapeo = (fecha, tipo, monto, categoria, comercio) =>
+    agregar(fecha, tipo, monto, 'demo-debito', { categoria_id: cat(categoria), comercio: comercio, descripcion: 'Yape' });
+  yapeo(sumarDias_(hoyIso, -10), 'gasto', 200, 'Préstamos', 'Juan Prueba');
+  const movJuan = movimientos[movimientos.length - 1].id;
+  yapeo(sumarDias_(hoyIso, -20), 'gasto', 80, 'Préstamos', 'Ana Prueba');
+  const movAna = movimientos[movimientos.length - 1].id;
+  yapeo(sumarDias_(hoyIso, -4), 'ingreso', 50, 'Reembolsos', 'Juan Prueba');
+  const movAbono = movimientos[movimientos.length - 1].id;
+  const prestamos = [
+    { id: 'demo-pre-1', persona: 'Juan Prueba', monto: 200, fecha: sumarDias_(hoyIso, -10), fecha_promesa: sumarDias_(hoyIso, 5), movimiento_id: movJuan, estado: 'pendiente', nota: '', creado_en: sumarDias_(hoyIso, -10) + ' 12:00:00' },
+    { id: 'demo-pre-2', persona: 'Ana Prueba', monto: 80, fecha: sumarDias_(hoyIso, -20), fecha_promesa: sumarDias_(hoyIso, -3), movimiento_id: movAna, estado: 'pendiente', nota: '', creado_en: sumarDias_(hoyIso, -20) + ' 12:00:00' },
+  ];
+  const abonos = [{ id: 'demo-abo-1', prestamo_id: 'demo-pre-1', fecha: sumarDias_(hoyIso, -4), monto: 50, movimiento_id: movAbono }];
+  return {
+    cuentas: cuentas, categorias: categorias, ambitos: ambitos, movimientos: movimientos, presupuestos: presupuestos,
+    recurrentes: recurrentes, estadosCuenta: estadosCuenta, prestamos: prestamos, abonos: abonos,
+  };
 }
 
 function cargarDemo() {
@@ -111,6 +130,8 @@ function cargarDemo() {
       agregarFilas_('Presupuestos', datos.presupuestos);
       agregarFilas_('Recurrentes', datos.recurrentes);
       agregarFilas_('EstadosCuenta', datos.estadosCuenta);
+      agregarFilas_('Prestamos', datos.prestamos);
+      agregarFilas_('Abonos', datos.abonos);
       guardarConfig_({
         nombre: 'Demo', moneda_principal: 'PEN', ultimo_tc: 3.75, modo_bot: 'B', hora_resumen: '21:00',
         version_esquema: VERSION_ESQUEMA, instalado: 'si',

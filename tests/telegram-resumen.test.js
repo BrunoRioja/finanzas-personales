@@ -89,7 +89,33 @@ test('el resumen diario migra una hoja v4 antes de leer los ámbitos', () => {
   e.interno('guardarConfig_', { version_esquema: 4 });
   e.llamar('enviarResumenDiario');
   assert.strictEqual(e.filas('Log').filter(l => l.origen === 'enviarResumenDiario').length, 0);
-  assert.strictEqual(e.interno('leerConfig_').version_esquema, '5');
+  assert.strictEqual(e.interno('leerConfig_').version_esquema, '6');
   assert.strictEqual(e.filas('Ambitos').length, 4);
   assert.match(e.ultimoEnviado().text, /Tottus/);
+});
+
+test('/mes y el resumen diario no suman préstamos ni reembolsos, pero el diario los lista con 🤝', () => {
+  const e = entornoBot();
+  gasto(e, { monto: 100, comercio: 'Tottus' });
+  gasto(e, { monto: 200, categoria_id: e.categoria('Préstamos'), comercio: 'Juan' });
+  e.llamar('guardarMovimiento', { fecha: '2026-10-13', tipo: 'ingreso', monto: 50, cuenta_id: e.cuenta('Débito BCP'), categoria_id: e.categoria('Reembolsos'), comercio: 'Juan', prestamo_id: e.filas('Prestamos')[0].id });
+  e.escribir('/hoy');
+  const hoy = e.ultimoEnviado().text;
+  assert.match(hoy, /^📊 <b>Hoy · S\/ 100\.00 en gastos<\/b>\n\n/);
+  assert.ok(!hoy.includes('en ingresos'));
+  assert.match(hoy, /• S\/ 200\.00 🤝 Préstamos — Juan/);
+  assert.match(hoy, /• S\/ 50\.00 🤝 .*Reembolsos — Juan/);
+  e.escribir('/mes');
+  const mes = e.ultimoEnviado().text;
+  assert.match(mes, /💰 Ingresos: S\/ 0\.00\n🛒 Gastos: S\/ 100\.00/);
+  assert.ok(!mes.includes('Préstamos'));
+});
+
+test('desactivar la categoría de préstamos hace que sus movimientos vuelvan a contar', () => {
+  const e = entornoBot();
+  gasto(e, { monto: 200, categoria_id: e.categoria('Préstamos') });
+  const prest = e.filas('Categorias').find(c => c.id === e.categoria('Préstamos'));
+  e.llamar('guardarCategoria', Object.assign({}, prest, { activa: false }));
+  e.escribir('/mes');
+  assert.match(e.ultimoEnviado().text, /🛒 Gastos: S\/ 200\.00/);
 });

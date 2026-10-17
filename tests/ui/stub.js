@@ -5,7 +5,8 @@
     ['c3', 'Transporte', '🚕', '#7c5cff', 'gasto'], ['c4', 'Suscripciones', '📺', '#4cc9f0', 'gasto'],
     ['c5', 'Bodega', '🏪', '#ff6b6b', 'gasto'], ['c7', 'Aseo personal', '🧴', '#f72585', 'gasto'],
     ['c6', 'Sueldo', '💼', '#3ddc97', 'ingreso'],
-  ].map(c => ({ id: c[0], nombre: c[1], emoji: c[2], color: c[3], tipo: c[4], padre_id: '', activa: true }));
+    ['c8', 'Préstamos', '🤝', '#4cc9f0', 'gasto', 'prestamo'], ['c9', 'Reembolsos', '↩️', '#3ddc97', 'ingreso', 'reembolso'],
+  ].map(c => ({ id: c[0], nombre: c[1], emoji: c[2], color: c[3], tipo: c[4], padre_id: '', activa: true, rol: c[5] || '' }));
   const AMBITOS = [
     { id: 'personal', nombre: 'Personal', emoji: '🙋', orden: 1, activo: true },
     { id: 'm1', nombre: 'Diversión', emoji: '🎉', orden: 2, activo: true },
@@ -31,23 +32,54 @@
     ],
     totalMensual: 140.9, cuentas: CUENTAS, categorias: CATEGORIAS.filter(c => c.tipo === 'gasto'), tc: 3.75,
   };
-  const mov = (id, fecha, tipo, monto, cuenta_id, categoria_id, comercio, extra) => Object.assign({
+  // titulo y subtitulo como los arma el servidor (tituloMovimiento_ / subtituloMovimiento_).
+  const conTitulo = m => {
+    const propia = !!m.descripcion && ['Transferencia entre mis cuentas', 'Pago de tarjeta'].indexOf(m.descripcion) < 0 &&
+      m.descripcion.indexOf('Falta el tipo de cambio') !== 0;
+    return Object.assign(m, { titulo: propia ? m.descripcion : m.comercio || m.descripcion, subtitulo: propia ? m.comercio : '' });
+  };
+  const mov = (id, fecha, tipo, monto, cuenta_id, categoria_id, comercio, extra) => conTitulo(Object.assign({
     id, fecha, tipo, monto, moneda: 'PEN', tc: 1, monto_pen: monto, cuenta_id, cuenta_destino_id: '', categoria_id, comercio,
     descripcion: '', ambito_id: '', origen: 'manual', estado: 'confirmado', ref_externa: '', dividido: false, creado_en: fecha + ' 12:00:00',
-  }, extra || {});
+  }, extra || {}));
   const MOVS = [
     mov('m1', '2026-10-12', 'gasto', 89.3, 'a1', 'c1', 'Tottus', { origen: 'gmail', dividido: true, ambitos: ['m1', 'personal'] }),
     mov('m2', '2026-10-12', 'gasto', 12, 'a1', '', 'BRAYAN G. MUNOZ', { origen: 'gmail', estado: 'por_revisar', ambitos: ['personal'] }),
-    mov('m3', '2026-10-11', 'gasto', 38.5, 'a2', 'c2', 'Pardos Chicken', { ambitos: ['m1'] }),
+    mov('m3', '2026-10-11', 'gasto', 38.5, 'a2', 'c2', 'Pardos Chicken', { descripcion: 'Cena con Ana', ambitos: ['m1'] }),
     mov('m4', '2026-10-09', 'gasto', 9.99, 'a2', 'c4', 'Netflix', { moneda: 'USD', tc: 3.75, monto_pen: 37.46, origen: 'gmail', ambitos: ['personal'] }),
     mov('m5', '2026-10-05', 'transferencia', 600, 'a1', '', '', { cuenta_destino_id: 'a2', descripcion: 'Pago de tarjeta', origen: 'gmail', ambitos: [] }),
     mov('m6', '2026-10-01', 'ingreso', 3500, 'a1', 'c6', 'Empresa Demo SAC', { ambitos: [] }),
+    mov('m7', '2026-10-12', 'gasto', 80, 'a1', 'c8', 'Diego Salas', { origen: 'gmail', ambitos: ['personal'] }),
+    mov('m8', '2026-10-08', 'ingreso', 50, 'a1', 'c9', 'Lucia Fernandez', { origen: 'gmail', ambitos: [] }),
+    mov('m9', '2026-10-11', 'gasto', -25, 'a1', 'c2', 'Pedro Vargas', { origen: 'gmail', descripcion: 'Su parte de la cena', ambitos: ['personal'] }),
   ];
   const POR_REVISAR = [
-    mov('r1', '2026-10-12', 'gasto', 12, 'a1', '', 'BRAYAN G. MUNOZ', { origen: 'gmail', estado: 'por_revisar' }),
+    mov('r1', '2026-10-12', 'gasto', 12, 'a1', '', 'BRAYAN G. MUNOZ', { origen: 'gmail', estado: 'por_revisar', descripcion: 'Pasaje de mamá' }),
     mov('r2', '2026-10-11', 'gasto', 24.47, '', '', 'CLARO', { origen: 'gmail', estado: 'por_revisar' }),
     mov('r3', '2026-10-10', 'transferencia', 290.26, 'a4', '', '', { origen: 'gmail', estado: 'por_revisar', descripcion: 'Transferencia entre mis cuentas' }),
+    mov('r4', '2026-10-13', 'ingreso', 50, 'a1', '', 'LUCIA FERNANDEZ R.', { origen: 'gmail', estado: 'por_revisar' }),
   ];
+  // Préstamos ficticios: uno vencido, uno para mañana, uno a mano y dos de la misma persona.
+  const prestamo = (id, persona, monto, fecha, fecha_promesa, dias, abonos, extra) => {
+    const abonado = abonos.reduce((t, a) => t + a.monto, 0);
+    return Object.assign({
+      id, persona, monto, fecha, fecha_promesa, nota: '', movimiento_id: 'm-' + id, estado: abonado >= monto ? 'pagado' : 'pendiente',
+      abonos: abonos.map((a, i) => Object.assign({ id: id + '-a' + i, movimiento_id: '' }, a)),
+      abonado, falta: Math.max(0, monto - abonado), vencido: dias !== null && dias < 0, dias,
+    }, extra || {});
+  };
+  const PRESTAMOS = {
+    pendientes: [
+      prestamo('p1', 'Lucía Fernández', 150, '2026-10-02', '2026-10-10', -6, [{ fecha: '2026-10-08', monto: 50, movimiento_id: 'm8' }], { nota: 'Para el pasaje' }),
+      prestamo('p2', 'Diego Salas', 80, '2026-10-12', '2026-10-17', 1, [], { movimiento_id: 'm7' }),
+      prestamo('p4', 'Lucía Fernández', 60, '2026-09-20', '2026-10-30', 14, []),
+      prestamo('p3', 'Carmen', 40, '2026-10-05', '', null, [{ fecha: '2026-10-09', monto: 10 }], { movimiento_id: '' }),
+    ],
+    pagados: [
+      prestamo('p5', 'Jorge Ríos', 200, '2026-09-01', '2026-09-15', -31, [{ fecha: '2026-09-10', monto: 100, movimiento_id: 'mx' }, { fecha: '2026-09-28', monto: 100 }]),
+    ],
+    total: 270,
+  };
   const ESTADO_LECTURA = { activa: true, frecuencia: '5', etiquetar: true, importar_desde: '2026-10-01', ultima_revision: '2026-10-13 10:00:00', info: '12 correos · 10 nuevos · 3 por revisar · 1.4 s', horario_inicio: 7, horario_fin: 24 };
   const DATOS = {
     estadoInstalacion: { instalado: true, modoDemo: false },
@@ -123,6 +155,9 @@
         { mes: '2026-09', ingresos: 3700, gastos: 2400 }, { mes: '2026-10', ingresos: 3500, gastos: 1842.3 },
       ],
       saldos: SALDOS,
+      prestamos: { total: 270, personas: [
+        { persona: 'Lucía Fernández', falta: 100, vencido: true }, { persona: 'Diego Salas', falta: 80, vencido: false },
+        { persona: 'Lucía Fernández', falta: 60, vencido: false }] },
       comercios: [
         { comercio: 'Tottus', monto: 318, veces: 5 }, { comercio: 'Pardos Chicken', monto: 159, veces: 3 },
         { comercio: 'Taxi', monto: 142, veces: 14 },
@@ -140,7 +175,7 @@
     obtenerPorRevisar: {
       movimientos: POR_REVISAR,
       pendientes: [{ id: 'p1', gmail_id: 'gm1', fecha: '2026-10-11', remitente: 'notificaciones@notificacionesbcp.com.pe', asunto: 'Realizaste un consumo con tu Tarjeta de Débito BCP', resumen: 'Hola Ana, hiciste una compra por S/ 15.00 en un comercio…', estado: 'pendiente' }],
-      categoriasFrecuentes: { gasto: ['c1', 'c3', 'c2', 'c5', 'c4', 'c7'], ingreso: ['c6'] },
+      categoriasFrecuentes: { gasto: ['c1', 'c3', 'c2', 'c5', 'c4', 'c7'], ingreso: ['c6', 'c9'] },
     },
     categorizarMovimiento: { confirmados: 2, regla: { id: 'r1', patron: 'BRAYAN G. MUNOZ', categoria_id: 'c3' } },
     obtenerDivisiones: [
@@ -162,7 +197,17 @@
     })(),
     volverALeerCorreos: { borrados: 3, leidos: 3, creados: 3, porRevisar: 1, pendientes: 0, ignorados: 0, restantes: 0, etiquetados: 3 },
     importarCorreosDesde: { leidos: 50, creados: 45, porRevisar: 6, pendientes: 1, ignorados: 2, restantes: 62, etiquetados: 46 },
-    listarReglas: [{ id: 'r1', patron: 'TOTTUS', categoria_id: 'c1', cuenta_id: '', creada_por: 'usuario', usos: 5 }],
+    listarReglas: [
+      { id: 'r1', patron: 'TOTTUS', categoria_id: 'c1', cuenta_id: '', creada_por: 'usuario', usos: 5, en_pausa: false },
+      { id: 'r2', patron: 'DIEGO SALAS', categoria_id: 'c8', cuenta_id: '', creada_por: 'usuario', usos: 2, en_pausa: true },
+    ],
+    obtenerPrestamos: PRESTAMOS,
+    guardarPrestamo: PRESTAMOS,
+    eliminarPrestamo: PRESTAMOS,
+    registrarAbono: PRESTAMOS,
+    saldarPrestamo: PRESTAMOS,
+    eliminarAbono: PRESTAMOS,
+    resolverReembolso: { movimiento: {} },
     eliminarRegla: { ok: true },
     // window.ESTADO_TELEGRAM permite ver los tres estados de la sección desde ver.js.
     estadoTelegram: () => window.ESTADO_TELEGRAM || { configurado: true, vinculado: true, bot: 'prueba_bot', url_receptor: 'https://script.google.com/macros/s/R/exec', codigo: '', enlace: '', hora_resumen: 21, cuenta_bot: '' },

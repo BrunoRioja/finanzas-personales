@@ -14,7 +14,7 @@ VISTAS.inicio = async function (cont) {
       bloquePresupuesto(d.presupuesto) +
       bloqueEnQueSeFue(d) +
       bloqueSaldos(d.saldos) +
-      bloqueTendencia(d.tendencia, d.mes) +
+      '<div class="area-tendencia pila-tablero">' + bloquePrestamos(d.prestamos) + bloqueTendencia(d.tendencia, d.mes) + '</div>' +
     '</div>';
   enlazarMes(cont);
   const franja = $('#ir-revisar');
@@ -23,6 +23,8 @@ VISTAS.inicio = async function (cont) {
   if (irPresupuestos) irPresupuestos.onclick = () => mostrar('presupuestos');
   const irFijos = $('#ir-pagos-fijos');
   if (irFijos) irFijos.onclick = () => mostrar('presupuestos');
+  const irPrestamos = $('#ir-prestamos');
+  if (irPrestamos) irPrestamos.onclick = () => { estado.irA = 'prestamos'; mostrar('presupuestos'); };
   enlazarEnQueSeFue(cont);
 };
 
@@ -213,9 +215,19 @@ function bloqueTendencia(meses, mesActual) {
   }).join('');
   const yProm = alto - promedio / max * (alto - 10);
   const linea = promedio ? '<line x1="0" x2="' + ancho + '" y1="' + yProm + '" y2="' + yProm + '" stroke-dasharray="4 4" style="stroke:var(--texto-2)" stroke-width="1"/>' : '';
-  return '<section class="tarjeta area-tendencia"><div class="etiqueta">Últimos 6 meses · <span class="pos">■</span> ingresos <span style="color:var(--primario)">■</span> gastos</div>' +
+  return '<section class="tarjeta"><div class="etiqueta">Últimos 6 meses · <span class="pos">■</span> ingresos <span style="color:var(--primario)">■</span> gastos</div>' +
     '<svg viewBox="0 0 ' + ancho + ' ' + (alto + 22) + '" width="100%" style="max-height:210px" role="img" aria-label="Ingresos y gastos de los últimos 6 meses">' + barras + linea + '</svg>' +
     (promedio ? '<div class="etiqueta">┄ Gasto promedio de los meses anteriores: <b class="num">' + dinero(promedio) + '</b></div>' : '') + '</section>';
+}
+
+// Te deben: hasta 3 personas (vencidos primero, como los ordena el servidor). Sin pendientes no aparece.
+function bloquePrestamos(p) {
+  if (!p || !p.total) return '';
+  const filas = p.personas.map(x => '<div class="fila-simple"><span>' + (x.vencido ? '<span class="alerta" title="Ya pasó la fecha prometida">⚠</span> ' : '') +
+    esc(x.persona) + '</span><span class="num' + (x.vencido ? ' alerta' : '') + '">' + dinero(x.falta) + '</span></div>').join('');
+  return '<section class="tarjeta te-deben"><div class="cabecera-seccion"><div class="etiqueta">Te deben</div>' +
+    '<div class="kpi num">' + dinero(p.total) + '</div></div>' + filas +
+    '<button type="button" class="enlace" id="ir-prestamos" style="padding:8px 0 0">Ver préstamos →</button></section>';
 }
 
 function bloqueSaldos(saldos) {

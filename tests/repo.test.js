@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 const { crearEntorno, crearLibro } = require('./harness');
 
-const HOJAS = ['Ambitos', 'Categorias', 'Config', 'Cuentas', 'Divisiones', 'EstadosCuenta', 'Log', 'Movimientos', 'Pendientes', 'Presupuestos', 'Recurrentes', 'Reglas'];
+const HOJAS = ['Abonos', 'Ambitos', 'Categorias', 'Config', 'Cuentas', 'Divisiones', 'EstadosCuenta', 'Log', 'Movimientos', 'Pendientes', 'Prestamos', 'Presupuestos', 'Recurrentes', 'Reglas'];
 
 test('crearHojas_ crea todas las hojas con encabezados y es idempotente', () => {
   const e = crearEntorno();

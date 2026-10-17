@@ -11,3 +11,11 @@ El bot vive en un segundo proyecto pequeño, el **receptor**: recibe los mensaje
 7. **Conecta.** En tu app, **Ajustes → Telegram**: pega el token y la URL del receptor y toca **Conectar**. Envía al bot el código que aparece (o toca **Abrir Telegram**) y luego **Ya lo envié**.
 
 Desde ese momento el bot solo atiende a tu chat. Para desconectarlo: **Ajustes → Telegram → Desconectar**.
+
+## Qué puedes hacer con el bot
+
+- `/hoy`, `/mes`, `/pagos`, `/deshacer` y `/ayuda`. Escribir `taxi 12 yape` registra un gasto.
+- `/prestamos`: lista quién te debe, cuánto falta y para cuándo quedó (los vencidos primero) y el total.
+- **Préstamos:** al categorizar un yapeo como préstamo, el bot pregunta para cuándo te lo devuelven (mañana, esta semana, fin de quincena, fin de mes o sin fecha). Si pusiste fecha, te avisa un día antes y el mismo día, junto con los recordatorios de pagos.
+- **Reembolsos:** cuando categorizas un ingreso como reembolso, el bot pregunta "¿De qué es este reembolso?": de un préstamo pendiente (queda como abono) o de una categoría de gasto (se resta de ese gasto).
+- **✏️ Descripción:** en los avisos de movimientos, el botón "✏️ Descripción" te pide un texto y lo guarda como descripción. También puedes **responder** a cualquier mensaje del bot sobre un movimiento (incluso uno viejo) con el texto. Una respuesta vacía borra la descripción; el máximo es de 100 caracteres. El comercio que leyó el correo no cambia.

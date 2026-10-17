@@ -2,6 +2,7 @@
 'use strict';
 VISTAS.revisar = async function (cont) {
   const d = await api('obtenerPorRevisar');
+  prestamosRevisar = null;
   const tarjetas = d.movimientos.map(m => tarjetaRevisar(m, d.categoriasFrecuentes)).join('');
   const pendientes = d.pendientes.map(tarjetaPendiente).join('');
   cont.innerHTML = '<div class="cabecera"><h1>Por revisar</h1><button type="button" class="boton" id="rv-volver">Ver movimientos</button></div>' +
@@ -21,12 +22,14 @@ function tarjetaRevisar(m, frecuentes) {
   const activas = cat.cuentas.filter(c => c.activa);
   const ids = [''].concat(activas.map(c => c.id));
   const nombres = ['Elige…'].concat(activas.map(c => c.nombre));
-  const titulo = m.comercio || m.descripcion || etiquetaTipoMov(m.tipo);
+  const titulo = m.titulo || etiquetaTipoMov(m.tipo);
+  // Debajo: el comercio si el título es la descripción propia; si no, una descripción automática.
+  const extra = m.subtitulo || (m.descripcion && m.descripcion !== m.titulo ? m.descripcion : '');
   let html = '<section class="tarjeta seccion" data-rv="' + esc(m.id) + '">' +
     '<div class="fila-simple" style="border:0;padding-top:0"><b>' + esc(titulo) + '</b><b class="num ' + (m.tipo === 'ingreso' ? 'pos' : '') + '">' +
     (m.tipo === 'ingreso' ? '+' : '') + dinero(m.monto, m.moneda) + '</b></div>' +
     '<div class="tenue" style="font-size:12px;margin-bottom:10px">📧 ' + esc(fechaLarga(m.fecha) + ' · ' + etiquetaTipoMov(m.tipo) + ' · ' +
-    (m.cuenta_id ? cuenta(m.cuenta_id).nombre : 'cuenta sin identificar') + (m.descripcion && m.comercio ? ' · ' + m.descripcion : '')) + '</div>';
+    (m.cuenta_id ? cuenta(m.cuenta_id).nombre : 'cuenta sin identificar') + (extra ? ' · ' + extra : '')) + '</div>';
   if (!m.cuenta_id) html += campo('¿De qué cuenta salió?', seleccion('rv-cta-' + m.id, ids, '', nombres));
   if (m.tipo === 'transferencia') {
     if (!m.cuenta_destino_id) html += campo('¿A qué cuenta llegó?', seleccion('rv-dst-' + m.id, ids, '', nombres));
@@ -36,10 +39,11 @@ function tarjetaRevisar(m, frecuentes) {
   const top = (frecuentes[m.tipo] || []).map(id => deTipo.find(c => c.id === id)).filter(Boolean);
   html += '<div class="chips">' + top.map(chipCategoria).join('') + '<button type="button" class="chip" data-otra>Otra…</button></div>' +
     '<div class="chips" data-todas hidden style="margin-top:6px">' + deTipo.filter(c => top.indexOf(c) < 0).map(chipCategoria).join('') + '</div>';
+  if (m.tipo === 'ingreso') html += '<div data-reemb-caja hidden></div>';
   if (m.tipo === 'gasto') html += '<div class="etiqueta" style="margin-top:10px">Ámbito</div>' + chipsAmbito(m.ambito_id);
   if (m.comercio) {
-    html += '<label class="check" style="margin-top:10px"><input type="checkbox" data-recordar checked> Recordar la categoría para:</label>' +
-      '<input class="entrada" data-patron value="' + esc(mayusculasSinTildes(m.comercio)) + '" aria-label="Texto del comercio a recordar">';
+    html += '<div data-recordar-caja><label class="check" style="margin-top:10px"><input type="checkbox" data-recordar checked> Recordar la categoría para:</label>' +
+      '<input class="entrada" data-patron value="' + esc(mayusculasSinTildes(m.comercio)) + '" aria-label="Texto del comercio a recordar"></div>';
   }
   return html + '<div class="acciones"><button type="button" class="boton" data-dividir>✂️ Dividir</button>' +
     '<button type="button" class="boton primario" data-guardar>Guardar</button></div></section>';
@@ -55,14 +59,16 @@ function enlazarTarjetaRevisar(t, m) {
     const recordar = t.querySelector('[data-recordar]');
     const patron = t.querySelector('[data-patron]');
     const texto = boton.textContent;
+    const rol = categoriaId ? rolCategoria(categoriaId) : '';
     boton.disabled = true;
     boton.textContent = 'Guardando…';
     try {
-      const r = await api('categorizarMovimiento', {
+      // Las categorías con rol no crean reglas (el servidor tampoco): cada caso pasa por su flujo.
+      const r = await api('categorizarMovimiento', Object.assign({
         id: m.id, categoria_id: categoriaId || '', ambito_id: ambitoElegido, cuenta_id: valor('rv-cta-' + m.id), cuenta_destino_id: valor('rv-dst-' + m.id),
-        recordar: !!(recordar && recordar.checked), patron: patron ? patron.value : '',
-      });
-      aviso(r.confirmados > 1 ? r.confirmados + ' movimientos confirmados' : 'Movimiento confirmado');
+        recordar: !rol && !!(recordar && recordar.checked), patron: patron ? patron.value : '',
+      }, rol === 'reembolso' ? reembolso : {}));
+      aviso(avisoCategorizado(r, rol, rol === 'reembolso' ? reembolso : null));
       mostrar('revisar');
     } catch (err) {
       aviso(err.message, true);
@@ -72,16 +78,35 @@ function enlazarTarjetaRevisar(t, m) {
   };
   // Elegir una categoría solo la marca; se guarda con el botón, para poder desmarcar "Recordar" antes.
   let elegida = '';
+  let reembolso = null;
+  const cajaReembolso = t.querySelector('[data-reemb-caja]');
+  const cajaRecordar = t.querySelector('[data-recordar-caja]');
   const chips = t.querySelectorAll('[data-cat]');
   chips.forEach(b => {
-    b.onclick = () => {
+    b.onclick = async () => {
       chips.forEach(c => c.classList.toggle('activo', c === b));
       elegida = b.dataset.cat;
+      const rol = rolCategoria(elegida);
+      if (cajaRecordar) cajaRecordar.hidden = !!rol;
+      if (!cajaReembolso) return;
+      cajaReembolso.hidden = rol !== 'reembolso';
+      if (rol !== 'reembolso' || cajaReembolso.dataset.listo) return;
+      cajaReembolso.innerHTML = '<div class="reembolso-de tenue">Cargando préstamos…</div>';
+      try {
+        if (!prestamosRevisar) prestamosRevisar = await api('obtenerPrestamos');
+        cajaReembolso.innerHTML = selectorReembolso(prestamosRevisar.pendientes, m.comercio || m.descripcion, null);
+        cajaReembolso.dataset.listo = '1';
+        enlazarSelectorReembolso(cajaReembolso, v => { reembolso = v; });
+      } catch (err) {
+        cajaReembolso.innerHTML = '';
+        aviso(err.message, true);
+      }
     };
   });
   const guardar = t.querySelector('[data-guardar]');
   if (guardar) guardar.onclick = () => {
     if (!elegida) { aviso('Primero elige una categoría.', true); return; }
+    if (rolCategoria(elegida) === 'reembolso' && !reembolso) { aviso('Elige de qué es el reembolso.', true); return; }
     confirmar(guardar, elegida);
   };
   const boton = t.querySelector('[data-confirmar]');
@@ -92,6 +117,55 @@ function enlazarTarjetaRevisar(t, m) {
     if (!m.cuenta_id && !cuentaElegida) { aviso('Primero elige la cuenta.', true); return; }
     abrirDividir(Object.assign({}, m, { ambito_id: ambitoElegido }, cuentaElegida ? { cuenta_id: cuentaElegida } : {}));
   };
+}
+
+function avisoCategorizado(r, rol, reembolso) {
+  if (r.abono) return 'Abono registrado · ' + (r.abono.pagado ? '¡préstamo pagado! ✓' : 'falta ' + dinero(r.abono.falta));
+  if (reembolso && reembolso.reembolso_de) return 'Reembolso restado de ' + categoria(reembolso.reembolso_de).nombre;
+  if (rol === 'prestamo') return 'Préstamo anotado: ponle la fecha prometida en Presupuestos';
+  return r.confirmados > 1 ? r.confirmados + ' movimientos confirmados' : 'Movimiento confirmado';
+}
+
+// Préstamos de la pantalla Por revisar: se piden una vez, al primer reembolso que se elige.
+let prestamosRevisar = null;
+
+// "¿De qué es este reembolso?" (Por revisar y formulario de movimiento): el abono de un
+// préstamo pendiente o la devolución de un gasto (el ingreso pasa a gasto negativo en esa
+// categoría). Primero los préstamos de la misma persona, como prestamosSugeridos_ del servidor.
+function palabrasPersona(t) { return mayusculasSinTildes(t).replace(/\./g, '').split(' ').filter(Boolean); }
+function mismaPersona(a, b) {
+  const pa = palabrasPersona(a);
+  const pb = palabrasPersona(b);
+  if (!pa.length || !pb.length) return false;
+  const n = pa.length === 1 || pb.length === 1 ? 1 : 2;
+  return pa.slice(0, n).join(' ') === pb.slice(0, n).join(' ');
+}
+function prestamosSugeridos(pendientes, comercio) {
+  const porFecha = (a, b) => (a.fecha < b.fecha ? 1 : a.fecha > b.fecha ? -1 : 0);
+  return pendientes.filter(p => mismaPersona(p.persona, comercio)).sort(porFecha)
+    .concat(pendientes.filter(p => !mismaPersona(p.persona, comercio)).sort(porFecha));
+}
+// `elegido`: { prestamo_id } o { reembolso_de } ya marcado, o null.
+function selectorReembolso(prestamos, comercio, elegido) {
+  const gastos = estado.catalogos.categorias.filter(c => c.tipo === 'gasto' && c.activa && !c.rol);
+  const chip = (clave, id, texto) => '<button type="button" class="chip' + (elegido && elegido[clave] === id ? ' activo' : '') +
+    '" data-reemb="' + clave + '" data-reemb-id="' + esc(id) + '">' + esc(texto) + '</button>';
+  const sugeridos = prestamosSugeridos(prestamos, comercio);
+  return '<div class="reembolso-de"><b>¿De qué es este reembolso?</b>' +
+    '<div class="etiqueta">Abono de un préstamo</div>' + (sugeridos.length
+      ? '<div class="chips">' + sugeridos.map(p => chip('prestamo_id', p.id, '🤝 ' + p.persona + ' · falta ' + dinero(p.falta))).join('') + '</div>'
+      : '<p class="tenue">No tienes préstamos pendientes.</p>') +
+    '<div class="etiqueta">Te devolvieron parte de un gasto (se resta de esa categoría)</div>' +
+    '<div class="chips">' + gastos.map(c => chip('reembolso_de', c.id, c.emoji + ' ' + c.nombre)).join('') + '</div></div>';
+}
+function enlazarSelectorReembolso(raiz, alElegir) {
+  const chips = raiz.querySelectorAll('[data-reemb]');
+  chips.forEach(b => {
+    b.onclick = () => {
+      chips.forEach(c => c.classList.toggle('activo', c === b));
+      alElegir({ [b.dataset.reemb]: b.dataset.reembId });
+    };
+  });
 }
 
 function tarjetaPendiente(p) {

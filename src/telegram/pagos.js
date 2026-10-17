@@ -108,11 +108,15 @@ function recordarPagos() {
     const elegidos = proximosPagosDeHoy_().pagos.filter(p =>
       (p.dias === 0 || p.dias === DIAS_AVISO_PREVIO) && yaRecordados.indexOf(clavePago_(p)) < 0 &&
       (p.tipo === 'recurrente' || monedasTarjeta_(p).some(x => x[0].estado !== 'pagado')));
-    if (!elegidos.length) return;
+    const prestamos = listaPrestamos_(leerTabla_('Prestamos'), leerTabla_('Abonos'), hoy).pendientes.filter(p =>
+      (p.dias === 0 || p.dias === 1) && p.falta > 0 && yaRecordados.indexOf(clavePrestamo_(p)) < 0);
+    if (!elegidos.length && !prestamos.length) return;
+    const textos = [];
+    if (elegidos.length) textos.push(textoRecordatorio_(elegidos.filter(p => p.dias === 0), elegidos.filter(p => p.dias === DIAS_AVISO_PREVIO)));
+    if (prestamos.length) textos.push(textoRecordatorioPrestamos_(prestamos.filter(p => p.dias === 0), prestamos.filter(p => p.dias === 1)));
     const app = botonApp_(props.getProperty('APP_URL') || '');
-    enviarMensaje_(textoRecordatorio_(elegidos.filter(p => p.dias === 0), elegidos.filter(p => p.dias === DIAS_AVISO_PREVIO)),
-      app.length ? [app] : null);
-    guardarPagosRecordados_(registro, hoy, yaRecordados.concat(elegidos.map(clavePago_)));
+    enviarMensaje_(textos.join('\n\n'), app.length ? [app] : null);
+    guardarPagosRecordados_(registro, hoy, yaRecordados.concat(elegidos.map(clavePago_), prestamos.map(clavePrestamo_)));
   } catch (e) {
     registrarAvisoTelegram_(e);
   }

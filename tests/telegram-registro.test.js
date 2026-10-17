@@ -86,6 +86,26 @@ test('una hoja v4 se migra al recibir un gasto escrito por el webhook', () => {
   e.interno('guardarConfig_', { version_esquema: 4 });
   e.escribir('taxi 12 yape');
   assert.strictEqual(e.movsBot().length, 1);
-  assert.strictEqual(e.interno('leerConfig_').version_esquema, '5');
+  assert.strictEqual(e.interno('leerConfig_').version_esquema, '6');
   assert.strictEqual(e.filas('Ambitos').length, 4);
+});
+
+test('"juan 200 yape prestamos" crea el gasto y el préstamo a "juan"; /deshacer borra ambos', () => {
+  const e = entorno();
+  e.escribir('juan 200 yape prestamos');
+  const [m] = e.movsBot();
+  assert.deepStrictEqual([m.categoria_id, m.estado], [e.categoria('Préstamos'), 'confirmado']);
+  const p = e.filas('Prestamos');
+  assert.deepStrictEqual(p.map(x => [x.persona, x.monto, x.movimiento_id]), [['juan', 200, m.id]]);
+  e.escribir('/deshacer');
+  assert.strictEqual(e.movsBot().length, 0);
+  assert.strictEqual(e.filas('Prestamos').length, 0);
+});
+
+test('"+ juan 50 reembolsos" queda por revisar sin categoría', () => {
+  const e = entorno();
+  e.escribir('+ juan 50 reembolsos');
+  const [m] = e.movsBot();
+  assert.deepStrictEqual([m.tipo, m.categoria_id, m.estado], ['ingreso', '', 'por_revisar']);
+  assert.strictEqual(e.filas('Abonos').length, 0);
 });

@@ -80,3 +80,15 @@ test('dividir un movimiento sin cuenta exige elegirla y la guarda', () => {
   assert.strictEqual(final.cuenta_id, e.cuenta('Débito BCP'));
   assert.strictEqual(final.estado, 'confirmado');
 });
+
+test('no se puede dividir con una parte en Préstamos o Reembolsos, ni un gasto negativo, ni un movimiento con rol', () => {
+  const e = conGasto();
+  const sup = e.categoria('Supermercado');
+  const falla = (id, partes, patron) => assert.throws(() => e.interno('dividirMovimiento', { id, partes }), patron);
+  falla(e.mov.id, [{ categoria_id: sup, monto: 40 }, { categoria_id: e.categoria('Préstamos'), monto: 49.3 }], /Los préstamos y reembolsos no se dividen\./);
+  const neg = e.llamar('guardarMovimiento', { fecha: '2026-10-06', tipo: 'gasto', monto: -20, cuenta_id: e.cuenta('Débito BCP'), categoria_id: sup });
+  falla(neg.id, [{ categoria_id: sup, monto: -10 }, { categoria_id: sup, monto: -10 }], /Un reembolso no se divide\./);
+  const pr = e.llamar('guardarMovimiento', { fecha: '2026-10-06', tipo: 'gasto', monto: 100, cuenta_id: e.cuenta('Débito BCP'), categoria_id: e.categoria('Préstamos'), comercio: 'Ana' });
+  falla(pr.id, [{ categoria_id: sup, monto: 60 }, { categoria_id: sup, monto: 40 }], /Los préstamos y reembolsos no se dividen\./);
+  assert.strictEqual(e.filas('Divisiones').length, 0);
+});

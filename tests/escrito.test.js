@@ -108,3 +108,12 @@ test('un ingreso ignora los ámbitos', () => {
 test('sin ctx.ambitos sigue funcionando', () => {
   assert.strictEqual(leer('taxi 12 yape', { ambitos: undefined }).ambito_id, '');
 });
+
+test('una regla hacia una categoría con rol se ignora', () => {
+  const categorias = CATEGORIAS.concat([{ id: 'ca-prest', nombre: 'Préstamos', tipo: 'gasto', activa: true, rol: 'prestamo' }]);
+  const reglas = [{ id: 're-juan', patron: 'JUAN', categoria_id: 'ca-prest' }];
+  const r = leer('juan 200 yape', { categorias, reglas });
+  assert.deepStrictEqual([r.categoria_id, r.regla_id], ['', '']);
+  const sinRol = categorias.map(c => Object.assign({}, c, { rol: '' }));
+  assert.strictEqual(leer('juan 200 yape', { categorias: sinRol, reglas }).categoria_id, 'ca-prest');
+});

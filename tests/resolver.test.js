@@ -84,3 +84,14 @@ test('reglaPara_ compara sin tildes ni mayúsculas', () => {
   assert.strictEqual(e.llamar('reglaPara_', '', [{ id: 'a', patron: 'TOTTUS' }]), null);
   assert.strictEqual(e.llamar('reglaPara_', 'METRO', [{ id: 'a', patron: 'TOTTUS' }]), null);
 });
+
+test('una regla hacia la categoría de préstamos no categoriza: el yapeo queda por revisar; sin el rol vuelve a categorizar', () => {
+  const e = crearEntorno();
+  const categorias = CTX.categorias.concat([{ id: 'prest', tipo: 'gasto', activa: true, rol: 'prestamo' }]);
+  const reglas = [{ id: 'r9', patron: 'JUAN PRUEBA', categoria_id: 'prest' }];
+  const sinRol = categorias.map(c => (c.id === 'prest' ? { id: 'prest', tipo: 'gasto', activa: true, rol: '' } : c));
+  const m = e.llamar('resolverMovimiento_', crudo({ comercio: 'Juan Prueba' }), Object.assign({}, CTX, { categorias, reglas }));
+  assert.deepStrictEqual([m.estado, m.categoria_id, m.regla_id], ['por_revisar', '', '']);
+  const m2 = e.llamar('resolverMovimiento_', crudo({ comercio: 'Juan Prueba' }), Object.assign({}, CTX, { categorias: sinRol, reglas }));
+  assert.deepStrictEqual([m2.estado, m2.categoria_id, m2.regla_id], ['confirmado', 'prest', 'r9']);
+});
