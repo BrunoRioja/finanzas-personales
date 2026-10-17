@@ -139,3 +139,16 @@ test('importar una hoja v0.9 trae Prestamos y Abonos', () => {
   assert.deepStrictEqual(e.filas('Prestamos'), a.filas('Prestamos'));
   assert.deepStrictEqual(e.filas('Abonos'), a.filas('Abonos'));
 });
+
+test('importar una hoja v0.8 con "Préstamos" desactivada la reusa y reactiva con su rol, sin duplicar', () => {
+  const hojas = hojaV08();
+  const enc = hojas.Categorias[0];
+  hojas.Categorias.slice(1).forEach(f => {
+    if (f[enc.indexOf('nombre')] === 'Préstamo') { f[enc.indexOf('nombre')] = 'Préstamos'; f[enc.indexOf('activa')] = false; }
+  });
+  const e = copiaNueva(hojas);
+  e.llamar('importarHojaAnterior', ID_ANTERIOR);
+  const prest = e.filas('Categorias').filter(c => /^Pr[eé]stamo/.test(c.nombre));
+  assert.deepStrictEqual(prest.map(c => [c.nombre, c.rol, c.activa]), [['Préstamos', 'prestamo', true]]);
+  assert.strictEqual(Number(e.llamar('leerConfig_').version_esquema), 6);
+});

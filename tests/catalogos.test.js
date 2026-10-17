@@ -60,7 +60,7 @@ test('completarAsistente acepta categorías propias y valida sin crear nada si f
   assert.deepStrictEqual(Object.keys(e.hojas), []);
 
   e.llamar('completarAsistente', Object.assign({}, ASISTENTE, { categorias: [{ nombre: 'Comida', emoji: '🍔', tipo: 'gasto' }, { nombre: 'Sueldo', emoji: '💼', tipo: 'ingreso' }] }));
-  assert.deepStrictEqual(e.llamar('obtenerCatalogos').categorias.map(c => c.nombre), ['Comida', 'Sueldo']);
+  assert.deepStrictEqual(e.llamar('obtenerCatalogos').categorias.map(c => c.nombre), ['Comida', 'Sueldo', 'Préstamos'], 'se agrega la de préstamos');
 });
 
 test('completarAsistente no se puede repetir', () => {

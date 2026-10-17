@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const { crearEntorno } = require('./harness');
-const { entornoInstalado } = require('./fixtures');
+const { ASISTENTE, entornoInstalado } = require('./fixtures');
 
 test('normalizarCategoria_ valida el rol', () => {
   const e = crearEntorno();
@@ -86,4 +86,43 @@ test('guardarCategoria conserva el rol al editar sin enviarlo y lo quita con rol
   e.llamar('guardarCategoria', { id: id, nombre: 'Préstamos a amigos', emoji: '🤝', tipo: 'gasto', rol: '' });
   c = e.filas('Categorias').find(x => x.id === id);
   assert.strictEqual(c.rol, '');
+});
+
+// El asistente web envía las categorías elegidas como { nombre, emoji, tipo, rol }; un cliente
+// viejo (o una lista propia) puede no traer el rol.
+function instalarCon(categorias) {
+  const e = crearEntorno();
+  e.llamar('completarAsistente', Object.assign({}, ASISTENTE, { categorias }));
+  return e.llamar('leerTabla_', 'Categorias');
+}
+
+test('completarAsistente con las categorías del cliente deja Préstamos y Reembolsos con su rol, envíe o no el rol', () => {
+  const base = crearEntorno().llamar('datosAsistente').categorias;
+  const conRol = base.map(c => ({ nombre: c.nombre, emoji: c.emoji, tipo: c.tipo, rol: c.rol || '' }));
+  const sinRol = base.map(c => ({ nombre: c.nombre, emoji: c.emoji, tipo: c.tipo }));
+  [conRol, sinRol].forEach(lista => {
+    const cats = instalarCon(lista);
+    assert.strictEqual(cats.length, base.length);
+    assert.strictEqual(cats.find(c => c.nombre === 'Préstamos').rol, 'prestamo');
+    assert.strictEqual(cats.find(c => c.nombre === 'Reembolsos').rol, 'reembolso');
+    assert.strictEqual(cats.filter(c => c.rol).length, 2);
+  });
+});
+
+test('completarAsistente con una lista propia sin categoría de préstamos crea "Préstamos 🤝"', () => {
+  const cats = instalarCon([{ nombre: 'Comida', emoji: '', tipo: 'gasto' }, { nombre: 'Sueldo', emoji: '', tipo: 'ingreso' }]);
+  const p = cats.filter(c => c.rol === 'prestamo');
+  assert.deepStrictEqual(p.map(c => [c.nombre, c.emoji, c.tipo, c.activa]), [['Préstamos', '🤝', 'gasto', true]]);
+  assert.strictEqual(cats.length, 3);
+});
+
+test('migrar a esquema 6 con "Préstamos" y "Reembolsos" desactivadas las reusa y reactiva, sin duplicar', () => {
+  const e = libroV5([
+    { nombre: 'Préstamos', tipo: 'gasto', activa: false },
+    { nombre: 'Reembolsos', tipo: 'ingreso', activa: false },
+  ]);
+  e.llamar('estadoInstalacion');
+  assert.strictEqual(Number(e.interno('leerConfig_').version_esquema), 6);
+  const cats = e.filas('Categorias');
+  assert.deepStrictEqual(cats.map(c => [c.nombre, c.rol, c.activa]), [['Préstamos', 'prestamo', true], ['Reembolsos', 'reembolso', true]]);
 });

@@ -51,6 +51,7 @@ function completarAsistente(datos) {
     crearHojas_(libro);
     agregarFilas_('Cuentas', cuentas);
     agregarFilas_('Categorias', categorias);
+    asegurarRolesPrestamo_(); // una lista propia (o un cliente que no envía el rol) también queda con sus roles
     asegurarAmbitos_();
     guardarConfig_({
       nombre: nombre, moneda_principal: 'PEN', ultimo_tc: tc, modo_bot: 'B', hora_resumen: '21:00',

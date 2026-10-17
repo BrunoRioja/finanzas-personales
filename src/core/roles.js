@@ -15,16 +15,19 @@ function categoriaConRol_(categorias, rol) {
 }
 
 // Dentro del bloqueo: marca las categorías existentes por su nombre o crea la de préstamos. Idempotente.
+// Prefiere una activa; si la del nombre está desactivada, la reactiva (crear otra con el mismo
+// nombre fallaría y dejaría la migración trabada).
 function asegurarRolesPrestamo_() {
   const categorias = leerTabla_('Categorias');
   Object.keys(ROLES_CATEGORIA).forEach(rol => {
     if (categoriaConRol_(categorias, rol)) return;
     const tipo = ROLES_CATEGORIA[rol];
-    const candidata = categorias.filter(c => c.activa !== false && c.tipo === tipo &&
-      NOMBRES_ROL[rol].indexOf(normalizarTexto_(c.nombre)) >= 0)[0];
+    const porNombre = categorias.filter(c => c.tipo === tipo && NOMBRES_ROL[rol].indexOf(normalizarTexto_(c.nombre)) >= 0);
+    const candidata = porNombre.filter(c => c.activa !== false)[0] || porNombre[0];
     if (candidata) {
-      actualizarFila_('Categorias', candidata.id, { rol: rol });
+      actualizarFila_('Categorias', candidata.id, { rol: rol, activa: true });
       candidata.rol = rol;
+      candidata.activa = true;
     } else if (rol === 'prestamo') {
       const nueva = Object.assign({ id: nuevoId_() }, normalizarCategoria_(
         { nombre: 'Préstamos', emoji: '🤝', tipo: 'gasto', rol: 'prestamo' }, categorias, ''));
