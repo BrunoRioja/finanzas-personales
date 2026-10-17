@@ -232,6 +232,7 @@ function migrarSiHaceFalta_() {
   if (Number(leerConfig_().version_esquema) >= VERSION_ESQUEMA) return false;
   migrarEsquema_(libro);
   asegurarAmbitos_();
+  asegurarRolesPrestamo_();
   guardarConfig_({ version_esquema: VERSION_ESQUEMA });
   return true;
 }

@@ -89,7 +89,7 @@ test('el resumen diario migra una hoja v4 antes de leer los ámbitos', () => {
   e.interno('guardarConfig_', { version_esquema: 4 });
   e.llamar('enviarResumenDiario');
   assert.strictEqual(e.filas('Log').filter(l => l.origen === 'enviarResumenDiario').length, 0);
-  assert.strictEqual(e.interno('leerConfig_').version_esquema, '5');
+  assert.strictEqual(e.interno('leerConfig_').version_esquema, '6');
   assert.strictEqual(e.filas('Ambitos').length, 4);
   assert.match(e.ultimoEnviado().text, /Tottus/);
 });

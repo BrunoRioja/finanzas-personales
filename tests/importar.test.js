@@ -43,7 +43,7 @@ test('importa todas las tablas con sus ids, la configuración elegida y deja la 
   assert.strictEqual(config.nombre, 'Ana');
   assert.strictEqual(config.ultimo_tc, '3.75');
   assert.strictEqual(config.horario_inicio, '8');
-  assert.strictEqual(config.version_esquema, '5');
+  assert.strictEqual(config.version_esquema, '6');
   assert.strictEqual(config.instalado, 'si');
   assert.strictEqual(config.importar_desde, undefined);
   assert.strictEqual(config.lectura_activa, undefined);

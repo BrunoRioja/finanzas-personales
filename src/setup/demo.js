@@ -22,7 +22,7 @@ function generarDatosDemo_(hoyIso) {
     { id: 'demo-efectivo', nombre: 'Efectivo', banco: 'Efectivo', tipo: 'efectivo', moneda: 'PEN', saldo_inicial: 150, numeros: '', activa: true, yape: false },
   ];
   const categorias = CATEGORIAS_POR_DEFECTO.map((c, i) => ({
-    id: 'demo-cat-' + (i + 1), nombre: c[0], emoji: c[1], color: PALETA[i % PALETA.length], tipo: c[2], padre_id: '', activa: true,
+    id: 'demo-cat-' + (i + 1), nombre: c[0], emoji: c[1], color: PALETA[i % PALETA.length], tipo: c[2], padre_id: '', activa: true, rol: c[3] || '',
   }));
   const ambitos = [
     ambitoPersonal_(),

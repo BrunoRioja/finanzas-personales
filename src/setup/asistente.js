@@ -5,7 +5,7 @@ function datosAsistente() {
     bancos: BANCOS,
     tiposCuenta: TIPOS_CUENTA,
     monedas: MONEDAS,
-    categorias: CATEGORIAS_POR_DEFECTO.map(c => ({ nombre: c[0], emoji: c[1], tipo: c[2] })),
+    categorias: CATEGORIAS_POR_DEFECTO.map(c => ({ nombre: c[0], emoji: c[1], tipo: c[2], rol: c[3] || '' })),
   };
 }
 

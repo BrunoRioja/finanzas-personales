@@ -86,6 +86,6 @@ test('una hoja v4 se migra al recibir un gasto escrito por el webhook', () => {
   e.interno('guardarConfig_', { version_esquema: 4 });
   e.escribir('taxi 12 yape');
   assert.strictEqual(e.movsBot().length, 1);
-  assert.strictEqual(e.interno('leerConfig_').version_esquema, '5');
+  assert.strictEqual(e.interno('leerConfig_').version_esquema, '6');
   assert.strictEqual(e.filas('Ambitos').length, 4);
 });
