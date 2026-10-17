@@ -8,6 +8,7 @@ function estadoVersion() {
   return {
     actual: VERSION_APP, repo: URL_REPO,
     cambios: URL_REPO + '/blob/main/CHANGELOG.md', actualizar: URL_REPO + '/blob/main/docs/actualizar.md',
+    adaptarBanco: URL_REPO + '/blob/main/docs/adaptar-con-claude.md#antes-de-actualizar',
   };
 }
 

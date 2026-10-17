@@ -82,7 +82,9 @@ function textoActualizacion(r) {
   const enlace = (url, texto) => '<a href="' + esc(url) + '" target="_blank" rel="noopener">' + esc(texto) + '</a>';
   if (r.error) return 'No pude consultar GitHub. Intenta más tarde.';
   if (!r.hayNueva) return '✓ Tienes la última versión (' + esc(r.actual) + ').';
-  return '🎉 Hay una versión nueva (' + esc(r.ultima) + '). ' + enlace(r.cambios, 'Novedades') + ' · ' + enlace(r.actualizar, 'Cómo actualizar');
+  return '🎉 Hay una versión nueva (' + esc(r.ultima) + '). ' + enlace(r.cambios, 'Novedades') + ' · ' + enlace(r.actualizar, 'Cómo actualizar') +
+    '<br>Si adaptaste la lectura de correos de tu banco, al actualizar se pierde ese cambio: pídele a tu Claude que lo vuelva a aplicar. ' +
+    enlace(r.adaptarBanco, 'Cómo hacerlo');
 }
 
 function enlazarAcercaDe() {

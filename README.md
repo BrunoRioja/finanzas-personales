@@ -13,7 +13,7 @@ App de finanzas personales que vive en **tu propia cuenta de Google**: lee los c
 |---|---|
 | ![Inicio en laptop](docs/img/dashboard-laptop.png) | ![Inicio en celular](docs/img/dashboard-movil.png) |
 
-## Qué hace (v0.8)
+## Qué hace (v0.9)
 
 - **Lee los correos de tu banco** (BCP y Yape): consumos con débito y crédito en S/ y $, PLIN, yapeos enviados y recibidos, transferencias, pagos de tarjeta y de servicios. Lo que no sabe categorizar va a una bandeja "Por revisar" y se resuelve con un toque.
 - **Bot de Telegram:** te pregunta solo por las compras que no reconoce, registra lo que escribes (`taxi 12 yape`), responde `/hoy`, `/mes`, `/pagos` y `/deshacer`, y te manda un resumen al final del día.
@@ -21,9 +21,18 @@ App de finanzas personales que vive en **tu propia cuenta de Google**: lee los c
 - **Presupuestos por categoría:** con lo del mes pasado como referencia; el Inicio muestra cuánto llevas y el bot te avisa al 80 % y al 100 %.
 - **Próximos pagos:** lee el estado de cuenta de tu tarjeta (total, mínimo y fecha límite en S/ y $), sabe qué parte ya pagaste y te recuerda tus pagos fijos y la tarjeta 3 días antes y el mismo día.
 - **Dashboard y movimientos:** gasto del mes con ritmo diario y proyección a fin de mes; ingresos, ahorro y tasa; saldos con total neto; "¿En qué se fue?" por categoría, ámbito o comercio; tendencia de 6 meses con promedio; dividir una compra entre categorías.
+- **Préstamos a familia y amigos:** al categorizar un yapeo como préstamo, el bot pregunta para cuándo te lo devuelven, te recuerda un día antes y el mismo día, y anotas abonos parciales o "ya me pagó todo". Prestar y que te devuelvan no infla tus gastos ni tus ingresos. Tarjeta "Te deben" en el Inicio y `/prestamos` en el bot.
+- **Reembolsos de gastos compartidos:** si un amigo te yapea su parte de una cena, el bot pregunta "¿de qué es este reembolso?" y lo resta de esa categoría en vez de contarlo como ingreso.
+- **Descripción propia desde el bot:** botón "✏️ Descripción" (o responde al aviso) para poner "compras de la semana" sin abrir la web.
 - **Instalación con "Hacer una copia"**, actualización importando tus datos y **modo demo** con datos ficticios.
 
 <img src="docs/img/presupuestos-movil.png" alt="Presupuestos y pagos fijos" width="320">
+
+## ¿Tu banco no aparece? Adáptalo con Claude
+
+La app lee los correos de BCP y Yape. Si usas otro banco, puedes pedirle a **tu propio Claude** que revise tus correos y adapte **tu copia**, sin programar y sin compartir nada: [docs/adaptar-con-claude.md](docs/adaptar-con-claude.md) trae el texto para pegarle.
+
+> ⚠️ **Al actualizar se pierde ese cambio.** Tus datos se conservan, pero el lector que Claude escribió vive solo en tu copia. La guía le pide a Claude que lo guarde aparte para que lo vuelva a aplicar después.
 
 ## Cómo funciona
 
@@ -51,6 +60,8 @@ Todo corre en tu cuenta de Google: Apps Script lee tus correos, guarda en tu hoj
 | v0.5 | Presupuestos por categoría y avisos por Telegram | ✅ |
 | v0.6 | Próximos pagos: estado de cuenta de la tarjeta y pagos recurrentes | ✅ |
 | v0.7 | Plantilla "Hacer una copia" y pulido del README | ✅ |
+| v0.8 | Ámbitos de gasto e Inicio rediseñado | ✅ |
+| v0.9 | Préstamos, reembolsos, descripción desde el bot y guía para adaptar tu banco con Claude | ✅ |
 
 ## Instalación
 
@@ -85,7 +96,7 @@ Más detalle en [docs/arquitectura.md](docs/arquitectura.md) y el diseño comple
 
 ## Calidad y desarrollo
 
-- **Pruebas:** unas 250 pruebas con `node:test` sobre un arnés (`tests/harness.js`) que simula Sheets, Gmail, Telegram, triggers, propiedades y caché, así que todo el flujo (correo → movimiento → aviso por Telegram) se prueba sin tocar Google.
+- **Pruebas:** más de 350 pruebas con `node:test` sobre un arnés (`tests/harness.js`) que simula Sheets, Gmail, Telegram, triggers, propiedades y caché, así que todo el flujo (correo → movimiento → aviso por Telegram) se prueba sin tocar Google.
 - **Correos reales anonimizados** como casos de prueba de cada lector.
 - **CI** en GitHub Actions (pruebas + ESLint) en cada push.
 - **Interfaz revisada en Chrome** a 390 px y 1280 px con datos simulados.

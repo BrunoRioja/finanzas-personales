@@ -1,6 +1,6 @@
 {
   "name": "finanzas-personales",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "private": true,
   "description": "App de finanzas personales autoalojada en Google Apps Script + Google Sheets",
   "license": "MIT",

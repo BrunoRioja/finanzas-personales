@@ -2,6 +2,24 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/); versiones con [SemVer](https://semver.org/lang/es/).
 
+## [0.9.0] — 2026-10-17
+
+### Agregado
+- Préstamos a familia y amigos. Las categorías ganan un rol ("Es préstamo" y "Es devolución / reembolso", en Ajustes): lo que se registra ahí no cuenta como gasto ni como ingreso, aunque sí mueve el saldo de tus cuentas. Los gastos, la tasa de ahorro, la tendencia y los presupuestos ya no se inflan al prestar ni al recibir la devolución.
+- Presupuestos → Préstamos: quién te debe, cuánto falta y la fecha prometida; abonos parciales, "Ya me pagó todo", préstamos a mano e historial de pagados. El Inicio muestra la tarjeta "Te deben".
+- Bot: al categorizar un yapeo como préstamo pregunta para cuándo te lo devuelven; `/prestamos`; recordatorio un día antes y el mismo día.
+- Reembolsos de gastos compartidos: al categorizar un ingreso como reembolso, el selector "¿De qué es este reembolso?" lo aplica a un préstamo (abono) o lo resta de una categoría de gasto (gasto con monto negativo).
+- Bot: botón "✏️ Descripción" y responder a un mensaje para cambiar la descripción de un movimiento. Si hay descripción propia, se muestra como título y el comercio debajo.
+- Guía [docs/adaptar-con-claude.md](docs/adaptar-con-claude.md): cómo pedirle a tu Claude que adapte tu copia al correo de tu banco, con un texto para copiar y pegar.
+- Ajustes → Acerca de: cuando hay una versión nueva, avisa que el lector de un banco adaptado se pierde al actualizar y enlaza la guía.
+- Datos demo con préstamos y un reembolso de cena.
+
+### Cambiado
+- Esquema 6 (migración automática): hojas nuevas Prestamos y Abonos y columna `rol` en Categorias. "Reembolsos" recibe el rol de reembolso, una categoría "Préstamo(s)" el de préstamo (o se crea "Préstamos 🤝"). Lo registrado antes en esas categorías deja de contar como gasto o ingreso.
+- Las reglas "Recordar" hacia una categoría con rol quedan en pausa: el movimiento pasa por Por revisar para elegir la fecha o el "¿de qué?".
+- Las barras de presupuesto ya no bajan de 0 cuando una categoría solo tiene reembolsos.
+- Importar una hoja anterior trae también los préstamos y abonos, y aplica los roles si la hoja es de una versión previa.
+
 ## [0.8.0] — 2026-10-14
 
 ### Agregado

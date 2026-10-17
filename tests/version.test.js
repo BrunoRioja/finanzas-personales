@@ -4,6 +4,7 @@ const { crearEntorno } = require('./harness');
 const paquete = require('../package.json');
 
 const REPO = 'https://github.com/BrunoRioja/finanzas-personales';
+const ADAPTAR = REPO + '/blob/main/docs/adaptar-con-claude.md#antes-de-actualizar';
 
 test('la versión de la app es la del package.json', () => {
   const e = crearEntorno();
@@ -24,6 +25,7 @@ test('estadoVersion no consulta GitHub', () => {
   const e = crearEntorno();
   assert.deepStrictEqual(e.llamar('estadoVersion'), {
     actual: paquete.version, repo: REPO, cambios: REPO + '/blob/main/CHANGELOG.md', actualizar: REPO + '/blob/main/docs/actualizar.md',
+    adaptarBanco: ADAPTAR,
   });
   assert.strictEqual(e.github.llamadas, 0);
 });
@@ -33,7 +35,7 @@ test('buscarActualizacion consulta GitHub cada vez que se pide y avisa si hay un
   e.github.version = '9.0.0';
   assert.deepStrictEqual(e.llamar('buscarActualizacion'), {
     actual: paquete.version, repo: REPO, cambios: REPO + '/blob/main/CHANGELOG.md', actualizar: REPO + '/blob/main/docs/actualizar.md',
-    ultima: '9.0.0', hayNueva: true, error: false,
+    adaptarBanco: ADAPTAR, ultima: '9.0.0', hayNueva: true, error: false,
   });
   e.github.version = paquete.version;
   const r = e.llamar('buscarActualizacion');
@@ -49,4 +51,9 @@ test('con GitHub caído buscarActualizacion no lanza y lo dice', () => {
   assert.strictEqual(r.error, true);
   assert.strictEqual(r.hayNueva, false);
   assert.strictEqual(r.ultima, '');
+});
+
+test('estadoVersion trae el enlace adaptarBanco a la sección "Antes de actualizar"', () => {
+  const e = crearEntorno();
+  assert.strictEqual(e.llamar('estadoVersion').adaptarBanco, ADAPTAR);
 });
