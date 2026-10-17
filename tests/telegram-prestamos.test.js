@@ -192,3 +192,58 @@ test('un "Sí, recordar" viejo sobre un préstamo no crea regla ni rompe', () =>
   assert.match(e.ultimoEditado().text, /\n✓ 🤝 Préstamos( · 🙋 Personal)?$/);
   assert.strictEqual(e.llamadas('sendMessage').filter(m => /No pude/.test(m.text)).length, 0);
 });
+
+// Fila de Prestamos directa, con fecha prometida (hoy de las pruebas: 2026-10-13).
+function prestamoDirecto(e, id, persona, monto, promesa, extra) {
+  e.interno('agregarFilas_', 'Prestamos', [Object.assign({
+    id, persona, monto, fecha: '2026-10-05', fecha_promesa: promesa, movimiento_id: '', estado: 'pendiente', nota: '',
+    creado_en: '2026-10-05 10:00:00',
+  }, extra)]);
+}
+
+test('/prestamos lista pendientes con total, vencidos marcados', () => {
+  const e = entornoBot();
+  e.escribir('/prestamos');
+  assert.strictEqual(e.ultimoEnviado().text, 'Nadie te debe nada 🙌');
+  prestamoDirecto(e, 'pr1', 'Juan Prueba', 200, '2026-10-23');
+  prestamoDirecto(e, 'pr2', 'Ana <Ejemplo>', 80, '2026-10-11');
+  prestamoDirecto(e, 'pr3', 'Luis Muestra', 70, '');
+  e.interno('agregarFilas_', 'Abonos', [{ id: 'ab1', prestamo_id: 'pr1', fecha: '2026-10-09', monto: 50, movimiento_id: '' }]);
+  e.escribir('/prestamos');
+  assert.strictEqual(e.ultimoEnviado().text, [
+    '🤝 <b>Te deben S/ 300.00</b>',
+    '• Ana &lt;Ejemplo&gt; · falta S/ 80.00 · ⚠ venció dom 11/10',
+    '• Juan Prueba · falta S/ 150.00 · vence vie 23/10',
+    '• Luis Muestra · falta S/ 70.00',
+  ].join('\n'));
+});
+
+test('/ayuda menciona /prestamos', () => {
+  const e = entornoBot();
+  e.escribir('/ayuda');
+  assert.match(e.ultimoEnviado().text, /\/prestamos — quién te debe/);
+});
+
+test('recordatorio: un día antes y el mismo día, sin repetir si el trigger corre dos veces', () => {
+  const e = entornoBot();
+  prestamoDirecto(e, 'pr1', 'Juan Prueba', 200, '2026-10-14');
+  e.limpiarTelegram();
+  e.llamar('recordarPagos');
+  e.llamar('recordarPagos');
+  assert.strictEqual(e.enviados().length, 1);
+  assert.strictEqual(e.ultimoEnviado().text, '🤝 <b>Préstamos</b>\nMañana Juan Prueba quedó en devolverte S/ 200.00');
+  e.fijarAhora('2026-10-14T08:00:00');
+  e.llamar('recordarPagos');
+  e.llamar('recordarPagos');
+  assert.strictEqual(e.enviados().length, 2);
+  assert.strictEqual(e.ultimoEnviado().text, '🤝 <b>Préstamos</b>\nHoy Juan Prueba quedó en devolverte S/ 200.00');
+});
+
+test('un préstamo pagado o sin fecha no se recuerda', () => {
+  const e = entornoBot();
+  prestamoDirecto(e, 'pr1', 'Juan Prueba', 200, '2026-10-14', { estado: 'pagado' });
+  prestamoDirecto(e, 'pr2', 'Ana Ejemplo', 80, '');
+  e.limpiarTelegram();
+  e.llamar('recordarPagos');
+  assert.strictEqual(e.enviados().length, 0);
+});

@@ -103,6 +103,8 @@ function manejarComando_(texto) {
       return enviarMensaje_(resumenDelMes_(mesDe_(hoyIso_())));
     case '/pagos':
       return enviarMensaje_(textoPagos_(proximosPagosDeHoy_()));
+    case '/prestamos':
+      return enviarMensaje_(textoPrestamos_(listaPrestamos_(leerTabla_('Prestamos'), leerTabla_('Abonos'), hoyIso_())));
     case '/deshacer':
       return deshacerUltimo_();
     default:

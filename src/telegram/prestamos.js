@@ -50,3 +50,26 @@ function textoAbono_(r) {
   const persona = escaparHtml_(r.prestamo.persona);
   return r.pagado ? '✓ ' + persona + ' te pagó todo 🎉' : '✓ Abono de <b>' + persona + '</b> · faltan ' + formatoMonto_(r.falta, 'PEN');
 }
+
+function cuandoPrestamo_(p) {
+  if (!p.fecha_promesa) return '';
+  const fecha = diaSemana_(p.fecha_promesa) + ' ' + fechaCorta_(p.fecha_promesa);
+  return p.vencido ? ' · ⚠ venció ' + fecha : ' · vence ' + fecha;
+}
+
+// lista = listaPrestamos_(…)
+function textoPrestamos_(lista) {
+  if (!lista.pendientes.length) return 'Nadie te debe nada 🙌';
+  return ['🤝 <b>Te deben ' + formatoMonto_(lista.total, 'PEN') + '</b>'].concat(lista.pendientes.map(p =>
+    '• ' + escaparHtml_(p.persona) + ' · falta ' + formatoMonto_(p.falta, 'PEN') + cuandoPrestamo_(p))).join('\n');
+}
+
+// hoy y manana = pendientes de listaPrestamos_ con dias 0 y 1.
+function textoRecordatorioPrestamos_(hoy, manana) {
+  const linea = cuando => p => cuando + ' ' + escaparHtml_(p.persona) + ' quedó en devolverte ' + formatoMonto_(p.falta, 'PEN');
+  return ['🤝 <b>Préstamos</b>'].concat(hoy.map(linea('Hoy')), manana.map(linea('Mañana'))).join('\n');
+}
+
+function clavePrestamo_(p) {
+  return 'pre:' + p.id + ':' + p.fecha_promesa;
+}
