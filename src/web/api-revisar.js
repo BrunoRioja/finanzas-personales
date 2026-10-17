@@ -33,9 +33,12 @@ function categorizarMovimiento(datos) {
     const mov = movs.filter(m => m.id === datos.id)[0];
     if (!mov) throw new Error('El movimiento ya no existe.');
     const cuentas = leerTabla_('Cuentas');
+    const categorias = leerTabla_('Categorias');
     const cambios = { estado: 'confirmado' };
-    if (mov.tipo !== 'transferencia') {
-      const categoria = buscarActiva_(leerTabla_('Categorias'), datos.categoria_id, 'La categoría');
+    // "Reembolso de un gasto": el ingreso pasa a gasto negativo en esa categoría (no lleva categoría propia).
+    const reembolsoDe = mov.tipo !== 'transferencia' && datos.reembolso_de ? datos.reembolso_de : '';
+    if (mov.tipo !== 'transferencia' && !reembolsoDe) {
+      const categoria = buscarActiva_(categorias, datos.categoria_id, 'La categoría');
       if (categoria.tipo !== mov.tipo) throw new Error('La categoría "' + categoria.nombre + '" no es de ' + mov.tipo + '.');
       cambios.categoria_id = categoria.id;
       if (datos.ambito_id !== undefined) {
@@ -44,27 +47,46 @@ function categorizarMovimiento(datos) {
     }
     if (datos.cuenta_id) cambios.cuenta_id = buscarActiva_(cuentas, datos.cuenta_id, 'La cuenta').id;
     if (datos.cuenta_destino_id) cambios.cuenta_destino_id = buscarActiva_(cuentas, datos.cuenta_destino_id, 'La cuenta destino').id;
+    Object.assign(cambios, cambiosParaConfirmar_(Object.assign({}, mov, cambios)));
     const final = Object.assign({}, mov, cambios);
-    if (!final.cuenta_id) throw new Error('Elige la cuenta del movimiento.');
-    if (final.tipo === 'transferencia' && !final.cuenta_destino_id) throw new Error('Elige la cuenta destino.');
-    if (final.tipo === 'transferencia' && final.cuenta_id === final.cuenta_destino_id) throw new Error('La cuenta destino debe ser distinta de la de origen.');
-    if (final.moneda !== 'PEN' && !(final.tc > 0)) {
-      const tc = Number(leerConfig_().ultimo_tc) || 0;
-      if (!tc) throw new Error('Configura el tipo de cambio en Ajustes para confirmar un movimiento en ' + final.moneda + '.');
-      Object.assign(cambios, { tc: tc, monto_pen: redondear2_(final.monto * tc), descripcion: '' });
+    const r = { confirmados: 1, regla: null };
+    if (reembolsoDe) {
+      r.movimiento = reembolsoComoGasto_(final, reembolsoDe);
+      return r;
     }
+    const rol = cambios.categoria_id ? rolDe_(categorias, cambios.categoria_id) : '';
+    if (rol === 'reembolso') {
+      if (!datos.prestamo_id) throw new Error('Elige de qué es el reembolso.');
+      validarAbonoConMovimiento_(final, datos.prestamo_id);
+    }
+    sincronizarPrestamos_(mov, final);
     actualizarFila_('Movimientos', mov.id, cambios);
-    let confirmados = 1;
-    let regla = null;
-    if (datos.recordar && mov.tipo !== 'transferencia' && mov.comercio) {
-      const r = recordarComercio_(movs, mov, datos.patron, cambios.categoria_id);
-      regla = r.regla;
-      confirmados += r.confirmados;
+    if (rol === 'reembolso') r.abono = abonarConMovimiento_(final, datos.prestamo_id);
+    if (rol === 'prestamo') r.prestamo = prestamoDeMovimiento_(mov.id);
+    // No se recuerdan comercios hacia categorías con rol: cada caso pasa por su flujo.
+    if (datos.recordar && !rol && mov.tipo !== 'transferencia' && mov.comercio) {
+      const rec = recordarComercio_(movs, mov, datos.patron, cambios.categoria_id);
+      r.regla = rec.regla;
+      r.confirmados += rec.confirmados;
     }
-    return { confirmados: confirmados, regla: regla };
+    return r;
   });
   revisarPresupuestos_();
   return resultado;
+}
+
+// Valida las cuentas de `final` y completa el tipo de cambio que falte para confirmarlo.
+// Devuelve los cambios extra (vacío si no hay).
+function cambiosParaConfirmar_(final) {
+  if (!final.cuenta_id) throw new Error('Elige la cuenta del movimiento.');
+  if (final.tipo === 'transferencia' && !final.cuenta_destino_id) throw new Error('Elige la cuenta destino.');
+  if (final.tipo === 'transferencia' && final.cuenta_id === final.cuenta_destino_id) throw new Error('La cuenta destino debe ser distinta de la de origen.');
+  if (final.moneda !== 'PEN' && !(final.tc > 0)) {
+    const tc = Number(leerConfig_().ultimo_tc) || 0;
+    if (!tc) throw new Error('Configura el tipo de cambio en Ajustes para confirmar un movimiento en ' + final.moneda + '.');
+    return { tc: tc, monto_pen: redondear2_(final.monto * tc), descripcion: '' };
+  }
+  return {};
 }
 
 // Dentro del bloqueo: crea o actualiza la regla del comercio y confirma los demás

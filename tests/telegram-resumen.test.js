@@ -98,7 +98,7 @@ test('/mes y el resumen diario no suman préstamos ni reembolsos, pero el diario
   const e = entornoBot();
   gasto(e, { monto: 100, comercio: 'Tottus' });
   gasto(e, { monto: 200, categoria_id: e.categoria('Préstamos'), comercio: 'Juan' });
-  e.llamar('guardarMovimiento', { fecha: '2026-10-13', tipo: 'ingreso', monto: 50, cuenta_id: e.cuenta('Débito BCP'), categoria_id: e.categoria('Reembolsos'), comercio: 'Juan' });
+  e.llamar('guardarMovimiento', { fecha: '2026-10-13', tipo: 'ingreso', monto: 50, cuenta_id: e.cuenta('Débito BCP'), categoria_id: e.categoria('Reembolsos'), comercio: 'Juan', prestamo_id: e.filas('Prestamos')[0].id });
   e.escribir('/hoy');
   const hoy = e.ultimoEnviado().text;
   assert.match(hoy, /^📊 <b>Hoy · S\/ 100\.00 en gastos<\/b>\n\n/);
