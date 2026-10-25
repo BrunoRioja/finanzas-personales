@@ -8,3 +8,5 @@ node_modules/
 !docs/img/*.png
 receptor/appsscript.json
 plantilla/src/
+brag-output*/
+.claude/settings.local.json
