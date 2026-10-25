@@ -3,7 +3,7 @@
 [![CI](https://github.com/BrunoRioja/finanzas-personales/actions/workflows/ci.yml/badge.svg)](https://github.com/BrunoRioja/finanzas-personales/actions/workflows/ci.yml)
 ![Licencia MIT](https://img.shields.io/badge/licencia-MIT-7c5cff)
 
-> **EN —** Self-hosted personal finance app built on Google Apps Script + Google Sheets. Each person runs their own copy in their own Google account: no servers, no shared data. It reads bank notification emails (BCP, Yape), has a Telegram bot that only asks about what it doesn't recognize, tracks monthly budgets and upcoming card and fixed payments. Install it with one "Make a copy" click. Gemini (receipts) is future work.
+> **EN —** Self-hosted personal finance app built on Google Apps Script + Google Sheets. Each person runs their own copy in their own Google account: no servers, no shared data. It reads bank notification emails (BCP, Yape, Scotiabank, Sip), has a Telegram bot that only asks about what it doesn't recognize, tracks monthly budgets and upcoming card and fixed payments. Install it with one "Make a copy" click. Gemini (receipts) is future work.
 
 https://github.com/user-attachments/assets/440b9768-16e0-4ed1-96ac-be9e70cb3a4f
 
@@ -15,9 +15,9 @@ App de finanzas personales que vive en **tu propia cuenta de Google**: lee los c
 |---|---|
 | ![Inicio en laptop](docs/img/dashboard-laptop.png) | ![Inicio en celular](docs/img/dashboard-movil.png) |
 
-## Qué hace (v0.9)
+## Qué hace (v0.10)
 
-- **Lee los correos de tu banco** (BCP y Yape): consumos con débito y crédito en S/ y $, PLIN, yapeos enviados y recibidos, transferencias, pagos de tarjeta y de servicios. Lo que no sabe categorizar va a una bandeja "Por revisar" y se resuelve con un toque.
+- **Lee los correos de tu banco** (BCP, Yape, Scotiabank y Sip): consumos con débito y crédito en S/ y $, PLIN, yapeos enviados y recibidos, transferencias, pagos de tarjeta y de servicios. Lo que no sabe categorizar va a una bandeja "Por revisar" y se resuelve con un toque.
 - **Bot de Telegram:** te pregunta solo por las compras que no reconoce, registra lo que escribes (`taxi 12 yape`), responde `/hoy`, `/mes`, `/pagos` y `/deshacer`, y te manda un resumen al final del día.
 - **Ámbitos de gasto** (Personal, Diversión, Familia, Trabajo), editables, con análisis en el Inicio.
 - **Presupuestos por categoría:** con lo del mes pasado como referencia; el Inicio muestra cuánto llevas y el bot te avisa al 80 % y al 100 %.
@@ -32,7 +32,7 @@ App de finanzas personales que vive en **tu propia cuenta de Google**: lee los c
 
 ## ¿Tu banco no aparece? Adáptalo con Claude
 
-La app lee los correos de BCP y Yape. Si usas otro banco, puedes pedirle a **tu propio Claude** que revise tus correos y adapte **tu copia**, sin programar y sin compartir nada: [docs/adaptar-con-claude.md](docs/adaptar-con-claude.md) trae el texto para pegarle.
+La app lee los correos de BCP, Yape, Scotiabank y Sip. Si usas otro banco, puedes pedirle a **tu propio Claude** que revise tus correos y adapte **tu copia**, sin programar y sin compartir nada: [docs/adaptar-con-claude.md](docs/adaptar-con-claude.md) trae el texto para pegarle.
 
 > ⚠️ **Al actualizar se pierde ese cambio.** Tus datos se conservan, pero el lector que Claude escribió vive solo en tu copia. La guía le pide a Claude que lo guarde aparte para que lo vuelva a aplicar después.
 
@@ -64,6 +64,7 @@ Todo corre en tu cuenta de Google: Apps Script lee tus correos, guarda en tu hoj
 | v0.7 | Plantilla "Hacer una copia" y pulido del README | ✅ |
 | v0.8 | Ámbitos de gasto e Inicio rediseñado | ✅ |
 | v0.9 | Préstamos, reembolsos, descripción desde el bot y guía para adaptar tu banco con Claude | ✅ |
+| v0.10 | Lectura de correos de Scotiabank y Sip, y pagos de servicio con Yape | ✅ |
 
 ## Instalación
 

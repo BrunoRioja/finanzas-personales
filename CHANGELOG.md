@@ -2,6 +2,17 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/); versiones con [SemVer](https://semver.org/lang/es/).
 
+## [0.10.0] — 2026-10-25
+
+### Agregado
+- Lectura de correos de **Sip**: consumos con la tarjeta de crédito, pagos a comercios desde la app y transferencias entre tus cuentas (tarjeta de débito → AhorraMás).
+- Lectura de correos de **Scotiabank**: constancias de transferencia a otro banco y por Plin, como gasto de la cuenta de origen (si el destino era una cuenta tuya, se corrige en Por revisar).
+- Yape: pagos de servicio ("Tu servicio fue yapeado con éxito").
+- "Sip" en la lista de bancos de las cuentas.
+
+### Cambiado
+- Los avisos que no traen número de cuenta (los de la app de Sip) se asignan a la única cuenta activa de ese banco y tipo; si hay dos o más, quedan en Por revisar.
+
 ## [0.9.0] — 2026-10-17
 
 ### Agregado

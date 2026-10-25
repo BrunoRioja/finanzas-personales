@@ -95,3 +95,21 @@ test('una regla hacia la categoría de préstamos no categoriza: el yapeo queda 
   const m2 = e.llamar('resolverMovimiento_', crudo({ comercio: 'Juan Prueba' }), Object.assign({}, CTX, { categorias: sinRol, reglas }));
   assert.deepStrictEqual([m2.estado, m2.categoria_id, m2.regla_id], ['confirmado', 'prest', 'r9']);
 });
+
+test('cuenta por banco y tipo cuando el correo no trae número (Sip)', () => {
+  const e = crearEntorno();
+  const cuentas = [
+    { id: 'sipdeb', nombre: 'Sip', banco: 'Sip', tipo: 'debito', numeros: '', activa: true },
+    { id: 'sipaho', nombre: 'AhorraMás', banco: 'SIP', tipo: 'ahorro', numeros: '', activa: true },
+    { id: 'bcpdeb', nombre: 'BCP', banco: 'BCP', tipo: 'debito', numeros: '1111', activa: true },
+  ];
+  const sinNumero = { numero_origen: '', banco: 'Sip', tipo_origen: 'debito', comercio: 'Tottus' };
+  const gasto = resolver(e, sinNumero, { cuentas });
+  assert.deepStrictEqual([gasto.cuenta_id, gasto.estado], ['sipdeb', 'confirmado']);
+  const transf = resolver(e, Object.assign({}, sinNumero, { tipo: 'transferencia', tipo_destino: 'ahorro' }), { cuentas });
+  assert.deepStrictEqual([transf.cuenta_id, transf.cuenta_destino_id, transf.estado], ['sipdeb', 'sipaho', 'confirmado']);
+  // Dos cuentas del mismo banco y tipo: no se adivina, queda por revisar.
+  const dos = cuentas.concat([{ id: 'sipdeb2', nombre: 'Sip 2', banco: 'Sip', tipo: 'debito', numeros: '', activa: true }]);
+  const ambiguo = resolver(e, sinNumero, { cuentas: dos });
+  assert.deepStrictEqual([ambiguo.cuenta_id, ambiguo.estado], ['', 'por_revisar']);
+});

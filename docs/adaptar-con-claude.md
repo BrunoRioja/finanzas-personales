@@ -1,6 +1,6 @@
 # Adaptar la app a tu banco con Claude
 
-La app viene preparada para los correos de **BCP y Yape**. Si usas otro banco (o el formato de tus correos es distinto), no necesitas esperar a nadie: puedes pedirle a **tu propio Claude** que revise tus correos y adapte **tu copia** de la app. No hace falta saber programar, y no tienes que compartir nada con el autor ni subir nada a GitHub.
+La app viene preparada para los correos de **BCP, Yape, Scotiabank y Sip**. Si usas otro banco (o el formato de tus correos es distinto), no necesitas esperar a nadie: puedes pedirle a **tu propio Claude** que revise tus correos y adapte **tu copia** de la app. No hace falta saber programar, y no tienes que compartir nada con el autor ni subir nada a GitHub.
 
 > **Ojo con las actualizaciones.** Lo que Claude adapte vive solo en tu copia. Cuando [actualices a una versión nueva](actualizar.md) se reemplaza la copia por la plantilla nueva: tus **datos no se pierden** (se importan), pero **el lector de tu banco sí**. Por eso el texto de abajo le pide a Claude que lo guarde aparte. Mira la sección [Antes de actualizar](#antes-de-actualizar).
 
@@ -17,7 +17,7 @@ Copia todo el bloque, cambia **[TU BANCO]** por el nombre de tu banco y pégalo 
 ```text
 Quiero que adaptes mi copia de la app "Finanzas personales" (Google Apps Script + Google Sheets,
 código abierto en https://github.com/BrunoRioja/finanzas-personales) para que lea los correos de
-notificación de mi banco: [TU BANCO]. La app hoy solo entiende BCP y Yape.
+notificación de mi banco: [TU BANCO]. La app hoy entiende BCP, Yape, Scotiabank y Sip.
 
 Haz esto, en orden:
 
