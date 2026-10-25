@@ -116,7 +116,7 @@ function seccionLectura(l) {
     ? '<div class="resultado-lectura ' + resultadoLectura.clase + '" id="l-resultado">' + esc(resultadoLectura.texto) +
       (resultadoLectura.verRevisar ? ' <button type="button" class="boton" id="l-ver-revisar">Ver por revisar</button>' : '') + '</div>'
     : '<div class="resultado-lectura" id="l-resultado" hidden></div>';
-  return '<section class="tarjeta seccion"><div class="etiqueta">Lectura de correos (BCP y Yape)</div>' +
+  return '<section class="tarjeta seccion"><div class="etiqueta">Lectura de correos (BCP, Yape, Scotiabank y Sip)</div>' +
     '<p class="tenue" style="margin:0 0 10px;font-size:13px">' + esc(estadoTexto) + '</p>' + resultado +
     '<div class="dos-col">' +
       campo('Frecuencia', seleccion('l-frec', FRECUENCIAS.map(f => f[0]), String(l.frecuencia), FRECUENCIAS.map(f => f[1]))) +

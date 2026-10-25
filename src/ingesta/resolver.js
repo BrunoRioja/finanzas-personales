@@ -14,8 +14,14 @@ function reglaPara_(comercio, reglas) {
 function resolverMovimiento_(crudo, ctx) {
   const activas = ctx.cuentas.filter(c => c.activa);
   const porNumero = n => (n ? activas.filter(c => numerosDe_(c).indexOf(n) >= 0)[0] || null : null);
-  const origen = crudo.usa_yape ? activas.filter(c => c.yape)[0] || null : porNumero(crudo.numero_origen);
-  const destino = crudo.tipo === 'transferencia' ? porNumero(crudo.numero_destino) : null;
+  // Correos sin número (Sip): la única cuenta activa de ese banco y tipo; si hay varias, no se adivina.
+  const porTipo = t => {
+    const delBanco = activas.filter(c => normalizarTexto_(c.banco) === normalizarTexto_(crudo.banco) && c.tipo === t);
+    return delBanco.length === 1 ? delBanco[0] : null;
+  };
+  const cuenta = (n, t) => (t ? porTipo(t) : porNumero(n));
+  const origen = crudo.usa_yape ? activas.filter(c => c.yape)[0] || null : cuenta(crudo.numero_origen, crudo.tipo_origen);
+  const destino = crudo.tipo === 'transferencia' ? cuenta(crudo.numero_destino, crudo.tipo_destino) : null;
   const tc = crudo.moneda === 'PEN' ? 1 : Number(crudo.tc || ctx.tcUsd) || 0;
   const mov = {
     fecha: crudo.fecha, tipo: crudo.tipo, monto: crudo.monto, moneda: crudo.moneda, tc: tc,

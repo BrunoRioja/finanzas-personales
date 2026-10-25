@@ -12,6 +12,16 @@ test('yapeo enviado: gasto de la cuenta de Yape, comercio = beneficiario', () =>
   });
 });
 
+test('pago de servicio con Yape: gasto de la cuenta de Yape, comercio = empresa', () => {
+  const e = crearEntorno();
+  const c = correo(e, 'yape-servicio.html', { remitente: YAPE, asunto: 'Tu yapeo de servicio ha sido confirmado' });
+  assert.deepStrictEqual(e.llamar('leerCorreoYape_', c), {
+    crudo: { tipo: 'gasto', monto: 81, moneda: 'PEN', comercio: 'Luz Prueba', usa_yape: true, fecha: '2026-10-06', ref_externa: 'gmail:yape-servicio' },
+  });
+  assert.deepStrictEqual(e.llamar('leerCorreoYape_', { id: 'x', remitente: YAPE, asunto: 'Tu yapeo de servicio ha sido confirmado', texto: '¡Tu servicio fue yapeado con éxito! sin datos', fecha: '2026-10-06' }),
+    { pendiente: 'No se pudo leer el pago de servicio con Yape.' });
+});
+
 test('Yape: otro remitente o correo sin yapeo → null; yapeo ilegible → pendiente', () => {
   const e = crearEntorno();
   assert.strictEqual(e.llamar('leerCorreoYape_', correo(e, 'yape-enviado.html', { remitente: 'encuestas@postventa.yape.com.pe' })), null);
@@ -24,5 +34,5 @@ test('leerCorreoBancario_ usa el primer lector que reconoce el correo', () => {
   assert.strictEqual(e.llamar('leerCorreoBancario_', correo(e, 'yape-enviado.html', { remitente: YAPE, asunto: ASUNTOS.yape })).crudo.comercio, 'CARLOS PRUEBA R.');
   assert.strictEqual(e.llamar('leerCorreoBancario_', correo(e, 'debito.html', { asunto: ASUNTOS.debito })).crudo.comercio, 'TOTTUS PRUEBA SUR');
   assert.strictEqual(e.llamar('leerCorreoBancario_', correo(e, 'debito.html', { remitente: 'otro@banco.com', asunto: ASUNTOS.debito })), null);
-  assert.deepStrictEqual(e.llamar('remitentesBancarios_'), ['notificacionesbcp.com.pe', 'yape.pe']);
+  assert.deepStrictEqual(e.llamar('remitentesBancarios_'), ['notificacionesbcp.com.pe', 'yape.pe', 'servicioalcliente.sip.pe', 'operaciones.agora.pe', 'scotiabank.com.pe']);
 });

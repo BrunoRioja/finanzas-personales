@@ -2,7 +2,7 @@
 
 Tu copia no cambia sola: así nadie (ni el autor) puede modificar el código que corre en tu cuenta. Para saber si hay una versión nueva, toca **Ajustes → Acerca de → Buscar actualizaciones** (o mira las [novedades](../CHANGELOG.md)).
 
-> **Si adaptaste la lectura de correos de tu banco** (por ejemplo con [Claude](adaptar-con-claude.md)), al actualizar se pierde ese cambio: la copia nueva trae solo BCP y Yape. Guarda el lector antes y pídele a tu Claude que lo vuelva a aplicar: [Antes de actualizar](adaptar-con-claude.md#antes-de-actualizar). Tus datos sí se conservan.
+> **Si adaptaste la lectura de correos de tu banco** (por ejemplo con [Claude](adaptar-con-claude.md)), al actualizar se pierde ese cambio: la copia nueva trae solo los bancos que vienen de fábrica (BCP, Yape, Scotiabank y Sip). Guarda el lector antes y pídele a tu Claude que lo vuelva a aplicar: [Antes de actualizar](adaptar-con-claude.md#antes-de-actualizar). Tus datos sí se conservan.
 
 ## Vía plantilla
 

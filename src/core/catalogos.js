@@ -2,7 +2,7 @@
 // cuentas y categorías.
 
 const TIPOS_CUENTA = ['debito', 'credito', 'ahorro', 'billetera', 'efectivo'];
-const BANCOS = ['BCP', 'Interbank', 'BBVA', 'Scotiabank', 'Banco de la Nación', 'Yape', 'Plin', 'Efectivo', 'Otro'];
+const BANCOS = ['BCP', 'Interbank', 'BBVA', 'Scotiabank', 'Banco de la Nación', 'Sip', 'Yape', 'Plin', 'Efectivo', 'Otro'];
 const MONEDAS = ['PEN', 'USD'];
 const PALETA = ['#3ddc97', '#ffb347', '#7c5cff', '#4cc9f0', '#ff6b6b', '#f72585', '#b5e48c', '#ffd166'];
 
